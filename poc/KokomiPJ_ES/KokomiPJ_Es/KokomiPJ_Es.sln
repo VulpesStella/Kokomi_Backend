@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35707.178
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KokomiPJ_Es", "KokomiPJ_Es.csproj", "{306A2224-9D45-4156-A754-2AD7B2A3124D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "0001_UI", "0001_UI", "{2ED62BC8-1C43-47E6-BC9B-124BE1AC72D9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "0002_BLL", "0002_BLL", "{C831A46D-4DFA-41D1-ABEB-1E5417F6CEDD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KokomiPJ_Es_BLL", "..\KokomiPJ_Es_BLL\KokomiPJ_Es_BLL.csproj", "{A8C2297A-8BA1-4B47-90B9-1EA71F1A8AE2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{306A2224-9D45-4156-A754-2AD7B2A3124D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{306A2224-9D45-4156-A754-2AD7B2A3124D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{306A2224-9D45-4156-A754-2AD7B2A3124D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{306A2224-9D45-4156-A754-2AD7B2A3124D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8C2297A-8BA1-4B47-90B9-1EA71F1A8AE2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8C2297A-8BA1-4B47-90B9-1EA71F1A8AE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8C2297A-8BA1-4B47-90B9-1EA71F1A8AE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8C2297A-8BA1-4B47-90B9-1EA71F1A8AE2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{306A2224-9D45-4156-A754-2AD7B2A3124D} = {2ED62BC8-1C43-47E6-BC9B-124BE1AC72D9}
+		{A8C2297A-8BA1-4B47-90B9-1EA71F1A8AE2} = {C831A46D-4DFA-41D1-ABEB-1E5417F6CEDD}
+	EndGlobalSection
+EndGlobal
