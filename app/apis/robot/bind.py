@@ -29,6 +29,12 @@ class BindAPI:
     
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
+    async def getUser(platform: str, user_id: str):
+        result = await BotUserModel.user_status(platform, user_id)
+        return result
+    
+    @staticmethod
+    @ExceptionLogger.handle_program_exception_async
     async def getBindList(platform: str, user_id: str):
         result = await BotUserModel.get_user_bind_list(platform, user_id)
         return result

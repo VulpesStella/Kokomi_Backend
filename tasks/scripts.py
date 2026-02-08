@@ -187,8 +187,9 @@ def refresh_user(user_id: dict):
                 cursor.execute(
                     sql,
                     [
-                        user_data['is_enabled'], user_data['activity_level'], user_data['is_public'], user_data['total_battles'],
-                        user_data['pvp_battles'], user_data['ranked_battles'], user_data['last_battle_at'], account_id
+                        user_data['is_enabled'], user_data['activity_level'], user_data['is_public'], 
+                        user_data['total_battles'], user_data['pvp_battles'], user_data['ranked_battles'], 
+                        user_data['last_battle_at'] if user_data['last_battle_at'] != 0 else None, account_id
                     ]
                 )
             else:
@@ -198,6 +199,10 @@ def refresh_user(user_id: dict):
                         is_enabled = %s, 
                         activity_level = %s, 
                         is_public = %s, 
+                        total_battles = 0, 
+                        pvp_battles = 0, 
+                        ranked_battles = 0,
+                        last_battle_at = NULL,
                         touch_at = CURRENT_TIMESTAMP 
                     WHERE account_id = %s;
                 """

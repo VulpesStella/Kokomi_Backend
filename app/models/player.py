@@ -299,6 +299,10 @@ class PlatyerModel:
                         is_enabled = %s, 
                         activity_level = %s, 
                         is_public = %s, 
+                        total_battles = 0, 
+                        pvp_battles = 0, 
+                        ranked_battles = 0,
+                        last_battle_at = NULL,
                         touch_at = CURRENT_TIMESTAMP 
                     WHERE account_id = %s;
                 """
@@ -349,7 +353,7 @@ class PlatyerModel:
                     sql,
                     [
                         data.is_enabled, data.activity_level, data.is_public, data.total_battles, data.pvp_battles,
-                        data.ranked_battles, data.last_battle_at, data.account_id
+                        data.ranked_battles, data.last_battle_at if data.last_battle_at != 0 else None, data.account_id
                     ]
                 )
             # 处理更新clan_base数据

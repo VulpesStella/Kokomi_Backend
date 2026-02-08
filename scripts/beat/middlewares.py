@@ -8,7 +8,6 @@ from settings import (
     REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, MAIN_DB
 )
 
-
 try:
     redis_client = redis.Redis(
         host=REDIS_HOST,

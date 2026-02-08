@@ -539,3 +539,116 @@ class BotUserModel:
         finally:
             await cursor.close()
             await MysqlConnection.release_connection(connection)
+
+    @ExceptionLogger.handle_database_exception_async
+    async def user_status(platform: str, platform_user_id: str):
+        '''
+        从数据库中读取用户的会员信息
+
+        参数:
+            platform: 平台(qq/qq_group/qq_guild/wechat/discord)
+            user_id: 用户id
+        '''
+        try:
+            connection: Connection = await MysqlConnection.get_connection()
+            await connection.begin()
+            cursor: Cursor = await connection.cursor()
+
+            platform_id = GameUtils.get_platform_id(platform) 
+            sql = """
+                SELECT 
+                    id, 
+                    UNIX_TIMESTAMP(premium_expired_at), 
+                    UNIX_TIMESTAMP(created_at) 
+                FROM bind_idx 
+                WHERE platform_id = %s 
+                  AND platform_user_id = %s;
+            """
+            await cursor.execute(
+                sql,[platform_id, platform_user_id]
+            )
+            user = await cursor.fetchone()
+            if user is None:
+                sql = """
+                    INSERT INTO bind_idx (
+                        platform_id, 
+                        platform_user_id
+                    ) VALUE (
+                        %s, %s
+                    );
+                """
+                await cursor.execute(
+                    sql,[platform_id, platform_user_id]
+                )
+                sql = """
+                    SELECT 
+                        id, 
+                        UNIX_TIMESTAMP(created_at) 
+                    FROM bind_idx 
+                    WHERE platform_id = %s 
+                    AND platform_user_id = %s;
+                """
+                await cursor.execute(
+                    sql,[platform_id, platform_user_id]
+                )
+                new_data = await cursor.fetchone()
+                data = {
+                    'id': 1000000 + new_data[0],
+                    'role': 'user',
+                    'first_used': new_data[1],
+                    'premium': None
+                }
+            else:
+                user_id = user[0]
+                timestamp = TimeUtils.timestamp()
+                if user[1] and user[1] > timestamp:
+                    data = {
+                        'id': 100000 + user_id,
+                        'role': 'premium',
+                        'first_used': user[2],
+                        'premium': None
+                    }
+                    sql = """
+                        SELECT game_id 
+                        FROM recent_pro 
+                        WHERE user_id = %s;
+                    """
+                    await cursor.execute(sql,[user_id])
+                    game_users = await cursor.fetchall()
+                    if len(game_users) == 0:
+                        data['premium'] = {
+                            'validity': user[1] - timestamp,
+                            'accounts': []
+                        }
+                    else:
+                        placeholders = ",".join(["%s"] * len(game_users))
+                        sql = f"""
+                            SELECT 
+                                region_id, 
+                                account_id, 
+                                username 
+                            FROM user_base 
+                            WHERE id IN ({placeholders});
+                        """
+                        await cursor.execute(sql,[x[0] for x in game_users])
+                        users = await cursor.fetchall()
+                        data['premium'] = {
+                            'validity': user[1] - timestamp,
+                            'accounts': users
+                        }
+                else:
+                    data = {
+                        'id': 1000000 + user_id,
+                        'role': 'user',
+                        'first_used': user[2],
+                        'premium': None
+                    }
+
+            await connection.commit()
+            return JSONResponse.get_success_response(data)
+        except Exception as e:
+            await connection.rollback()
+            raise e
+        finally:
+            await cursor.close()
+            await MysqlConnection.release_connection(connection)

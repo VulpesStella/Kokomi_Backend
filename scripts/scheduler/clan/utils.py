@@ -2,6 +2,7 @@ import requests
 import pymysql
 import traceback
 from datetime import datetime, time
+from zoneinfo import ZoneInfo
 from logger import logger
 from settings import SEASON_ID, SEASON_FINISH, SEASON_START
 from middlewares import db_pool, redis_client
@@ -23,43 +24,52 @@ CLAN_COLOR_INDEX = {
     11776947: 5,
 }
 
+class Status:
+    FirstLoop = True
+
+    @classmethod
+    def set_status(cls):
+        cls.FirstLoop = False
+
 # weekday: 周一=0 ... 周日=6
+WEEKLY_ZONEINFO = "Asia/Shanghai"
 WEEKLY_WINDOWS = {
     0: [  # 周一
-        (time(2, 0), time(6, 29)),
-        (time(8, 30), time(12, 59)),
+        ((2, 0), (6, 29)),
+        ((8, 30), (12, 59)),
     ],
     2: [  # 周三
-        (time(19, 30), time(23, 59)),
+        ((19, 30), (23, 59)),
     ],
     3: [  # 周四
-        (time(2, 0), time(6, 29)),
-        (time(8, 30), time(12, 59)),
-        (time(19, 30), time(23, 59)),
+        ((2, 0), (6, 29)),
+        ((8, 30), (12, 59)),
+        ((19, 30), (23, 59)),
     ],
     4: [  # 周五
-        (time(2, 0), time(6, 29)),
-        (time(8, 30), time(12, 59)),
+        ((2, 0), (6, 29)),
+        ((8, 30), (12, 59)),
     ],
     5: [  # 周六
-        (time(19, 30), time(23, 59)),
+        ((19, 30), (23, 59)),
     ],
     6: [  # 周日
-        (time(2, 0), time(6, 29)),
-        (time(8, 30), time(12, 59)),
-        (time(19, 30), time(23, 59)),
+        ((2, 0), (6, 29)),
+        ((8, 30), (12, 59)),
+        ((19, 30), (23, 59)),
     ]
 }
 
-def is_cb_active() -> bool:
-    now_ts = int(datetime.timestamp())
+def is_cb_active(now_ts: int) -> bool:
+    if Status.FirstLoop == True:
+        return True
     if not (SEASON_START <= now_ts <= SEASON_FINISH):
         return False
-    now = datetime.fromtimestamp(now_ts)
+    now = datetime.fromtimestamp(now_ts, tz=ZoneInfo(WEEKLY_ZONEINFO))
     weekday = now.weekday()
     current_time = now.time()
     for start, end in WEEKLY_WINDOWS.get(weekday, []):
-        if start <= current_time < end:
+        if time(start[0], start[1]) <= current_time < time(end[0], end[1]):
             return True
     return False
 
@@ -73,20 +83,33 @@ def fetch_data(url):
     try:
         resp = requests.get(url,timeout=5)
         if resp.status_code == 200:
-            result = resp.json()
             logger.debug(f'200 {url}')
+            result = resp.json()
             return result
         logger.warning(f'Code_{resp.status_code} {url}')
+        return f'HTTP_STATUS_{resp.status_code}'
     except Exception as e:
         logger.warning(f"{type(e).__name__} {url}")
+        return f'ERROR_{type(e).__name__}'
+    
+def varify_response(responses: dict):
+    error = 0
+    error_return = None
+    if type(responses) == str:
+        error += 1
+        error_return = responses
+    if error == 0:
+        return None, None
+    else:
+        return error, error_return
 
 def get_clan_rank_data(region_id: int):
     if region_id == 5:
         base_url = CLAN_API_URL_LIST[region_id]
+        region = 'cn'
     else:
         base_url = CLAN_API_URL_LIST[1]
-    region_dict = {1: 'asia',2: 'eu',3: 'na',4: 'ru',5: 'cn'}
-    region = region_dict[region_id]
+        region = 'asia'
     league_list = [
         [0,1], [1,1], [1,2], [1,3],
         [2,1], [2,2], [2,3], [3,1],
@@ -107,11 +130,11 @@ def get_clan_rank_data(region_id: int):
         result = fetch_data(url)
         key = f"metrics:http:{now_time[:10]}:{region}_total"
         redis_client.incrby(key, 1)
-        if result is None:
+        error_count, _ = varify_response(result)
+        if error_count != None:
             key = f"metrics:http:{now_time[:10]}:{region}_error"
-            redis_client.incrby(key, 1)
-        if result is None:
-            continue
+            redis_client.incrby(key, error_count)
+            return clan_data_list
         for temp_data in result:
             # clan_data_list.append({
             #     region_id,
@@ -140,10 +163,11 @@ def get_clan_cvc_data(region_id: int, clan_id: int):
     now_time = now_iso()
     key = f"metrics:http:{now_time[:10]}:{region}_total"
     redis_client.incrby(key, 1)
-    if result is None:
+    error_count, error_return = varify_response(result)
+    if error_count != None:
         key = f"metrics:http:{now_time[:10]}:{region}_error"
-        redis_client.incrby(key, 1)
-        return "RequestFailed"
+        redis_client.incrby(key, error_count)
+        return error_return
     last_battle_at = result['clanview']['wows_ladder']['last_battle_at']
     clan_result = {
         'clan_id': clan_id,
@@ -263,7 +287,7 @@ def update_clan_season(clan_season: dict):
         cursor.execute(sql, [clan_id])
         clan = cursor.fetchone()
         insert_data_list = []
-        if clan and clan['season'] == SEASON_ID:
+        if Status.FirstLoop == False and clan and clan['season'] == SEASON_ID:
             original_team_data = eval(clan['team_data']) 
             old_team_data = {
                 1: format_clan_data(original_team_data[0]),

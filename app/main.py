@@ -189,7 +189,7 @@ async def authToken(request: Request, region: Region = Region.ASIA, platform: Op
                 raise ValueError
         except:
             return templates.TemplateResponse("auth_failed.html",{"request": request})
-        result = await TokenAPI.set_auth_by_link(body,platform,user_id)
+        result = await TokenAPI.set_auth_by_link(body,region,platform,user_id)
         if result['code'] != 1000:
             return templates.TemplateResponse("auth_failed.html",{"request": request})
         # 如果有通过platfrom数据则写入绑定数据

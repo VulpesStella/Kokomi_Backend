@@ -5,9 +5,6 @@ from datetime import datetime, timezone
 from middlewares import db_pool
 
 
-def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
-
 def get_max_id():
     # 先获取数据库中id最大值，确定循环上限
     conn = db_pool.connection()
@@ -227,10 +224,11 @@ def update_base(region_id: int ,account_id: int, user_basic: dict):
                     touch_at = CURRENT_TIMESTAMP 
                 WHERE account_id = %s;
             """
+            
             cursor.execute(sql, [
                 refresh_data['is_enabled'],refresh_data['activity_level'],refresh_data['is_public'],
                 refresh_data['total_battles'],refresh_data['pvp_battles'],refresh_data['ranked_battles'],
-                refresh_data['last_battle_at'],account_id
+                refresh_data['last_battle_at'] if refresh_data['last_battle_at'] != 0 else None,account_id
             ])
         conn.commit()
     finally:

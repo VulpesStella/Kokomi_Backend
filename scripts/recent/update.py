@@ -8,7 +8,7 @@ import asyncio
 from datetime import datetime, timezone
 from logger import logger
 from middlewares import redis_client
-from utils import now_iso, del_recent, del_recents, update_base
+from utils import del_recent, del_recents, update_base
 from settings import DATA_DIR
 
 VORTEX_API_URL_LIST = {
@@ -28,22 +28,15 @@ REGION_UTC_LIST = {
 }
 
 CreateSQL = """
-CREATE TABLE user (
-    date str PRIMARY KEY,
-    is_public bool,
-    leveling_points int,
-    karma int,
-    win_rate float,
-    avg_damage float,
-    avg_frags float,
+CREATE TABLE users (
+    region_id int,
+    account_id int,
     cache str
 );
 CREATE TABLE ships (
-    ship_id str,
-    date str,
-    cache str
+    ship_id str
 );
-CREATE UNIQUE INDEX idx_ships ON ships(ship_id, date);
+CREATE UNIQUE INDEX idx_user ON users(region_id, account_id);
 """
 
 def now_iso() -> str:
@@ -161,8 +154,7 @@ def init_db_if_needed(
         logger.error((f"{now_iso()} | {traceback.format_exc()}"))
         return False
     finally:
-        if 'conn' in locals():
-            conn.close()
+        conn.close()
 
 def responeses_processing(responses: list):
     battles_dict = {}
