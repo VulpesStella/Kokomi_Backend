@@ -1,4 +1,6 @@
-﻿using KokomiPJ_Dashboard_BLL.Models.Dtos.KokomiAPI;
+﻿
+
+using KokomiPJ_DotNet_Utils.Models.Dto;
 
 namespace KokomiPJ_Dashboard_BLL.APIStatus.IBLL;
 

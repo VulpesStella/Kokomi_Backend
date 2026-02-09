@@ -1,13 +1,12 @@
-﻿using KokomiPJ_Dashboard_BLL.APIStatus.IBLL;
-using KokomiPJ_Dashboard_BLL.Models.Dtos.KokomiAPI;
-
+﻿using KokomiPJ_DotNet_Utils.Models.Dto;
+using KokomiPJ_Dashboard_BLL.APIStatus.IBLL;
 
 namespace KokomiPJ_Dashboard_BLL.APIStatus.BLL;
 
 /// <summary>
 /// API请求业务类
 /// </summary>
-public class APIStatusBLL:DBServiceBase,IAPIStatusBLL
+public class APIStatusBLL : DBServiceBase, IAPIStatusBLL
 {
     #region 私有属性
 
@@ -104,4 +103,5 @@ public class APIStatusBLL:DBServiceBase,IAPIStatusBLL
     }
 
     #endregion
+
 }
