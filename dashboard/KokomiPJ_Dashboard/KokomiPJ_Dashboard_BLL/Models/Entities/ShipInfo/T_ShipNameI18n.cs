@@ -16,6 +16,7 @@ public class T_ShipNameI18n
     /// 船只ID
     /// <para>外键关联：T_Ship_WG.F_ShipId</para>
     /// </summary>
+    
     public long F_ShipId { get; set; }
 
     /// <summary>

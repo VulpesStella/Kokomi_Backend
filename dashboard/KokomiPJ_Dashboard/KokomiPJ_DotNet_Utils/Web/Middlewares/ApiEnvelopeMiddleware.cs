@@ -31,7 +31,7 @@ namespace KokomiPJ_DotNet_Utils.Web.Middlewares
         /// <param name="context">HTTP上下文</param>
         public async Task InvokeAsync(HttpContext context)
         {
-            // 仅处理 API 路径（你也可以改成判断 ApiController 的特征 Header/Endpoint Metadata）
+            // 仅处理 API 路径
             if (!context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
             {
                 await _next(context);

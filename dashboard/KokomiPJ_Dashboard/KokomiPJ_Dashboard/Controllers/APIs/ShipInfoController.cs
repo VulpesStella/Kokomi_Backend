@@ -1,11 +1,14 @@
 
 using KokomiPJ_Dashboard_BLL.BLLS.ShipInfo.IBLL;
+using KokomiPJ_Dashboard_BLL.Models.Dtos.ShipInfo;
 using KokomiPJ_Dashboard_BLL.Models.Entities.ShipInfo;
+
+using System.Linq.Expressions;
 
 namespace KokomiPJ_Dashboard.Controllers;
 
 /// <summary>
-/// API运行情况控制器
+/// 舰船基础信息管理接口
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -37,11 +40,11 @@ public class ShipInfoController : Controller
     #region 页面
 
     /// <summary>
-    /// API运行情况页面
+    /// 查询WG服务的船只基础信息
     /// </summary>
     /// <returns></returns>
-    [HttpPost("/WGShipInfoList")]
-    public async Task<IActionResult> WGShipInfoList([FromBody] PageRequestDto<V_Ship_WG_Names> req)
+    [HttpPost("WGShipInfoList")]
+    public async Task<IActionResult> WGShipInfoList([FromBody] PageRequestDto<ShipInfoReqDto> req)
     {
         var shipInfoList = await 
             _iShipInfoBL.GetWGShipNameList(req);

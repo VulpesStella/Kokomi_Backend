@@ -49,14 +49,22 @@
 @section scripts {
 <script type="module" >
     const { createApp, reactive, computed, onMounted, onBeforeUnmount, ref } = Vue;
-    const activeLink = '@Url.Action("ReqStats", "APIStatus")';
+
+    //#region
+    //API运行情况页面链接
+    const reqStatsLink = '@Url.Action("ReqStats", "APIStatus")';
+    const shipInfoLink = '@Url.Action("Index", "ShipInfo")';
+    //舰船信息管理页面链接
+
+    //#endregion
+    
     const app = createApp({
         setup() {
             const navItems = ref([
-                { key: "api",  title: "API Opertaion Status", desc: "ReqStats / Health Check", link: activeLink, enabled: true,  coverType: "api" },
+                { key: "api",  title: "API Opertaion Status", desc: "ReqStats / Health Check", link: reqStatsLink, enabled: true,  coverType: "api" },
+                { key: "shipInfo",   title: "ShipInfo Management", desc: "To Manage Ship Basic Info(WG/Lesta)", link: shipInfoLink, enabled: true, coverType: "soon" },
                 { key: "rank", title: "Kokomi_Ranking", desc: "Coming Soon", link: null, enabled: false, coverType: "soon" },
                 { key: "es",   title: "ES Index Management", desc: "Coming Soon", link: null, enabled: false, coverType: "soon" },
-                { key: "wf",   title: "Scheduled Task Scheduling", desc: "Coming Soon", link: null, enabled: false, coverType: "soon" },
                 { key: "xxxx1",   title: "XXXX",   desc: "Coming Soon", link: null, enabled: false, coverType: "soon" },
                 { key: "xxxx2",  title: "XXXX",   desc: "Coming Soon", link: null, enabled: false, coverType: "soon" },
                 { key: "xxxx3",  title: "XXXX",   desc: "Coming Soon", link: null, enabled: false, coverType: "soon" },

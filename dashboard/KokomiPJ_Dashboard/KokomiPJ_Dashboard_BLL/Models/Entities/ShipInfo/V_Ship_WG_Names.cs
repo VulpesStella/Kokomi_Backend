@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace KokomiPJ_Dashboard_BLL.Models.Entities.ShipInfo;
 
 /// <summary>
-/// 视图：V_Ship_WG_Names
+/// 对应数据库视图：V_Ship_WG_Names
 /// <para>来源：T_Ship_WG + T_ShipNameI18n</para>
 /// <para>作用：把多语言船名（cn/en/en_l/ja/ru）聚合为一行多列（F_NameCn/F_NameEn/...）</para>
 /// </summary>
@@ -45,13 +45,13 @@ public class V_Ship_WG_Names
     /// 是否金币船（premium）
     /// </summary>
     [SugarColumn(ColumnName = "F_Premium")]
-    public bool F_Premium { get; set; }
+    public bool? F_Premium { get; set; }
 
     /// <summary>
     /// 是否特种船（special）
     /// </summary>
     [SugarColumn(ColumnName = "F_Special")]
-    public bool F_Special { get; set; }
+    public bool? F_Special { get; set; }
 
     /// <summary>
     /// 索引/编号（例如：PJSC505）

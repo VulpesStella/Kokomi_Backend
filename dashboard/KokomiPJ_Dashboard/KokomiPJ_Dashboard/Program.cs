@@ -1,3 +1,8 @@
+using KokomiPJ_DotNet_Utils.Web.Extensions;
+using KokomiPJ_DotNet_Utils.Web.Middlewares;
+
+using Vanguard_DB.DI;
+
 namespace KokomiPJ_Dashboard;
 
 /// <summary>
@@ -9,13 +14,20 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        #region 配置MVC页面
+
         // Add services to the container.
         var mvc = builder.Services.AddControllersWithViews();
+
         //增加启用Razor页面热更新
         if (builder.Environment.IsDevelopment())
         {
             mvc.AddRazorRuntimeCompilation();
         }
+
+        #endregion
+
+        #region 配置Http请求（主要是跟耄鱼的API交互）
 
         //往DI容器内注入HttpclientFactory
         builder.Services.AddHttpClient();
@@ -36,9 +48,28 @@ public class Program
             client.Timeout = TimeSpan.FromSeconds(10);
         });
 
+        #endregion
+
+        //获取应用所有DLL
+        var assemblies = new[]
+        {
+            typeof(Program).Assembly,
+            typeof(KokomiPJ_Dashboard_BLL.Anchor).Assembly  
+        };
+
+        //启动VanguardDbHelper的DI注入
+        builder.AddVanguardDbHelper(assemblies);
+        // 注册 Swagger
+        builder.Services.AddKokomiSwagger(title: "KokomiAPI_DotNet", 
+            version: "v1",summery:"KokomiAPI的.NET 版API", 
+            descriptions:"基于.NET8", 
+            enableXmlComments: true,xmlAssemblies: assemblies);
+
         var app = builder.Build();
 
-       
+        app.UseMiddleware<ApiEnvelopeMiddleware>(); 
+        // 启用 Swagger UI
+        app.UseKokomiDotNetSwagger(version: "v1", routePrefix: "swagger", onlyInDevelopment: true);
 
         // Configure the HTTP request pipeline.
         if (!app.Environment.IsDevelopment())
