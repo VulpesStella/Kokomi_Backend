@@ -1,5 +1,6 @@
 services:
-  api: # 主API服务器
+  api: 
+    # 主API服务器
     build: .
     volumes:
       - ./data:/app/data
@@ -17,12 +18,13 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  celery: # 负责消费MQ中的任务，更新用户的基本信息
+  celery: 
+    # 负责消费MQ中的任务，更新用户的基本信息
     build: .
     volumes:
       - ./logs:/app/logs
     container_name: backend-celery
-    command: celery --app tasks.main:celery_app worker -Q refresh_queue --loglevel=info --concurrency=2
+    command: celery --app tasks.main:celery_app worker -Q refresh_queue --loglevel=info --concurrency=4
     env_file:
       - .env.dev
     restart: on-failure:1
@@ -32,12 +34,17 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  account: # 定期遍历数据库，查找需要更新用户的id，提交给MQ
+  beat: 
+    # 定时任务，负责：
+    # 1.定期更新服务器数据
+    # 2.定时刷新用户授权数据
+    # 3.检测并更新更新用户token
     build: .
     volumes:
       - ./logs:/app/logs
-    container_name: scheduler-account
-    command: python scripts/scheduler/account/main.py
+      - ./data:/app/data
+    container_name: backend-beat
+    command: python scripts/beat/main.py
     env_file:
       - .env.dev
     restart: on-failure:1
@@ -47,7 +54,27 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  cache: # 更新用户的船只缓存数据
+  maintenance: 
+    # 维护进程，负责
+    # 1.更新在线用户
+    # 2.更新游戏版本
+    # 3.维护用户活跃信息
+    build: .
+    volumes:
+      - ./logs:/app/logs
+    container_name: backend-maintenance
+    command: python scripts/maintenance/main.py
+    env_file:
+      - .env.dev
+    restart: on-failure:1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  cache: 
+    # 更新用户的船只缓存数据，主要负责排行榜数据
     build: .
     volumes:
       - ./logs:/app/logs
@@ -93,7 +120,7 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  recent: # 更新工会的成员数据
+  recent: # Recent功能
     build: .
     volumes:
       - ./data:/app/data

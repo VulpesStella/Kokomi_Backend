@@ -24,7 +24,7 @@ async def main():
         max_id = get_max_id()
         logger.info(f'MaxID: {max_id}')
         total_update, update_list = get_update_list(max_id, BATCH_SIZE)
-        logger.info(f'Database traversal complete. {total_update} users need to be updated')
+        logger.info(f'Update Numbers: {total_update}')
         versions = get_version()
         logger.info(f'ASIA: {versions[0]} | EU: {versions[1]} | NA: {versions[2]} | RU: {versions[3]} | CN: {versions[4]} ')
         i = 1

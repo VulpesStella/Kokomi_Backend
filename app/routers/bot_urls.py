@@ -48,6 +48,10 @@ async def getBind(body: BindBody, platform: Platform = Path(...), user_id: str =
             return JSONResponse.API_2007_IllegalAccoutID
     return await BindAPI.postBind(platform, user_id, body)
 
+@router.get("/users/{platform}/{user_id}/", summary="查询用户数据")
+async def getBind(platform: Platform = Path(...), user_id: str = Path(...)):
+    return await BindAPI.getUser(platform, user_id)
+
 @router.get("/users/{platform}/{user_id}/accounts/", summary="查询绑定数据")
 async def getBind(platform: Platform = Path(...), user_id: str = Path(...)):
     return await BindAPI.getBind(platform, user_id)

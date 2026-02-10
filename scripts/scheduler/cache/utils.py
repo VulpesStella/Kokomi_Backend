@@ -124,6 +124,7 @@ async def fetch_data(url):
             requset_code = res.status_code
             requset_result = res.json()
             if requset_code == 200:
+                logger.debug(f'200 {url}')
                 return requset_result['data']
             if requset_code == 404:
                 return {}
@@ -230,8 +231,7 @@ async def get_cache_data(
                 ship_data['original_exp'],
                 ship_data['survived'],
                 ship_data['max_exp'],
-                ship_data['max_damage_dealt'],
-                ship_data['max_frags']
+                ship_data['max_damage_dealt']
             ]
     if pvp_count <= 0:
         return {}
@@ -355,10 +355,14 @@ def update_base(region_id: int ,account_id: int, user_basic: dict):
                     is_enabled = %s, 
                     activity_level = %s, 
                     is_public = %s, 
+                    total_battles = 0, 
+                    pvp_battles = 0, 
+                    ranked_battles = 0,
+                    last_battle_at = NULL,
                     touch_at = CURRENT_TIMESTAMP 
                 WHERE account_id = %s;
             """
-            cursor.execute(sql, [refresh_data['is_enabled'], refresh_data['activity_level'], refresh_data['is_public'], region_id, account_id])
+            cursor.execute(sql, [refresh_data['is_enabled'], refresh_data['activity_level'], refresh_data['is_public'], account_id])
         else:
             if (
                 result['username'] != refresh_data['username'] or

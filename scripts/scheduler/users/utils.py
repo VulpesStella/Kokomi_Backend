@@ -38,6 +38,7 @@ def fetch_data(url):
     try:
         resp = requests.get(url)
         if resp.status_code == 200:
+            logger.debug(f'200 {url}')
             result = resp.json()
             return result
         logger.warning(f'Code_{resp.status_code} {url}')
@@ -46,7 +47,7 @@ def fetch_data(url):
         logger.warning(f"{type(e).__name__} {url}")
         return f'ERROR_{type(e).__name__}'
     
-def varify_responses(responses: list | dict):
+def varify_response(responses: dict):
     error = 0
     error_return = None
     if type(responses) != dict:
@@ -65,8 +66,8 @@ def get_clan_users(region_id: int, clan_id: int):
     result = fetch_data(url)
     now_time = now_iso()
     key = f"metrics:http:{now_time[:10]}:{region}_total"
-    redis_client.incrby(key, 3)
-    error_count, error_return = varify_responses(result)
+    redis_client.incrby(key, 1)
+    error_count, error_return = varify_response(result)
     if error_count != None:
         key = f"metrics:http:{now_time[:10]}:{region}_error"
         redis_client.incrby(key, error_count)

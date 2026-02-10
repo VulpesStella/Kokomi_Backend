@@ -12,22 +12,9 @@ REFRESH_INTERVAL = 300
 # 通过api获取season数据
 # 更新SeasonID同时要创建对应的表
 # https://developers.wargaming.net/reference/all/wows/clans/season/?language=en&r_realm=asia
-SEASON_ID = 32
-SEASON_START = 1764568800
-SEASON_FINISH = 1770616800
-
-# LOG_DIR = r'F:\Kokomi_PJ_API\logs'
-
-# MYSQL_HOST = '127.0.0.1'
-# MYSQL_PORT = 3306
-# MYSQL_USERNAME = 'root'
-# MYSQL_PASSWORD = 'qazwsxedc0258'
-
-# MAIN_DB = 'game_test'
-
-# REDIS_HOST = '127.0.0.1'
-# REDIS_PORT = 6379
-# REDIS_PASSWORD = 'qazwsxedc0258'
+SEASON_ID = os.getenv("SEASON_ID")
+SEASON_START = os.getenv("SEASON_START")
+SEASON_FINISH = os.getenv("SEASON_FINISH")
 
 MYSQL_HOST = os.getenv("MYSQL_HOST")
 MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306))

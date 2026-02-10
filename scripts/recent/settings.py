@@ -2,7 +2,6 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()  # 读取当前工作目录下的 .env
-cwd = os.getcwd()
 
 
 CLIENT_NAME = 'Recent'

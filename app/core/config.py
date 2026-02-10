@@ -25,6 +25,10 @@ class LoadConfig(BaseSettings):
     USER_BLACLIST: str
     CLAN_BLACLIST: str
 
+    SEASON_ID: int
+    SEASON_START: int
+    SEASON_FINISH: int
+
     WG_API_TOKEN: str
     LESTA_API_TOKEN: str
 

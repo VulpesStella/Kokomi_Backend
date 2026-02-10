@@ -19,31 +19,35 @@ class TokenAPI:
         redis_key = f"token:ac:{ac.account_id}"
         if platform:
             data = {
+                'region': region,
                 'ac': ac.access_token,
                 'platform': platform,
                 'user_id': user_id
             }
         else:
             data = {
+                'region': region,
                 'ac': ac.access_token
             }
         result = await RedisClient.set(redis_key,data)
         return result
     
     @ExceptionLogger.handle_program_exception_async
-    async def set_auth_by_link(auth: AuthResponse, platform: str = None, user_id: str = None):
+    async def set_auth_by_link(auth: AuthResponse, region: str, platform: str = None, user_id: str = None):
         redis_key = f"token:auth:{auth.account_id}"
         if platform:
             data = {
+                'region': region,
                 'auth': auth.access_token,
                 'platform': platform,
                 'user_id': user_id
             }
         else:
             data = {
+                'region': region,
                 'auth': auth.access_token
             }
-        vaildity = auth.expires_at-TimeUtils.timestamp()
+        vaildity = auth.expires_at-TimeUtils.timestamp() - 60
         result = await RedisClient.set(redis_key,data,vaildity)
         return result
     
