@@ -3,6 +3,8 @@ using KokomiPJ_DotNet_Utils.Web.Middlewares;
 
 using Vanguard_DB.DI;
 
+using Vite.AspNetCore;
+
 namespace KokomiPJ_Dashboard;
 
 /// <summary>
@@ -50,6 +52,17 @@ public class Program
 
         #endregion
 
+        #region 启用Vite
+        // 注册 Vite 服务
+        builder.Services.AddViteServices(options =>
+        {
+            options.Base = "app";              // 你的静态资源在 wwwroot/app 下
+            options.Manifest = "manifest.json"; // 你现在的 manifest 在 /app/manifest.json
+        });
+        builder.Services.AddReverseProxy()
+        .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+        #endregion
+
         //获取应用所有DLL
         var assemblies = new[]
         {
@@ -66,7 +79,7 @@ public class Program
             enableXmlComments: true,xmlAssemblies: assemblies);
 
         var app = builder.Build();
-
+        app.MapReverseProxy();
         app.UseMiddleware<ApiEnvelopeMiddleware>(); 
         // 启用 Swagger UI
         app.UseKokomiDotNetSwagger(version: "v1", routePrefix: "swagger", onlyInDevelopment: true);
@@ -75,6 +88,14 @@ public class Program
         if (!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/Home/Error");
+        }
+        else
+        {
+            //启用WebSocket(开发阶段)
+            //允许Vite 实时更新
+            app.UseWebSockets();
+            //允许从 MVC 的域名/端口访问前端资源”
+            app.UseViteDevelopmentServer();
         }
         app.UseStaticFiles();
 
@@ -85,7 +106,13 @@ public class Program
         app.MapControllerRoute(
             name: "default",
             pattern: "{controller=Home}/{action=Index}/{id?}");
+        app.MapControllerRoute(
+        name: "vben-app",
+        pattern: "app/{**path}",
+        defaults: new { controller = "app", action = "Index" });
 
+
+        app.MapFallbackToFile("/app/{*path:nonfile}", "app/index.html");
         app.Run();
     }
 }

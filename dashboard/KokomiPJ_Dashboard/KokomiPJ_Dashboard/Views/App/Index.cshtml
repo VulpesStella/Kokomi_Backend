@@ -1,0 +1,22 @@
+﻿@{
+    Layout = null;
+    ViewBag.Title = "KokomiPJ_Dashboard_NavPage";
+}
+
+@addTagHelper *, Vite.AspNetCore
+
+<div id="app"></div>
+
+@* Vite client 开发时使用端口 *@
+<environment include="Development">
+
+    <script type="module" src="http://localhost:5888/app/@@vite/client"></script>
+
+    <script type="module" src="http://localhost:5888/app/src/main.js"></script>
+</environment>
+
+<!-- 生产：不写具体 hashed 文件名，让 Vite.AspNetCore 读 manifest 自动输出 -->
+<environment exclude="Development">
+  <script src="~/app/_app.config.js"></script>
+  <script type="module" vite-src="~/index.html"></script>
+</environment>

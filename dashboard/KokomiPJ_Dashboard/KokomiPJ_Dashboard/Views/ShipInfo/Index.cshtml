@@ -9,259 +9,238 @@
             <!-- 筛选区 -->
             <a-row :gutter="[16,16]" align="middle">
                 <!-- 船名 -->
-                <a-col :xs="24" :sm="12" :md="8">
-                    <a-input-search
-                        v-model:value="nameKeyword"
-                        placeholder="输入船名（任意语言）"
-                        allow-clear
-                        enter-button="搜索"
-                        @@search="onSearch"
-                    >
-                    </a-input-search>
+                <a-col :xs="24" :sm="12" :md="12">
+                     <a-space align="center">
+                        <a-input-search 
+                            v-model:value="nameKeyword"
+                                placeholder="输入船名（任意语言）"
+                            allow-clear enter-button="搜索"  
+                              @@search="onSearch">
+                        </a-input-search>
+                        <div >金币</div>
+                        <a-switch v-model:checked="filterPremium" @@change="onFilterChange"></a-switch>
+                        <div>特种</div>
+                        <a-switch v-model:checked="filterSpecial" @@change="onFilterChange"></a-switch>   
+                    </a-space>  
                 </a-col>
-
-                <!-- 等级多选 -->
-                <a-col :xs="24" :sm="12" :md="8">
-                    <div>等级筛选：</div>
-                    <a-checkbox-group
-                        v-model:value="filterTiers"
-                        :options="tierOptions"
-                        @@change="onFilterChange"
-                    />
-                </a-col>
-
-                <!-- 国家多选 -->
-                <a-col :xs="24" :sm="12" :md="8">
-                    <div>国家筛选：</div>
-                    <a-checkbox-group
-                        v-model:value="filterNations"
-                        :options="nationOptions"
-                         @@change="onFilterChange"
-                    />
-                </a-col>
-
-                <!-- 舰种多选 -->
-                <a-col :xs="24" :sm="12" :md="8">
-                    <div>类型筛选：</div>
-                    <a-checkbox-group
-                        v-model:value="filterTypes"
-                        :options="typeOptions"
-                         @@change="onFilterChange"
-                    />
-                </a-col>
-
-                <!-- 金币船特种船 -->
-                <a-col :xs="24" :sm="12" :md="8">
-                    <a-space>
-                        <span>金币船</span>
-                        <a-switch v-model:checked="filterPremium"  @@change="onFilterChange" ></a-switch>
-                        <span>特种船</span>
-                        <a-switch v-model:checked="filterSpecial"  @@change="onFilterChange"/></a-switch>
-                    </a-space>
-                </a-col>
-
-                <!-- 操作按钮 -->
-                <a-col :xs="24" :sm="24" :md="8" style="display:flex;justify-content:flex-end;">
+                <a-col :xs="24" :sm="24" :md="12" style="display:flex;justify-content:flex-end;">
                     <a-space>
                         <a-button @@click="onReset">重置</a-button>
                         <a-button type="primary" :loading="loading" @@click="loadData">刷新</a-button>
                     </a-space>
                 </a-col>
+                <!-- 等级多选 -->
+                <a-col :xs="24" :sm="24" :md="24">
+                    <a-row :gutter="[16,8]" align="middle">
+                        <a-col :span="24">
+                             <a-space>
+                            <label >等级:</label>
+                            <a-checkbox-group v-model:value="filterTiers" :options="tierOptions"
+                                @@change="onFilterChange">
+                            </a-checkbox-group>
+                             <label>类型:</label>
+                            <a-checkbox-group v-model:value="filterTypes" :options="typeOptions"
+                            @@change="onFilterChange" >
+                             </a-checkbox-group>
+                            </a-space>
+                        </a-col>
+                        <a-col :span="24">
+                              <a-space>
+                             <label>国籍:</label>
+                                <a-checkbox-group v-model:value="filterNations" :options="nationOptions"
+                                    @@change="onFilterChange">
+                                </a-checkbox-group>
+                             </a-space>
+                        </a-col>
+                    </a-row>
+                </a-col>
             </a-row>
 
             <!-- 表格 -->
-            <a-table
-                :columns="columns"
-                :data-source="rows"
-                :loading="loading"
-                :row-key="rowKey"
-                :pagination="pagination"
-                @@change="onTableChange"
-                bordered
-                size="middle"
-                :scroll="{ x: 1200 }"
-            />
+            <a-table :columns="columns" :data-source="rows" :loading="loading" :row-key="rowKey"
+                     :pagination="pagination" @@change="onTableChange" bordered size="middle" :scroll="{ x: 1200 }" />
         </a-space>
     </a-card>
 </div>
 
 @section scripts {
 <script type="module">
-    const { createApp, reactive, ref, onMounted } = Vue;
+const { createApp, reactive, ref, onMounted } = Vue;
 
-    const app = createApp({
-        setup() {
-            const apiUrl = 'http://localhost:5100/api/ShipInfo/WGShipInfoList';
+const app = createApp({
+    setup() {
+        const apiUrl = '/api/ShipInfo/WGShipInfoList';
 
-            const loading = ref(false);
-            const nameKeyword = ref('');
+        const loading = ref(false);
+        const nameKeyword = ref('');
 
-            // 多选筛选条件
-            const filterTiers = ref([]);
-            const filterNations = ref([]);
-            const filterTypes = ref([]);
-            const filterPremium = ref(false);
-            const filterSpecial = ref(false);
+        // 多选筛选条件
+        const filterTiers = ref([]);
+        const filterNations = ref([]);
+        const filterTypes = ref([]);
+        const filterPremium = ref(false);
+        const filterSpecial = ref(false);
 
-            const tierOptions = Array.from({ length: 11 }, (_, i) => ({
-                label: `${i + 1}`,
-                value: i + 1
-            }));
+        const tierOptions = Array.from({ length: 11 }, (_, i) => ({
+            label: `${i + 1}`,
+            value: i + 1
+        }));
 
-            const onFilterChange = () => {
-                // 只要筛选条件变了，就回到第一页再查
-                pagination.current = 1;
-                loadData();
-            };
+        const onFilterChange = () => {
+            // 只要筛选条件变了，就回到第一页再查
+            pagination.current = 1;
+            loadData();
+        };
 
-            const nationOptions = [
-                "netherlands","usa","commonwealth","europe","germany",
-                "ussr","italy","pan_america","japan","pan_asia",
-                "uk","france","spain"
-            ].map(n => ({ label: n, value: n }));
+        const nationOptions = [
+            "netherlands", "usa", "commonwealth", "europe", "germany",
+            "ussr", "italy", "pan_america", "japan", "pan_asia",
+            "uk", "france", "spain"
+        ].map(n => ({ label: n, value: n }));
 
-            const typeOptions = [
-                "Cruiser","Battleship","Destroyer","AirCarrier","Submarine"
-            ].map(t => ({ label: t, value: t }));
+        const typeOptions = [
+            "Cruiser", "Battleship", "Destroyer", "AirCarrier", "Submarine"
+        ].map(t => ({ label: t, value: t }));
 
-            const rows = ref([]);
+        const rows = ref([]);
 
-            const pagination = reactive({
-                current: 1,
-                pageSize: 20,
-                total: 0,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                showTotal: total => `共 ${total} 条`,
-            });
+        const pagination = reactive({
+            current: 1,
+            pageSize: 10,
+            total: 0,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: total => `共 ${total} 条`,
+        });
 
-            const columns = [
-                { title: '等级', dataIndex: 'f_Tier', key: 'f_Tier', width: 70 },
-                { title: '类型', dataIndex: 'f_ShipType', key: 'f_ShipType', width: 120 },
-                { title: '国籍', dataIndex: 'f_Nation', key: 'f_Nation', width: 130 },
-                {
-                    title: '金币船',
-                    dataIndex: 'f_Premium',
-                    key: 'f_Premium',
-                    width: 90,
-                    customRender: ({ text }) => (text ? '是' : '否')
-                },
-                {
-                    title: '特种船',
-                    dataIndex: 'f_Special',
-                    key: 'f_Special',
-                    width: 90,
-                    customRender: ({ text }) => (text ? '是' : '否')
-                },
-                { title: '索引', dataIndex: 'f_ShipIndex', key: 'f_ShipIndex', width: 120 },
-                { title: '中文名', dataIndex: 'f_NameCn', key: 'f_NameCn', width: 140 },
-                { title: '英文名', dataIndex: 'f_NameEn', key: 'f_NameEn', width: 160 },
-                { title: '英文长名', dataIndex: 'f_NameEnL', key: 'f_NameEnL', width: 170 },
-                { title: '日文名', dataIndex: 'f_NameJa', key: 'f_NameJa', width: 160 },
-                { title: '俄语名', dataIndex: 'f_NameRu', key: 'f_NameRu', width: 160 },
-            ];
+        const columns = [
+            { title: '等级', dataIndex: 'f_Tier', key: 'f_Tier', width: 70 },
+            { title: '类型', dataIndex: 'f_ShipType', key: 'f_ShipType', width: 120 },
+            { title: '国籍', dataIndex: 'f_Nation', key: 'f_Nation', width: 130 },
+            {
+                title: '金币船',
+                dataIndex: 'f_Premium',
+                key: 'f_Premium',
+                width: 90,
+                customRender: ({ text }) => (text ? '是' : '否')
+            },
+            {
+                title: '特种船',
+                dataIndex: 'f_Special',
+                key: 'f_Special',
+                width: 90,
+                customRender: ({ text }) => (text ? '是' : '否')
+            },
+            { title: '索引', dataIndex: 'f_ShipIndex', key: 'f_ShipIndex', width: 120 },
+            { title: '中文名', dataIndex: 'f_NameCn', key: 'f_NameCn', width: 140 },
+            { title: '英文名', dataIndex: 'f_NameEn', key: 'f_NameEn', width: 160 },
+            { title: '英文长名', dataIndex: 'f_NameEnL', key: 'f_NameEnL', width: 170 },
+            { title: '日文名', dataIndex: 'f_NameJa', key: 'f_NameJa', width: 160 },
+            { title: '俄语名', dataIndex: 'f_NameRu', key: 'f_NameRu', width: 160 },
+        ];
 
-            const rowKey = r => r.f_ShipId;
+        const rowKey = r => r.f_ShipId;
 
-            // 组装请求体，匹配你的 ShipInfoReqDto
-            const buildRequestBody = () => ({
-                pageNumber: pagination.current,
-                pageSize: pagination.pageSize,
-                keyWord: {
-                    F_ShipId: null,
-                    F_Tier: filterTiers.value,
-                    F_ShipType: filterTypes.value,
-                    F_Nation: filterNations.value,
-                    F_Premium: filterPremium.value ? true : null,
-                    F_Special: filterSpecial.value ? true : null,
-                    F_ShipIndex: null,
-                    F_Name: nameKeyword.value.trim() || null
+        // 组装请求体，匹配你的 ShipInfoReqDto
+        const buildRequestBody = () => ({
+            pageNumber: pagination.current,
+            pageSize: pagination.pageSize,
+            keyWord: {
+                F_ShipId: null,
+                F_Tier: filterTiers.value,
+                F_ShipType: filterTypes.value,
+                F_Nation: filterNations.value,
+                F_Premium: filterPremium.value ? true : null,
+                F_Special: filterSpecial.value ? true : null,
+                F_ShipIndex: null,
+                F_Name: nameKeyword.value.trim() || null
+            }
+        });
+
+        const loadData = async () => {
+            loading.value = true;
+            try {
+                const resp = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(buildRequestBody()),
+                });
+
+                const json = await resp.json();
+                if (!json || json.status !== 'success') {
+                    antd.message.error(json?.message || '查询失败');
+                    rows.value = [];
+                    pagination.total = 0;
+                    return;
                 }
-            });
 
-            const loadData = async () => {
-                loading.value = true;
-                try {
-                    const resp = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(buildRequestBody()),
-                    });
+                const page = json.data;
+                rows.value = page.data || [];
+                pagination.total = page.totalCount ?? 0;
+                pagination.current = page.pageNumber ?? pagination.current;
+                pagination.pageSize = page.pageSize ?? pagination.pageSize;
+            } catch (e) {
+                console.error(e);
+                antd.message.error('请求异常');
+            } finally {
+                loading.value = false;
+            }
+        };
 
-                    const json = await resp.json();
-                    if (!json || json.status !== 'success') {
-                        antd.message.error(json?.message || '查询失败');
-                        rows.value = [];
-                        pagination.total = 0;
-                        return;
-                    }
+        const onSearch = () => {
+            pagination.current = 1;
+            loadData();
+        };
 
-                    const page = json.data;
-                    rows.value = page.data || [];
-                    pagination.total = page.totalCount ?? 0;
-                    pagination.current = page.pageNumber ?? pagination.current;
-                    pagination.pageSize = page.pageSize ?? pagination.pageSize;
-                } catch (e) {
-                    console.error(e);
-                    antd.message.error('请求异常');
-                } finally {
-                    loading.value = false;
-                }
-            };
+        const onReset = () => {
+            nameKeyword.value = '';
+            filterTiers.value = [];
+            filterNations.value = [];
+            filterTypes.value = [];
+            filterPremium.value = false;
+            filterSpecial.value = false;
+            pagination.current = 1;
+            pagination.pageSize = 10;
+            loadData();
+        };
 
-            const onSearch = () => {
-                pagination.current = 1;
-                loadData();
-            };
+        const onTableChange = pager => {
+            pagination.current = pager.current;
+            pagination.pageSize = pager.pageSize;
+            loadData();
+        };
 
-            const onReset = () => {
-                nameKeyword.value = '';
-                filterTiers.value = [];
-                filterNations.value = [];
-                filterTypes.value = [];
-                filterPremium.value = false;
-                filterSpecial.value = false;
-                pagination.current = 1;
-                pagination.pageSize = 20;
-                loadData();
-            };
+        onMounted(loadData);
 
-            const onTableChange = pager => {
-                pagination.current = pager.current;
-                pagination.pageSize = pager.pageSize;
-                loadData();
-            };
-
-            onMounted(loadData);
-
-            return {
-                loading,
-                nameKeyword,
-                filterTiers,
-                filterNations,
-                filterTypes,
-                filterPremium,
-                filterSpecial,
-                tierOptions,
-                nationOptions,
-                typeOptions,
-                rows,
-                columns,
-                pagination,
-                rowKey,
-                onSearch,
-                onReset,
-                onTableChange,
-                 onFilterChange
-            };
-        }
-    });
-
-    app.use(antd);
-    app.mount('#app');
+        return {
+            loading,
+            nameKeyword,
+            filterTiers,
+            filterNations,
+            filterTypes,
+            filterPremium,
+            filterSpecial,
+            tierOptions,
+            nationOptions,
+            typeOptions,
+            rows,
+            columns,
+            pagination,
+            rowKey,
+            onSearch,
+            onReset,
+            onTableChange,
+            onFilterChange
+        };
+    }
+});
+app.use(antd);
+app.mount('#app');
 </script>
 
 <style scoped>
-    [v-cloak] { display: none; }
+    [v-cloak] {
+        display: none;
+    }
 </style>
 }
