@@ -1,16 +1,36 @@
 import os
 import time
 import json
-import traceback
 import httpx
 import sqlite3
 import asyncio
+import traceback
+from redis import Redis
+from pathlib import Path
+from pymysql import Connection
+from pymysql.cursors import Cursor
 from datetime import datetime, timezone
-from logger import logger
-from middlewares import redis_client
-from utils import del_recent, del_recents, update_base
-from settings import DATA_DIR
 
+from logger import logger
+from utils import del_recent, del_recents, update_base
+from settings import SQLITE_PATH
+
+
+MAX_HTTP_CONCURRENCY = 3
+TIMEOUT = httpx.Timeout(
+    connect = 2.0,
+    read = 10.0,
+    write = 3.0,
+    pool = 2.0,
+)
+http_semaphore = asyncio.Semaphore(MAX_HTTP_CONCURRENCY)
+async_client = httpx.AsyncClient(
+    timeout=TIMEOUT,
+    limits=httpx.Limits(
+        max_connections=100,
+        max_keepalive_connections=20
+    )
+)
 VORTEX_API_URL_LIST = {
     1: 'https://vortex.worldofwarships.asia',
     2: 'https://vortex.worldofwarships.eu',
@@ -18,41 +38,34 @@ VORTEX_API_URL_LIST = {
     4: 'https://vortex.korabli.su',
     5: 'https://vortex.wowsgame.cn'
 }
-
 REGION_UTC_LIST = {
-    1:8, 
-    2:1, 
-    3:-7, 
-    4:3, 
-    5:8
+    1:8, 2:1, 3:-7, 4:3, 5:8
 }
-
 CreateSQL = """
 CREATE TABLE users (
-    region_id int,
-    account_id int,
+    date int PRIMARY KEY,
+    is_public bool, 
+    leveling_points int, 
+    karma int, 
+    win_rate float, 
+    avg_damage float, 
+    avg_frags float, 
     cache str
 );
 CREATE TABLE ships (
-    ship_id str
+    ship_id int,
+    date int,
+    cache str
 );
-CREATE UNIQUE INDEX idx_user ON users(region_id, account_id);
+CREATE UNIQUE INDEX idx_ship ON ships(ship_id, date);
 """
 
 def now_iso() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
-def varify_responses(responses: list | dict):
-    error = 0
-    error_return = None
-    for response in responses:
-        if type(response) == str:
-            error += 1
-            error_return = response
-    if error == 0:
-        return None, None
-    else:
-        return error, error_return
+def get_region(region_id: int):
+    region_dict = {1: 'asia',2: 'eu',3: 'na',4: 'ru',5: 'cn'}
+    return region_dict[region_id]
 
 def formtimestamp(region_id: int, diff: int = 0):
     timestamp = time.time() + REGION_UTC_LIST[region_id]*3600 - 5*3600 - diff*24*60*60
@@ -75,10 +88,27 @@ def diff_lists(new_data, old_data):
         return None
     return result
 
+def verify_responses(region: str, redis_client: Redis, responses: list):
+    error = 0
+    error_return = None
+    now_time = now_iso()
+    for response in responses:
+        if isinstance(response, str):
+            error += 1
+            error_return = response
+    key = f"metrics:http:{now_time[:10]}:{region}_total"
+    redis_client.incrby(key, len(responses))
+    if error == 0:
+        return None
+    else:
+        key = f"metrics:http:{now_time[:10]}:{region}_error"
+        redis_client.incrby(key, error)
+        return error_return
+
 async def fetch_data(url):
-    try:
-        async with httpx.AsyncClient() as client:
-            res = await client.get(url, timeout=5)
+    async with http_semaphore:
+        try:
+            res = await async_client.get(url)
             requset_code = res.status_code
             requset_result = res.json()
             if requset_code == 200:
@@ -87,40 +117,12 @@ async def fetch_data(url):
                 return {}
             logger.warning(f'Code_{requset_code} {url}')
             return f'HTTP_STATUS_{requset_code}'
-    except Exception as e:
-        logger.warning(f"{type(e).__name__} {url}")
-        return f'ERROR_{type(e).__name__}'
-
-async def get_data(region_id: int, account_id: int, ac1: str = None):
-    base_url = VORTEX_API_URL_LIST[region_id]
-    if region_id == 4:
-        urls = [
-            f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac1}' if ac1 else ''),
-            f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac1}' if ac1 else ''),
-            f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac1}' if ac1 else ''),
-            f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac1}' if ac1 else ''),
-            f'{base_url}/api/accounts/{account_id}/ships/rank_solo/' + (f'?ac={ac1}' if ac1 else ''),
-            f'{base_url}/api/accounts/{account_id}/ships/rating_solo/' + (f'?ac={ac1}' if ac1 else ''),
-            f'{base_url}/api/accounts/{account_id}/ships/rating_div/' + (f'?ac={ac1}' if ac1 else '')
-        ]
-    else:
-        urls = [
-            f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac1}' if ac1 else ''),
-            f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac1}' if ac1 else ''),
-            f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac1}' if ac1 else ''),
-            f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac1}' if ac1 else ''),
-            f'{base_url}/api/accounts/{account_id}/ships/rank_solo/' + (f'?ac={ac1}' if ac1 else '')
-        ]
-    tasks = []
-    responses = []
-    async with asyncio.Semaphore(len(urls)):
-        for url in urls:
-            tasks.append(fetch_data(url))
-        responses = await asyncio.gather(*tasks)
-        return responses
+        except Exception as e:
+            logger.warning(f"{type(e).__name__} {url}")
+            return f'ERROR_{type(e).__name__}'
 
 def init_db_if_needed(
-    db_path: str
+    db_path: Path
 ) -> bool:
     """
     检查 sqlite3 数据库是否存在且包含用户表，
@@ -128,33 +130,32 @@ def init_db_if_needed(
     """
     need_init = False
     # 文件是否存在
-    if not os.path.exists(db_path):
+    if not db_path.exists():
         need_init = True
     try:
         # 连接数据库（不存在会自动创建）
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        # 检查是否存在用户表
-        cursor.execute("""
-            SELECT name
-            FROM sqlite_master
-            WHERE type = 'table'
-              AND name NOT LIKE 'sqlite_%'
-            LIMIT 1;
-        """)
-        has_table = cursor.fetchone() is not None
-        if not has_table:
-            need_init = True
-        # 需要初始化 → 创建表
-        if need_init:
-            cursor.executescript(CreateSQL)
-            conn.commit()
-        return True
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            # 检查是否存在用户表
+            cursor.execute("""
+                SELECT name
+                FROM sqlite_master
+                WHERE type = 'table'
+                AND name NOT LIKE 'sqlite_%'
+                LIMIT 1;
+            """)
+            has_table = cursor.fetchone() is not None
+            if not has_table:
+                need_init = True
+            # 需要初始化 → 创建表
+            if need_init:
+                cursor.executescript(CreateSQL)
+                conn.commit()
+            return True
     except Exception:
         logger.error((f"{now_iso()} | {traceback.format_exc()}"))
         return False
-    finally:
-        conn.close()
+        
 
 def responeses_processing(responses: list):
     battles_dict = {}
@@ -218,6 +219,8 @@ def responeses_processing(responses: list):
         return battles_dict, statis_dict
 
 async def update(
+    connection: Connection,
+    redis_client: Redis,
     region_id: int, 
     account_id: int, 
     enable_daily: bool, 
@@ -227,7 +230,7 @@ async def update(
     region_dict = {1: 'asia',2: 'eu',3: 'na',4: 'ru',5: 'cn'}
     region = region_dict[region_id]
     # 先检测db文件是否存在，不存在则创建
-    db_path = os.path.join(DATA_DIR,'db',f'{region_id}',f'{account_id}.db')
+    db_path = SQLITE_PATH / f'{region_id}' / f'{account_id}.db'
     if init_db_if_needed(db_path) is False:
         return 'SQLite3InitializationError'
     # 获取当前和昨天的user表数据
@@ -247,32 +250,44 @@ async def update(
                 avg_damage, 
                 avg_frags, 
                 cache 
-            FROM user 
+            FROM users 
             WHERE date = ?;
         """, [date_2])
         date2_data = cursor.fetchone()
         if date2_data is None:
             # 对于新用户的更新逻辑
-            resp = await get_data(region_id, account_id, ac)
-            now_time = now_iso()
-            key = f"metrics:http:{now_time[:10]}:{region}_total"
+            base_url = VORTEX_API_URL_LIST[region_id]
             if region_id == 4:
-                redis_client.incrby(key, 7)
+                urls = [
+                    f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else ''),
+                    f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac}' if ac else ''),
+                    f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac}' if ac else ''),
+                    f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac}' if ac else ''),
+                    f'{base_url}/api/accounts/{account_id}/ships/rank_solo/' + (f'?ac={ac}' if ac else ''),
+                    f'{base_url}/api/accounts/{account_id}/ships/rating_solo/' + (f'?ac={ac}' if ac else ''),
+                    f'{base_url}/api/accounts/{account_id}/ships/rating_div/' + (f'?ac={ac}' if ac else '')
+                ]
             else:
-                redis_client.incrby(key, 5)
-            error_count, error_return = varify_responses(resp)
-            if error_count != None:
-                key = f"metrics:http:{now_time[:10]}:{region}_error"
-                redis_client.incrby(key, error_count)
-                return error_return
-            user_basic = resp[0]
-            update_base(region_id, account_id, user_basic)
+                urls = [
+                    f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else ''),
+                    f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac}' if ac else ''),
+                    f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac}' if ac else ''),
+                    f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac}' if ac else ''),
+                    f'{base_url}/api/accounts/{account_id}/ships/rank_solo/' + (f'?ac={ac}' if ac else '')
+                ]
+            tasks = [fetch_data(url) for url in urls]
+            responses = await asyncio.gather(*tasks)
+            error = verify_responses(get_region(region_id), redis_client, responses)
+            if error != None:
+                return error
+            user_basic = responses[0]
+            update_base(connection, region_id, account_id, user_basic)
             if user_basic:
                 user_basic = user_basic[str(account_id)]
             if 'hidden_profile' in user_basic:
                 # 用户隐藏战绩
                 cursor.execute("""
-                    INSERT INTO user (
+                    INSERT INTO users (
                         date,is_public,leveling_points,
                         karma,win_rate,avg_damage,
                         avg_frags,cache
@@ -281,7 +296,7 @@ async def update(
                     );
                 """,[date_2,0,0,0,0,0,0,None])
                 cursor.execute("""
-                    INSERT INTO user (
+                    INSERT INTO users (
                         date,is_public,leveling_points,
                         karma,win_rate,avg_damage,
                         avg_frags,cache
@@ -298,13 +313,13 @@ async def update(
                 user_basic['statistics']['basic']['leveling_points'] == 0
             ):
                 # 用户数据不存在删除recent
-                del_recent(region_id, account_id)
+                del_recent(connection, region_id, account_id)
                 return 'DeleteRecent'
             else:
                 lbt = user_basic['statistics']['basic']['last_battle_time']
                 if int(time.time()) - lbt >= 360*24*60*60:
                     # 用户长期不活跃删除recent
-                    del_recent(region_id, account_id)
+                    del_recent(connection, region_id, account_id)
                     return 'DeleteRecent'
                 leveling_points = user_basic['statistics']['basic']['leveling_points']
                 karma = user_basic['statistics']['basic']['karma']
@@ -319,19 +334,19 @@ async def update(
                     avg_frags = round(user_basic['statistics']['pvp']['frags']/pvp_count,4)
                 if region_id == 4:
                     battle_dict, statis_dict = responeses_processing([
-                        resp[1][str(account_id)]['statistics'],
-                        resp[2][str(account_id)]['statistics'],
-                        resp[3][str(account_id)]['statistics'],
-                        resp[4][str(account_id)]['statistics'],
-                        resp[5][str(account_id)]['statistics'],
-                        resp[6][str(account_id)]['statistics']
+                        responses[1][str(account_id)]['statistics'],
+                        responses[2][str(account_id)]['statistics'],
+                        responses[3][str(account_id)]['statistics'],
+                        responses[4][str(account_id)]['statistics'],
+                        responses[5][str(account_id)]['statistics'],
+                        responses[6][str(account_id)]['statistics']
                     ])
                 else:
                     battle_dict, statis_dict = responeses_processing([
-                        resp[1][str(account_id)]['statistics'],
-                        resp[2][str(account_id)]['statistics'],
-                        resp[3][str(account_id)]['statistics'],
-                        resp[4][str(account_id)]['statistics']
+                        responses[1][str(account_id)]['statistics'],
+                        responses[2][str(account_id)]['statistics'],
+                        responses[3][str(account_id)]['statistics'],
+                        responses[4][str(account_id)]['statistics']
                     ])
                 user_cache = {}
                 ships_cache = []
@@ -341,7 +356,7 @@ async def update(
                         ships_cache.append([ship_id,date_2,json.dumps(statis_dict[ship_id],separators=(",", ":"))])
                 user_cache = json.dumps(user_cache,separators=(",", ":"))
                 cursor.execute("""
-                    INSERT INTO user (
+                    INSERT INTO users (
                         date,is_public,leveling_points,
                         karma,win_rate,avg_damage,
                         avg_frags,cache
@@ -350,7 +365,7 @@ async def update(
                     );
                 """,[date_2,1,leveling_points,karma,win_rate,avg_damage,avg_frags,user_cache])
                 cursor.execute("""
-                    INSERT INTO user (
+                    INSERT INTO users (
                         date,is_public,leveling_points,
                         karma,win_rate,avg_damage,
                         avg_frags,cache
@@ -380,14 +395,14 @@ async def update(
                     avg_damage, 
                     avg_frags, 
                     cache
-                FROM user
+                FROM users
                 WHERE date = ?;
             """, [date_1])
             date1_data = cursor.fetchone()
             if date1_data is None:
                 # 今日日期下没有数据条目，先复制昨日数据条目
                 cursor.execute("""
-                    INSERT INTO user (
+                    INSERT INTO users (
                         date,is_public,leveling_points,
                         karma,win_rate,avg_damage,
                         avg_frags,cache
@@ -401,26 +416,19 @@ async def update(
                 if date1_data[1] == total_battles:
                     return 'NoChanaged'
                 # 用户有数据的情况下，数据不一致，有新增数据
-                resp = await get_data(region_id, account_id, ac)
-                now_time = now_iso()
-                key = f"metrics:http:{now_time[:10]}:{region}_total"
-                if region_id == 4:
-                    redis_client.incrby(key, 7)
-                else:
-                    redis_client.incrby(key, 5)
-                error_count, error_return = varify_responses(resp)
-                if error_count != None:
-                    key = f"metrics:http:{now_time[:10]}:{region}_error"
-                    redis_client.incrby(key, error_count)
-                    return error_return
-                user_basic = resp[0]
-                update_base(region_id, account_id, user_basic)
+                tasks = [fetch_data(url) for url in urls]
+                responses = await asyncio.gather(*tasks)
+                error = verify_responses(get_region(region_id), redis_client, responses)
+                if error != None:
+                    return error
+                user_basic = responses[0]
+                update_base(connection, region_id, account_id, user_basic)
                 if user_basic:
                     user_basic = user_basic[str(account_id)]
                 if 'hidden_profile' in user_basic:
                     # 用户隐藏战绩
                     cursor.execute("""
-                        REPLACE INTO user (
+                        REPLACE INTO users (
                             date,is_public,leveling_points,
                             karma,win_rate,avg_damage,
                             avg_frags,cache
@@ -429,7 +437,7 @@ async def update(
                         );
                     """,[date_1,0,0,0,0,0,0,None])
                     if enable_daily:
-                        del_recents(region_id, account_id)
+                        del_recents(connection, region_id, account_id)
                     conn.commit()
                     return 'HiddenProfile'
                 elif (
@@ -439,18 +447,18 @@ async def update(
                     user_basic['statistics']['basic']['leveling_points'] == 0
                 ):
                     # 用户数据不存在删除recent
-                    del_recent(region_id, account_id)
+                    del_recent(connection, region_id, account_id)
                     if enable_daily:
-                        del_recents(region_id, account_id)
+                        del_recents(connection, region_id, account_id)
                     return 'DeleteRecent'
                 else:
                     lbt = user_basic['statistics']['basic']['last_battle_time']
                     if enable_daily and (int(time.time()) - lbt >= 90*24*60*60):
-                        del_recents(region_id, account_id)
+                        del_recents(connection, region_id, account_id)
                         enable_daily = 0
                     if int(time.time()) - lbt >= 360*24*60*60:
                         # 用户长期不活跃删除recent
-                        del_recent(region_id, account_id)
+                        del_recent(connection, region_id, account_id)
                         return 'DeleteRecent'
                     leveling_points = user_basic['statistics']['basic']['leveling_points']
                     karma = user_basic['statistics']['basic']['karma']
@@ -465,19 +473,19 @@ async def update(
                         avg_frags = round(user_basic['statistics']['pvp']['frags']/pvp_count,4)
                     if region_id == 4:
                         battle_dict, statis_dict = responeses_processing([
-                            resp[1][str(account_id)]['statistics'],
-                            resp[2][str(account_id)]['statistics'],
-                            resp[3][str(account_id)]['statistics'],
-                            resp[4][str(account_id)]['statistics'],
-                            resp[5][str(account_id)]['statistics'],
-                            resp[6][str(account_id)]['statistics']
+                            responses[1][str(account_id)]['statistics'],
+                            responses[2][str(account_id)]['statistics'],
+                            responses[3][str(account_id)]['statistics'],
+                            responses[4][str(account_id)]['statistics'],
+                            responses[5][str(account_id)]['statistics'],
+                            responses[6][str(account_id)]['statistics']
                         ])
                     else:
                         battle_dict, statis_dict = responeses_processing([
-                            resp[1][str(account_id)]['statistics'],
-                            resp[2][str(account_id)]['statistics'],
-                            resp[3][str(account_id)]['statistics'],
-                            resp[4][str(account_id)]['statistics']
+                            responses[1][str(account_id)]['statistics'],
+                            responses[2][str(account_id)]['statistics'],
+                            responses[3][str(account_id)]['statistics'],
+                            responses[4][str(account_id)]['statistics']
                         ])
                     if date1_data[0] == 0 or date1_data[6] == None:
                         user_cache = {}
@@ -488,7 +496,7 @@ async def update(
                                 ships_cache.append([ship_id,date_1,json.dumps(statis_dict[ship_id],separators=(",", ":"))])
                         user_cache = json.dumps(user_cache,separators=(",", ":"))
                         cursor.execute("""
-                            INSERT INTO user (
+                            INSERT INTO users (
                                 date,is_public,leveling_points,
                                 karma,win_rate,avg_damage,
                                 avg_frags,cache
@@ -548,7 +556,7 @@ async def update(
                                 redis_client.set(redis_key, json.dumps(recents_data), 7*24*60*60)
                         # 将新数据写入数据库
                         cursor.execute("""
-                            REPLACE INTO user (
+                            REPLACE INTO users (
                                 date,is_public,leveling_points,
                                 karma,win_rate,avg_damage,
                                 avg_frags,cache
@@ -571,8 +579,6 @@ async def update(
                             """, ship_cache)
                         conn.commit()
                         return 'ChangedUpdate'
-                        
-                    
     except Exception as e:
         logger.error((f"{traceback.format_exc()}"))
         return type(e).__name__

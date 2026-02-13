@@ -1,34 +1,44 @@
 import os
-from dotenv import load_dotenv
+from pathlib import Path
+from datetime import datetime
 
-
-load_dotenv()
 
 CLIENT_NAME = 'SchedulerClan'
 LOG_LEVEL = 'debug'
-LOG_DIR = '/app/logs'
 REFRESH_INTERVAL = 300
+DATE_FMT = '%Y-%m-%d %H:%M:%S'
 
 # 通过api获取season数据
 # 更新SeasonID同时要创建对应的表
 # https://developers.wargaming.net/reference/all/wows/clans/season/?language=en&r_realm=asia
-SEASON_ID = os.getenv("SEASON_ID")
-SEASON_START = os.getenv("SEASON_START")
-SEASON_FINISH = os.getenv("SEASON_FINISH")
 
-MYSQL_HOST = os.getenv("MYSQL_HOST")
-MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306))
-MYSQL_USERNAME = os.getenv("MYSQL_USERNAME")
-MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
+if os.getenv('PLATFORM') is None:
+    from dotenv import load_dotenv
+    load_result = load_dotenv('.env.dev')
+    print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: .env.dev")
+else:
+    print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: .env.prod")
 
-MAIN_DB = os.getenv("MAIN_DB")
-
-REDIS_HOST = os.getenv("REDIS_HOST")
-REDIS_PORT = os.getenv("REDIS_PORT")
-REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+LOG_DIR = Path(os.getenv("LOG_DIR"))
+DATA_DIR = Path(os.getenv("DATA_DIR"))
+MYSQL_CONFIG = {
+    "host": os.getenv("MYSQL_HOST"),
+    "port": int(os.getenv("MYSQL_PORT", 3306)),
+    "user": os.getenv("MYSQL_USERNAME"),
+    "password": os.getenv("MYSQL_PASSWORD"),
+    "database": os.getenv("MYSQL_DATABASE"),
+    "autocommit": False
+}
+REDIS_CONFIG = {
+    "host": os.getenv("REDIS_HOST"),
+    "port": int(os.getenv("REDIS_PORT", 6379)),
+    "db": 0,
+    "password": os.getenv("REDIS_PASSWORD"),
+    "decode_responses": True
+}
 
 '''
-CREATE TABLE clan_battle_s32 (
+CREATE TABLE clan_battle_s33 (
     -- 相关id
     id               INT          AUTO_INCREMENT,
     -- 对局相关信息和ID

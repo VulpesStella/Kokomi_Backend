@@ -915,7 +915,7 @@ class ExternalAPI:
     @ExceptionLogger.handle_program_exception_async
     async def get_user_cb(region: str, account_id: int):
         base_url = OFFICIAL_API_ENDPOINTS[region]
-        config = EnvConfig.get_config()
+        config = EnvConfig.config
         if region == 'ru':
             api_token = config.LESTA_API_TOKEN
         else:

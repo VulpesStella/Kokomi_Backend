@@ -13,7 +13,7 @@ def is_chinese(text):
 def check_ship_name_translation(data_file_path: str, mo_file_path: str):
     with open(data_file_path, 'r', encoding='utf-8') as f:
         product_data = json.load(f)
-    backup_file = os.path.join(cwd, 'temp', 'backup', f'ship_name_lesta_{int(time.time())}.json')
+    backup_file = os.path.join(cwd, 'data', 'backup', f'ship_name_lesta_{int(time.time())}.json')
     shutil.copy(data_file_path, backup_file)
     mo = polib.mofile(mo_file_path)
     mo_dict = {entry.msgid: entry.msgstr for entry in mo}

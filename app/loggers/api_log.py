@@ -1,8 +1,7 @@
-import os
 import csv
 import queue
 
-from app.core import API_LOG_PATH
+from app.core import EnvConfig
 
 
 log_queue = queue.Queue(maxsize=1000)
@@ -28,8 +27,8 @@ class CSVWriter:
         # 如果之前有打开的文件，先关闭
         if self.file:
             self.file.close()
-        file_path = os.path.join(API_LOG_PATH, f"{date_str}.csv")
-        file_exists = os.path.exists(file_path)
+        file_path =  EnvConfig.LOG_DIR / f"metrics/{date_str}.csv"
+        file_exists = file_path.exists()
         self.file = open(file_path, "a", newline="", encoding="utf-8")
         self.writer = csv.writer(self.file)
         if not file_exists:  # 新文件，写入表头

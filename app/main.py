@@ -19,8 +19,10 @@ from app.database import MysqlConnection
 from app.health import HealthManager, ServiceMetrics
 from app.apis.robot import BindAPI, TokenAPI
 from app.apis.platform import StatusAPI
+from app.models import PlatformModel
 from app.middlewares import (
-    IPAccessListManager, 
+    TokenManager,
+    AccessManager, 
     RedisConnection,
     get_role, 
     require_root, 
@@ -52,17 +54,17 @@ async def schedule():
 # ------------------------------------------------------
 def csv_writer_thread():
     writer = CSVWriter()
-    api_logger.info('The log writing thread has been started.')
+    api_logger.info('The log writing thread has been started')
     while True:
         record = log_queue.get()
-        api_logger.debug('Received a log data to be written.')
+        api_logger.debug('Received a log data to be written')
         if record is None:  # 退出信号
             break
         writer.write(record)
         log_queue.task_done()
 
     writer.close()
-    api_logger.info('The log writing thread has exited.')
+    api_logger.info('The log writing thread has exited')
 
 
 # ------------------------------------------------------
@@ -74,14 +76,28 @@ def csv_writer_thread():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 从环境中加载配置
-    EnvConfig.load_config()
+    env_file = EnvConfig.init()
+    if env_file:
+        api_logger.info(f"Env config loaded: {env_file}")
+    else:
+        api_logger.error("Env config load failed")
     # 启动定时任务
     task = asyncio.create_task(schedule())
     # 启动API日志写入线程
     writer_thread = threading.Thread(target=csv_writer_thread, daemon=True)
     writer_thread.start()
     # 初始化mysql并测试mysql连接
-    await MysqlConnection.test_mysql()
+    test_result = await MysqlConnection.test_mysql()
+    if test_result:
+        db_config = await PlatformModel.load_config()
+        ip_count, user_count, clan_count = AccessManager().reload(
+            data=db_config.get('blacklist', {})
+        )
+        api_logger.info(f"Loaded blacklist: IP({ip_count}) User({user_count}) Clan({clan_count})")
+        root_users, regular_users = TokenManager().reload(
+            data=db_config.get('token', {})
+        )
+        api_logger.info(f"Loaded access users: Root({root_users}) User({regular_users})")
     # 初始化并测试redis连接
     await RedisConnection.test_redis()
     # 启动 lifespan
@@ -117,7 +133,7 @@ app.add_middleware(
 @app.middleware("http")
 async def request_rate_limiter(request: Request, call_next):
     client_ip = request.client.host
-    if IPAccessListManager.is_blacklisted(client_ip):
+    if AccessManager().is_ip_blacklisted(client_ip):
         raise HTTPException(
             status_code=403,
             detail="Forbidden"

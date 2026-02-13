@@ -1,4 +1,8 @@
+user/
+test/
+data/
 *.mo
 *.py
 *.gz
 *.json
+*.sql

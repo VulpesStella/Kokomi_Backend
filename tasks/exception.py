@@ -3,9 +3,8 @@ import uuid
 import traceback
 from datetime import datetime, timezone
 
+from .settings import LOG_DIR
 
-LOG_DIR = '/app/logs'
-ERROR_LOG_PATH = os.path.join(LOG_DIR, "error")
 
 def write_error_info(
     error_id: str,
@@ -15,7 +14,7 @@ def write_error_info(
     error_info: str = None
 ):
     form_time = datetime.now(timezone.utc).isoformat()
-    with open(os.path.join(ERROR_LOG_PATH, f'{form_time[0:10]}.txt'), "a", encoding="utf-8") as f:
+    with open(os.path.join(LOG_DIR / f'error/{form_time[0:10]}.txt'), "a", encoding="utf-8") as f:
         f.write('-------------------------------------------------------------------------------------------------------------\n')
         f.write(f">Platform:     Celery\n")
         f.write(f">Error ID:     {error_id}\n")

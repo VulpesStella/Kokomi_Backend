@@ -221,6 +221,139 @@ class RecentModel:
             await MysqlConnection.release_connection(conn)
 
     @ExceptionLogger.handle_database_exception_async
+    async def add_recent(region: str, account_id: int):
+        '''
+        [内部方法]启用recent功能
+        '''
+        try:
+            conn: Connection = await MysqlConnection.get_connection()
+            await conn.begin()
+            cur: Cursor = await conn.cursor()
+
+            region_id = GameUtils.get_region_id(region)
+            sql = """
+                SELECT 
+                    enable_recent, 
+                    enable_daily, 
+                    recent_limit
+                FROM recent 
+                WHERE region_id = %s 
+                  AND account_id = %s;
+            """
+            await cur.execute(sql,[region_id,account_id])
+            data = await cur.fetchone()
+            if data is None:
+                sql = """
+                    INSERT INTO recent (
+                        region_id, 
+                        account_id, 
+                        enable_recent, 
+                        recent_limit
+                    ) VALUE (
+                        %s,%s,%s,%s
+                    );
+                """
+                await cur.execute(sql,[region_id,account_id,1,Limits.DefaultRecentLimit])
+                result = Limits.DefaultRecentLimit
+            else:
+                if data[0] == 0:
+                    sql = """
+                        UPDATE recent 
+                        SET 
+                            enable_recent = 1, 
+                            recent_limit = %s
+                        WHERE region_id = %s 
+                          AND account_id = %s;
+                    """
+                    await cur.execute(sql,[Limits.DefaultRecentLimit,region_id,account_id])
+                    result = Limits.DefaultRecentLimit
+                else:
+                    result = data[2]
+            
+            await conn.commit()
+            return JSONResponse.get_success_response(result)
+        except Exception as e:
+            await conn.rollback()
+            raise e
+        finally:
+            await cur.close()
+            await MysqlConnection.release_connection(conn)
+    
+    @ExceptionLogger.handle_database_exception_async
+    async def add_recent_pro(region: str, account_id: int):
+        '''
+        [内部方法]启用recent(pro)功能
+        '''
+        try:
+            conn: Connection = await MysqlConnection.get_connection()
+            await conn.begin()
+            cur: Cursor = await conn.cursor()
+
+            region_id = GameUtils.get_region_id(region)
+            sql = """
+                SELECT 
+                    enable_recent, 
+                    enable_daily, 
+                    recent_limit 
+                FROM recent 
+                WHERE region_id = %s 
+                  AND account_id = %s;
+            """
+            await cur.execute(sql,[region_id,account_id])
+            data = await cur.fetchone()
+            if data is None:
+                sql = """
+                    INSERT INTO recent (
+                        region_id, 
+                        account_id, 
+                        enable_recent, 
+                        enable_daily, 
+                        recent_limit 
+                    ) VALUE (
+                        %s,%s,%s,%s,%s
+                    );
+                """
+                await cur.execute(sql,[region_id,account_id,1,1,Limits.DefaultRecentLimit])
+                result = Limits.DefaultRecentLimit
+            else:
+                if data[1] == 1:
+                    await conn.commit()
+                    return data[2]
+                if data[0] == 0 or data[1] == 0:
+                    if data[2] < Limits.DefaultRecentLimit:
+                        sql = """
+                            UPDATE recent 
+                            SET 
+                                enable_recent = 1, 
+                                enable_daily = 1, 
+                                recent_limit = %s 
+                            WHERE region_id = %s 
+                            AND account_id = %s;
+                        """
+                        await cur.execute(sql,[Limits.DefaultRecentLimit,region_id,account_id])
+                        result = Limits.DefaultRecentLimit
+                    else:
+                        sql = """
+                            UPDATE recent 
+                            SET 
+                                enable_recent = 1, 
+                                enable_daily = 1 
+                            WHERE region_id = %s 
+                            AND account_id = %s;
+                        """
+                        await cur.execute(sql,[region_id,account_id])
+                        result = data[2]
+                
+            await conn.commit()
+            return JSONResponse.get_success_response(result)
+        except Exception as e:
+            await conn.rollback()
+            raise e
+        finally:
+            await cur.close()
+            await MysqlConnection.release_connection(conn)
+
+    @ExceptionLogger.handle_database_exception_async
     async def del_recent(region: str, account_id: int):
         '''
         [内部方法]删除recent功能

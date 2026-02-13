@@ -1,15 +1,32 @@
 import json
 import gzip
 import time
-import traceback
-import pymysql
-import asyncio
 import httpx
+import asyncio
+import traceback
+from redis import Redis
+from pymysql import Connection
+from pymysql.cursors import Cursor
 from datetime import datetime
-from middlewares import db_pool, redis_client
 from logger import logger
+from settings import BATCH_SIZE, DATA_DIR
 
 
+MAX_HTTP_CONCURRENCY = 3
+TIMEOUT = httpx.Timeout(
+    connect = 2.0,
+    read = 10.0,
+    write = 3.0,
+    pool = 2.0,
+)
+http_semaphore = asyncio.Semaphore(MAX_HTTP_CONCURRENCY)
+async_client = httpx.AsyncClient(
+    timeout=TIMEOUT,
+    limits=httpx.Limits(
+        max_connections=100,
+        max_keepalive_connections=20
+    )
+)
 VORTEX_API_URL_LIST = {
     1: 'https://vortex.worldofwarships.asia',
     2: 'https://vortex.worldofwarships.eu',
@@ -21,223 +38,9 @@ VORTEX_API_URL_LIST = {
 def now_iso() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
-def compress(data: dict):
-    # 数据压缩
-    if data:
-        json_str = json.dumps(
-            data,
-            ensure_ascii=False,
-            separators=(",", ":")  # 去空格，减小体积
-        )
-        json_bytes = json_str.encode("utf-8")
-        return gzip.compress(json_bytes)
-    else:
-        return None
-
-def decompress(gzip_bytes: bytes):
-    # 数据解压
-    if gzip_bytes:
-        decompressed = gzip.decompress(gzip_bytes)
-        return json.loads(decompressed)
-    else:
-        return None
-
-def get_max_id():
-    # 先获取数据库中id最大值，确定循环上限
-    conn = db_pool.connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
-    try:
-        sql = f"""
-            SELECT 
-                MAX(id) AS max_id 
-            FROM user_stats;
-        """
-        cursor.execute(sql)
-        data = cursor.fetchone()
-        return data['max_id']
-    finally:
-        cursor.close()
-        conn.close()
-
-def get_version():
-    # 先获取数据库中的游戏版本
-    conn = db_pool.connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
-    try:
-        sql = f"""
-            SELECT 
-                region_id,
-                short_version
-            FROM region_version;
-        """
-        cursor.execute(sql)
-        data = cursor.fetchall()
-        return [
-            data[0]['short_version'],
-            data[1]['short_version'],
-            data[2]['short_version'],
-            data[3]['short_version'],
-            data[4]['short_version']
-        ]
-    finally:
-        cursor.close()
-        conn.close()
-
-def get_update_list(max_id: int, batch_size: int):
-    # 从数据库中批量读取并判断那些用户需要更新
-    total_update = 0
-    update_list = [[],[],[],[],[]]
-    conn = db_pool.connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
-    try:
-        for offset in range(0, max_id, batch_size):
-            sql = """
-                SELECT 
-                    b.region_id, 
-                    b.account_id, 
-                    s.pvp_battles, 
-                    c.pvp_count 
-                FROM user_base AS b 
-                LEFT JOIN user_stats AS s 
-                    ON b.account_id = s.account_id 
-                LEFT JOIN user_cache AS c 
-                    ON b.account_id = c.account_id 
-                WHERE b.id BETWEEN %s AND %s;
-            """
-            cursor.execute(sql, [offset+1, offset+batch_size])
-            data = cursor.fetchall()
-            for user_info in data:
-                if user_info['pvp_battles'] != user_info['pvp_count']:
-                    update_list[user_info['region_id']-1].append(user_info['account_id'])
-                    total_update += 1
-    except Exception as e:
-        logger.error((f"{traceback.format_exc()}"))
-    finally:
-        cursor.close()
-        conn.close()
-    return total_update, update_list
-
-async def fetch_data(url):
-    try:
-        async with httpx.AsyncClient() as client:
-            res = await client.get(url, timeout=5)
-            requset_code = res.status_code
-            requset_result = res.json()
-            if requset_code == 200:
-                logger.debug(f'200 {url}')
-                return requset_result['data']
-            if requset_code == 404:
-                return {}
-            logger.warning(f'Code_{requset_code} {url}')
-            return f'HTTP_STATUS_{requset_code}'
-    except Exception as e:
-        logger.warning(f"{type(e).__name__} {url}")
-        return f'ERROR_{type(e).__name__}'
-    
-def varify_responses(responses: list | dict):
-    error = 0
-    error_return = None
-    for response in responses:
-        if type(response) != dict:
-            error += 1
-            error_return = response
-    if error == 0:
-        return None, None
-    else:
-        return error, error_return
-
-async def get_cache_data(
-    region_id: int,
-    account_id: int,
-    ac_value: str = None
-):
-    api_url = VORTEX_API_URL_LIST.get(region_id)
+def get_region(region_id: int):
     region_dict = {1: 'asia',2: 'eu',3: 'na',4: 'ru',5: 'cn'}
-    region = region_dict[region_id]
-    urls = [
-        f'{api_url}/api/accounts/{account_id}/' + (f'?ac={ac_value}' if ac_value else ''),
-        f'{api_url}/api/accounts/{account_id}/ships/' + (f'?ac={ac_value}' if ac_value else ''),
-        f'{api_url}/api/accounts/{account_id}/ships/pvp/' + (f'?ac={ac_value}' if ac_value else '')
-    ]
-    tasks = []
-    responses = []
-    async with asyncio.Semaphore(len(urls)):
-        for url in urls:
-            tasks.append(fetch_data(url))
-        responses = await asyncio.gather(*tasks)
-    now_time = now_iso()
-    key = f"metrics:http:{now_time[:10]}:{region}_total"
-    redis_client.incrby(key, 3)
-    error_count, error_return = varify_responses(responses)
-    if error_count != None:
-        key = f"metrics:http:{now_time[:10]}:{region}_error"
-        redis_client.incrby(key, error_count)
-        return error_return
-    result = {}
-    overall = {}
-    basic_data = responses[0]
-    update_base(region_id, account_id, basic_data)
-    if basic_data:
-            basic_data = basic_data[str(account_id)]
-    if 'hidden_profile' in basic_data:
-        return {}
-    if (
-        basic_data == None or basic_data == {} or
-        'statistics' not in basic_data or 
-        'basic' not in basic_data['statistics'] or 
-        basic_data['statistics']['basic']['leveling_points'] == 0
-    ):
-        return {}
-    pvp_count = basic_data['statistics']['pvp'].get('battles_count')
-    if pvp_count and pvp_count > 0:
-        overall = {
-            'battles_count': pvp_count,
-            'win_rate': round(basic_data['statistics']['pvp']['wins']/pvp_count*100,4),
-            'avg_damage': round(basic_data['statistics']['pvp']['damage_dealt']/pvp_count,4),
-            'avg_frags': round(basic_data['statistics']['pvp']['frags']/pvp_count,4),
-            'max_damage': basic_data['statistics']['pvp']['max_damage_dealt'],
-            'max_damage_id': basic_data['statistics']['pvp']['max_damage_dealt_vehicle'],
-            'max_exp': basic_data['statistics']['pvp']['max_exp'],
-            'max_exp_id': basic_data['statistics']['pvp']['max_exp_vehicle']
-        }
-    else:
-        overall = {
-            'battles_count': 0,
-            'win_rate': 0,
-            'avg_damage': 0,
-            'avg_frags': 0,
-            'max_damage': 0,
-            'max_damage_id': 0,
-            'max_exp': 0,
-            'max_exp_id': 0
-        }
-    ships_data = responses[1]
-    pvp_data = responses[2][str(account_id)]['statistics']
-    for ship_id, ship_data in pvp_data.items():
-        ship_data = pvp_data[str(ship_id)]['pvp']
-        if ship_data == {}:
-            continue
-        solo_data = ships_data[str(account_id)]['statistics'][ship_id]
-        if 'pvp_solo' in solo_data and solo_data['pvp_solo'] != {}:
-            solo_count = solo_data['pvp_solo']['battles_count']
-        else:
-            solo_count = 0
-        result[ship_id]=[
-                ship_data['battles_count'],
-                solo_count,
-                ship_data['wins'],
-                ship_data['damage_dealt'],
-                ship_data['frags'],
-                ship_data['original_exp'],
-                ship_data['survived'],
-                ship_data['max_exp'],
-                ship_data['max_damage_dealt']
-            ]
-    if pvp_count <= 0:
-        return {}
-    else:
-        return {'overall':overall, 'data':result}
-    
+    return region_dict[region_id]
 
 def get_activity_level(is_public: bool, total_battles: int = 0, last_battle_time: int = 0):
         "获取activity_level"
@@ -267,7 +70,122 @@ def get_insignias(data: dict):
     else:
         return f"{data['texture_id']}-{data['symbol_id']}-{data['border_color_id']}-{data['background_color_id']}-{data['background_id']}"
 
-def update_base(region_id: int ,account_id: int, user_basic: dict):
+def compress(data: dict):
+    # 数据压缩
+    if data:
+        json_str = json.dumps(
+            data,
+            ensure_ascii=False,
+            separators=(",", ":")  # 去空格，减小体积
+        )
+        json_bytes = json_str.encode("utf-8")
+        return gzip.compress(json_bytes)
+    else:
+        return None
+
+def decompress(gzip_bytes: bytes):
+    # 数据解压
+    if gzip_bytes:
+        decompressed = gzip.decompress(gzip_bytes)
+        return json.loads(decompressed)
+    else:
+        return None
+
+def get_versions(conn: Connection):
+    # 从数据库中批量读取并判断那些用户需要更新
+    region_version_map = {}
+    cursor: Cursor = conn.cursor()
+    try:
+        sql = """
+            SELECT 
+                region_id, 
+                short_version 
+            FROM region_version;
+        """
+        cursor.execute(sql)
+        regions_version = cursor.fetchall()
+        for region_v in regions_version:
+            region_version_map[region_v[0]] = region_v[1]
+    except Exception:
+        logger.error((f"{traceback.format_exc()}"))
+    finally:
+        cursor.close()
+    return region_version_map
+
+def get_update_ids(conn: Connection):
+    # 从数据库中批量读取并判断那些用户需要更新
+    update_list = []
+    cursor: Cursor = conn.cursor()
+    try:
+        sql = f"""
+            SELECT 
+                MAX(id) 
+            FROM user_stats;
+        """
+        cursor.execute(sql)
+        data = cursor.fetchone()
+        max_id = data[0]
+        logger.info(f'Max ID: {max_id}')
+        for offset in range(0, max_id, BATCH_SIZE):
+            sql = """
+                SELECT 
+                    b.region_id, 
+                    b.account_id, 
+                    s.pvp_battles, 
+                    c.pvp_count 
+                FROM user_base AS b 
+                LEFT JOIN user_stats AS s 
+                    ON b.account_id = s.account_id 
+                LEFT JOIN user_cache AS c 
+                    ON b.account_id = c.account_id 
+                WHERE b.id BETWEEN %s AND %s;
+            """
+            cursor.execute(sql, [offset+1, offset+BATCH_SIZE])
+            rows = cursor.fetchall()
+            for row in rows:
+                if row[2] != row[3]:
+                    update_list.append([row[0], row[1]])
+    except Exception:
+        logger.error((f"{traceback.format_exc()}"))
+    finally:
+        cursor.close()
+    return update_list
+
+async def fetch_data(url):
+    async with http_semaphore:
+        try:
+            res = await async_client.get(url)
+            requset_code = res.status_code
+            requset_result = res.json()
+            if requset_code == 200:
+                logger.debug(f'200 {url}')
+                return requset_result['data']
+            if requset_code == 404:
+                return {}
+            logger.warning(f'Code_{requset_code} {url}')
+            return f'HTTP_STATUS_{requset_code}'
+        except Exception as e:
+            logger.warning(f"{type(e).__name__} {url}")
+            return f'ERROR_{type(e).__name__}'
+    
+def verify_responses(region: str, redis_client: Redis, responses: list):
+    error = 0
+    error_return = None
+    now_time = now_iso()
+    for response in responses:
+        if isinstance(response, str):
+            error += 1
+            error_return = response
+    key = f"metrics:http:{now_time[:10]}:{region}_total"
+    redis_client.incrby(key, len(responses))
+    if error == 0:
+        return None
+    else:
+        key = f"metrics:http:{now_time[:10]}:{region}_error"
+        redis_client.incrby(key, error)
+        return error_return
+
+def update_base(conn: Connection, region_id: int ,account_id: int, user_basic: dict):
     refresh_data = {
         'is_enabled': 0,
         'activity_level': 0,
@@ -316,8 +234,7 @@ def update_base(region_id: int ,account_id: int, user_basic: dict):
         refresh_data['pvp_battles'] = 0 if user_basic['statistics']['pvp'] == {} else user_basic['statistics']['pvp']['battles_count']
         refresh_data['ranked_battles'] = ranked_count
         refresh_data['last_battle_at'] = user_basic['statistics']['basic']['last_battle_time']
-    conn = db_pool.connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    cursor: Cursor = conn.cursor()
     try:
         sql = """
             SELECT 
@@ -399,9 +316,222 @@ def update_base(region_id: int ,account_id: int, user_basic: dict):
                 refresh_data['last_battle_at'],account_id
             ])
         conn.commit()
+    except Exception:
+        conn.rollback()
+        logger.error((f"{traceback.format_exc()}"))
+    finally:
+        cursor.close()
+
+async def get_cache_data(
+    redis_client: Redis, 
+    region_id: int,
+    account_id: int,
+    ac_value: str = None
+):
+    api_url = VORTEX_API_URL_LIST.get(region_id)
+    urls = [
+        f'{api_url}/api/accounts/{account_id}/' + (f'?ac={ac_value}' if ac_value else ''),
+        f'{api_url}/api/accounts/{account_id}/ships/' + (f'?ac={ac_value}' if ac_value else ''),
+        f'{api_url}/api/accounts/{account_id}/ships/pvp/' + (f'?ac={ac_value}' if ac_value else '')
+    ]
+    tasks = [fetch_data(url) for url in urls]
+    responses = await asyncio.gather(*tasks)
+    error = verify_responses(get_region(region_id), redis_client, responses)
+    if error != None:
+        return error
+    result = {}
+    overall = {}
+    basic_data = responses[0]
+    update_base(region_id, account_id, basic_data)
+    if basic_data:
+            basic_data = basic_data[str(account_id)]
+    if 'hidden_profile' in basic_data:
+        return {}
+    if (
+        basic_data == None or basic_data == {} or
+        'statistics' not in basic_data or 
+        'basic' not in basic_data['statistics'] or 
+        basic_data['statistics']['basic']['leveling_points'] == 0
+    ):
+        return {}
+    pvp_count = basic_data['statistics']['pvp'].get('battles_count')
+    if pvp_count and pvp_count > 0:
+        overall = {
+            'battles_count': pvp_count,
+            'win_rate': round(basic_data['statistics']['pvp']['wins']/pvp_count*100,4),
+            'avg_damage': round(basic_data['statistics']['pvp']['damage_dealt']/pvp_count,4),
+            'avg_frags': round(basic_data['statistics']['pvp']['frags']/pvp_count,4),
+            'max_damage': basic_data['statistics']['pvp']['max_damage_dealt'],
+            'max_damage_id': basic_data['statistics']['pvp']['max_damage_dealt_vehicle'],
+            'max_exp': basic_data['statistics']['pvp']['max_exp'],
+            'max_exp_id': basic_data['statistics']['pvp']['max_exp_vehicle']
+        }
+    else:
+        overall = {
+            'battles_count': 0,
+            'win_rate': 0,
+            'avg_damage': 0,
+            'avg_frags': 0,
+            'max_damage': 0,
+            'max_damage_id': 0,
+            'max_exp': 0,
+            'max_exp_id': 0
+        }
+    ships_data = responses[1]
+    pvp_data = responses[2][str(account_id)]['statistics']
+    for ship_id, ship_data in pvp_data.items():
+        ship_data = pvp_data[str(ship_id)]['pvp']
+        if ship_data == {}:
+            continue
+        solo_data = ships_data[str(account_id)]['statistics'][ship_id]
+        if 'pvp_solo' in solo_data and solo_data['pvp_solo'] != {}:
+            solo_count = solo_data['pvp_solo']['battles_count']
+        else:
+            solo_count = 0
+        result[ship_id]=[
+                ship_data['battles_count'],
+                solo_count,
+                ship_data['wins'],
+                ship_data['damage_dealt'],
+                ship_data['frags'],
+                ship_data['original_exp'],
+                ship_data['survived'],
+                ship_data['max_exp'],
+                ship_data['max_damage_dealt']
+            ]
+    if pvp_count <= 0:
+        return {}
+    else:
+        return {'overall':overall, 'data':result}
+
+async def update_user_cahce(
+    conn: Connection, 
+    redis_client: Redis, 
+    region_id: int,
+    account_id: int, 
+    version: str
+):
+    redis_key = f"token:ac:{account_id}"
+    result = redis_client.get(redis_key)
+    if result:
+        result = json.loads(result)
+        ac = result.get('ac')
+    else:
+        ac = None
+    old_data = None
+    old_pvp = None
+    cache_data = await get_cache_data(region_id, account_id, ac)
+    if isinstance(cache_data, str):
+        return cache_data
+    cursor: Cursor = conn.cursor()
+    try:
+        if cache_data == {}:
+            sql = """
+                UPDATE user_cache 
+                SET 
+                    pvp_count = %s, 
+                    win_rate = %s, 
+                    avg_damage = %s, 
+                    avg_frags = %s, 
+                    max_damage = %s, 
+                    max_damage_id = %s, 
+                    max_exp = %s, 
+                    max_exp_id = %s, 
+                    cache = %s 
+                WHERE 
+                    account_id = %s;
+            """
+            cursor.execute(
+                sql,[
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    None,
+                    0,
+                    None,
+                    None,
+                    account_id
+                ]
+            )
+            return 'NoData or Hidden'
+        else:
+            basic_data = cache_data['overall']
+            new_data = cache_data['data']
+            sql = """
+                SELECT 
+                    pvp_count, 
+                    cache 
+                FROM user_cache 
+                WHERE account_id = %s;
+            """
+            cursor.execute(sql,[account_id])
+            data = cursor.fetchone()
+            old_pvp = data[0]
+            old_data = decompress(data[1])
+            sql = """
+                UPDATE user_cache 
+                SET 
+                    pvp_count = %s, 
+                    win_rate = %s, 
+                    avg_damage = %s, 
+                    avg_frags = %s, 
+                    max_damage = %s, 
+                    max_damage_id = %s, 
+                    max_exp = %s, 
+                    max_exp_id = %s, 
+                    cache = %s 
+                WHERE 
+                    account_id = %s;
+            """
+            cursor.execute(
+                sql,[
+                    basic_data['battles_count'],
+                    basic_data['win_rate'],
+                    basic_data['avg_damage'],
+                    basic_data['avg_frags'],
+                    basic_data['max_damage'],
+                    basic_data['max_damage_id'],
+                    basic_data['max_exp'],
+                    basic_data['max_exp_id'],
+                    compress(new_data),
+                    account_id
+                ]
+            )
+        conn.commit()
     except Exception as e:
         conn.rollback()
         logger.error((f"{traceback.format_exc()}"))
     finally:
         cursor.close()
-        conn.close()
+    # 计算差值，统计近期数据
+    if old_pvp != 0 and basic_data['battles_count'] != 0:
+        add_count = basic_data['battles_count'] - old_pvp
+        # 计算recent数据
+        recent = {}
+        for ship_id,ship_info in new_data.items():
+            if ship_id not in old_data:
+                recent[ship_id] = ship_info
+            else:
+                if ship_info[0] > old_data[ship_id][0]:
+                    recent[ship_id] = [x - y for x, y in zip(ship_info, old_data[ship_id])]
+        # 读取当前数据
+        file_path = DATA_DIR / 'recent' / str(region_id) / f'{version}.json'
+        if file_path.exists():
+            with open(file_path, 'r', encoding='utf-8') as f:
+                current_data = json.load(f)
+        else:
+            current_data = {}
+        # 将recent进行累加
+        for ship_id, ship_data in recent.items():
+            del ship_data[1] # 删除solo_count
+            if ship_id not in current_data:
+                current_data[ship_id] = ship_data[:6]
+            else:
+                current_data[ship_id] = [a + b for a, b in zip(ship_data[:6], current_data[ship_id])]
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(current_data, f, ensure_ascii=False)
+        return f'Successful, {add_count} new data entries'
+    else:
+        return f'Successful, no new data added'

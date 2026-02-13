@@ -1,8 +1,11 @@
 from typing import Literal
+from typing import Optional
 from fastapi import APIRouter, Query
 
-from app.apis.platform import RefreshAPI, MySQLAPI, UpdateAPI
-from app.schemas import Server, Region
+from app.schemas import Server, Region, Platform
+from app.apis.platform import (
+    RefreshAPI, MySQLAPI, UpdateAPI, UserAPI
+)
 
 router = APIRouter()
 
@@ -18,6 +21,9 @@ async def searchUser():
 async def updateGameVersion(region: Region = Query(Region.ASIA)):
     return await UpdateAPI.updateGameVersion(region)
 
+@router.get("/permium/status/", summary="查看用户的premium信息")
+async def getPermiumStatus(platform: Platform = Query(Platform.QQ_BOT), user_id: str = Query(...)):
+    return await UserAPI.get_user_premium_status(platform, user_id)
 
 @router.get("/mysql/overview/", summary="获取数据库概览")
 async def getMySQLOverview(item: Literal['user', 'clan', 'trx', 'process']):
@@ -30,3 +36,20 @@ async def getMySQLOverview(item: Literal['user', 'clan', 'trx', 'process']):
     else:
         result = await MySQLAPI.get_innodb_processlist()
     return result
+
+
+@router.get("/generate/code/", summary="生成激活码")
+async def generateCode(
+    max_use: int = Query(1),
+    validity: int = Query(30),
+    level: int = Query(1),
+    limit: int = Query(300),
+    describe: Optional[str] = None
+):
+    return await UserAPI.generate_code(
+        max_use,
+        validity,
+        level,
+        limit,
+        describe
+    )

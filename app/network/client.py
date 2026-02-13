@@ -1,11 +1,18 @@
 import httpx
 
-from .response import JSONResponse
-from .exception import handle_network_exception_async
 from app.core import api_logger
 
+from .response import JSONResponse
+from .exception import handle_network_exception_async
 
-REQUEST_TIMEOUT = 5
+
+
+timeout = httpx.Timeout(
+    connect = 2.0,
+    read = 10.0,
+    write = 3.0,
+    pool = 2.0,
+)
 
 class HttpClient:
     """负责和外部API交互"""
@@ -13,7 +20,7 @@ class HttpClient:
     async def get_user_search(url):
         # 请求获取工会名称搜索结果
         async with httpx.AsyncClient() as client:
-            res = await client.get(url=url, timeout = REQUEST_TIMEOUT)
+            res = await client.get(url=url, timeout=timeout)
             requset_code = res.status_code
             requset_result: dict = res.json()
             if requset_code == 200:
@@ -30,7 +37,7 @@ class HttpClient:
     async def get_clan_search(url):
         # 请求获取工会名称搜索结果
         async with httpx.AsyncClient() as client:
-            res = await client.get(url=url, timeout = REQUEST_TIMEOUT)
+            res = await client.get(url=url, timeout=timeout)
             requset_code = res.status_code
             requset_result: dict = res.json()
             if requset_code == 200:
@@ -44,7 +51,7 @@ class HttpClient:
     async def get_vehicles(url):
         # 请求获取vehicles数据
         async with httpx.AsyncClient() as client:
-            res = await client.get(url=url, timeout=REQUEST_TIMEOUT)
+            res = await client.get(url=url, timeout=timeout)
             requset_code = res.status_code
             requset_result: dict = res.json()
             if requset_code == 200:
@@ -59,7 +66,7 @@ class HttpClient:
         # 请求获取vehicles数据
         async with httpx.AsyncClient() as client:
             body = [{"query":"query Version {\n  version\n}"}]
-            res = await client.post(url=url, json=body, timeout=REQUEST_TIMEOUT)
+            res = await client.post(url=url, json=body, timeout=timeout)
             requset_code = res.status_code
             requset_result: dict = res.json()
             if requset_code == 200:
@@ -71,7 +78,7 @@ class HttpClient:
     @handle_network_exception_async
     async def get_user_data(url):
         async with httpx.AsyncClient() as client:
-            res = await client.get(url=url, timeout=REQUEST_TIMEOUT)
+            res = await client.get(url=url, timeout=timeout)
             requset_code = res.status_code
             requset_result = res.json()
             if requset_code == 404:
@@ -88,7 +95,7 @@ class HttpClient:
     @handle_network_exception_async
     async def get_offical_user_data(url):
         async with httpx.AsyncClient() as client:
-            res = await client.get(url=url, timeout=REQUEST_TIMEOUT)
+            res = await client.get(url=url, timeout=timeout)
             requset_code = res.status_code
             requset_result = res.json()
             if requset_code == 200:

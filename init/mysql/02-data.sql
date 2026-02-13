@@ -1,5 +1,3 @@
-USE kokomi;
-
 INSERT INTO region 
     (id, name) 
 VALUES
@@ -25,3 +23,14 @@ VALUES
     (3, '14.11', '14.11.0.post1/2f3e7195c1bb2050de4cb206814e6a11309a2f67', CURRENT_TIMESTAMP), 
     (4, '25.12', '25.12.0.post4/08ec98b7a1fea2baa7281561d48d5bc76a36c05b', CURRENT_TIMESTAMP), 
     (5, '14.11', '14.11.0.post4/de23d92ec3bde0ee2ba1cd5dabfee5d670bdef8e', CURRENT_TIMESTAMP);
+
+INSERT INTO clan_battle
+    (season_id, season_start, season_finish)
+VALUES 
+    (32, FROM_UNIXTIME(1764568800), FROM_UNIXTIME(1770616800));
+
+INSERT INTO app_token
+    (token, permission, extra)
+VALUES
+    ('root', 'root', 'DefaultRootToken'),
+    ('user', 'user', 'DefaultUserToken');

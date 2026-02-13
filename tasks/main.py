@@ -1,10 +1,8 @@
-import pika
+# import pika
 from celery import Celery
-from celery.app.base import logger
+# from celery.app.base import logger
 
-from .settings import (
-    RABBITMQ_HOST, RABBITMQ_PASSWORD, RABBITMQ_USERNAME
-)
+from .settings import RABBITMQ_CONFIG
 
 
 # params = pika.URLParameters(
@@ -18,7 +16,7 @@ from .settings import (
 # 创建 Celery 应用
 celery_app = Celery(
     "tasks",
-    broker=f"pyamqp://{RABBITMQ_USERNAME}:{RABBITMQ_PASSWORD}@{RABBITMQ_HOST}/",  # RabbitMQ 连接地址
+    broker=f"pyamqp://{RABBITMQ_CONFIG['user']}:{RABBITMQ_CONFIG['password']}@{RABBITMQ_CONFIG['host']}/",  # RabbitMQ 连接地址
     backend="rpc://",  # 使用 RabbitMQ 作为结果存储
     include=['tasks.tasks'],
     broker_connection_retry_on_startup = True

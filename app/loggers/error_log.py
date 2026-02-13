@@ -1,7 +1,5 @@
-import os
-
 from app.utils import TimeUtils
-from app.core import ERROR_LOG_PATH
+from app.core import EnvConfig
 
 def write_error_info(
     error_id: str,
@@ -11,7 +9,8 @@ def write_error_info(
     error_info: str = None
 ):
     form_time = TimeUtils.now_iso()
-    with open(os.path.join(ERROR_LOG_PATH, f'{form_time[0:10]}.txt'), "a", encoding="utf-8") as f:
+    error_file = EnvConfig.LOG_DIR / f'error/{form_time[0:10]}.txt'
+    with open(error_file, "a", encoding="utf-8") as f:
         f.write('-------------------------------------------------------------------------------------------------------------\n')
         f.write(f">Platform:     MainAPI\n")
         f.write(f">Error ID:     {error_id}\n")

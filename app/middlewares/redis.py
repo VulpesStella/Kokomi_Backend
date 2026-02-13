@@ -17,13 +17,13 @@ class RedisConnection:
         """初始化Redis连接"""
         try:
             if db not in cls._pools:
-                config = EnvConfig.get_config()
+                config = EnvConfig.config
                 cls._pools[db] = redis.from_url(
                     url=f"redis://:{config.REDIS_PASSWORD}@{config.REDIS_HOST}:{config.REDIS_PORT}/{db}",
                     encoding="utf-8",
                     decode_responses=True
                 )
-                api_logger.info(f'Redis connection to DB {db} initialized')
+                api_logger.info(f'Redis connection initialized')
             return cls._pools[db]
         except Exception as e:
             api_logger.error(f'Failed to initialize Redis connection for DB {db}')
@@ -38,11 +38,13 @@ class RedisConnection:
             async with redis_pool as redis_instance:
                 # ping测试连接
                 ping_response = await redis_instance.ping()
-                api_logger.info(f"Redis PING Response: {ping_response}")
-                # 获取redis版本
-                info = await redis_instance.info("server")
-                redis_version = info.get("redis_version")
-                api_logger.info(f"Redis Version: {redis_version}")
+                if ping_response:
+                    # 获取redis版本
+                    info = await redis_instance.info("server")
+                    redis_version = info.get("redis_version")
+                    api_logger.info(f"Redis Version: {redis_version}")
+                else:
+                    api_logger.warning(f'Redis ping failed')
         except Exception as e:
             api_logger.warning(f'Failed to test Redis connection for DB {db}')
             api_logger.error(e)

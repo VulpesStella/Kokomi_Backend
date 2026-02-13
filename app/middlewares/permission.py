@@ -1,22 +1,23 @@
-from app.core import EnvConfig, split_config
+class AccessManager:
+    _ip_blacklist = []
+    _game_user_blacklist = []
+    _game_clan_blacklist = []
 
-class IPAccessListManager:
-    def is_blacklisted(host: str) -> bool:
-        if host in split_config(EnvConfig.get_config().IP_BLACLIST):
-            return True
-        else:
-            return False
-        
-class UserAccessListManager:
-    def is_blacklisted(account_id: int) -> bool:
-        if account_id in split_config(EnvConfig.get_config().USER_BLACLIST):
-            return True
-        else:
-            return False
+    @classmethod
+    def reload(cls, data: dict) -> tuple[int, int, int]:
+        cls._ip_blacklist = data.get('ip', [])
+        cls._game_user_blacklist = data.get('game_user', [])
+        cls._game_clan_blacklist = data.get('game_clan', [])
+        return len(cls._ip_blacklist), len(cls._game_user_blacklist), len(cls._game_clan_blacklist)
+
+    @classmethod
+    def is_ip_blacklisted(cls, ip: str) -> bool:
+        return ip in cls._ip_blacklist
     
-class ClanAccessListManager:
-    def is_blacklisted(clan_id: int) -> bool:
-        if clan_id in split_config(EnvConfig.get_config().CLAN_BLACLIST):
-            return True
-        else:
-            return False
+    @classmethod
+    def is_account_blacklisted(cls, account_id: int) -> bool:
+        return int(account_id) in cls._game_user_blacklist
+    
+    @classmethod
+    def is_clan_blacklisted(cls, clan_id: int) -> bool:
+        return int(clan_id) in cls._game_clan_blacklist

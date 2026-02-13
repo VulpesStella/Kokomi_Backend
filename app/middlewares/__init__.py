@@ -1,10 +1,7 @@
 from .redis import RedisConnection, RedisClient
-from .permission import (
-    ClanAccessListManager,
-    UserAccessListManager,
-    IPAccessListManager
-)
+from .permission import AccessManager
 from .access import (
+    TokenManager,
     get_role,
     require_user,
     require_root
@@ -13,9 +10,8 @@ from .access import (
 __all__ = [
     'RedisConnection',
     'RedisClient',
-    'ClanAccessListManager',
-    'UserAccessListManager',
-    'IPAccessListManager',
+    'AccessManager',
+    'TokenManager',
     'get_role',
     'require_user',
     'require_root'

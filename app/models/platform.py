@@ -103,6 +103,52 @@ class PlatformModel:
             await cur.close()
             await MysqlConnection.release_connection(conn)
 
+    async def load_config() -> dict:
+        '''读取配置数据'''
+        try:
+            conn: Connection = await MysqlConnection.get_connection()
+            await conn.begin()
+            cur: Cursor = await conn.cursor()
+
+            result = {
+                'token': {
+                    'root': [],
+                    'user': []
+                },
+                'blacklist': {
+                    'ip': [],
+                    'game_user': [],
+                    'game_clan': []
+                }
+            }
+            sql = "SELECT token, permission FROM app_token;"
+            await cur.execute(sql)
+            rows = await cur.fetchall()
+            for row in rows:
+                if row[1] not in result['token']:
+                    continue
+                result['token'][row[1]].append(row[0])
+            sql = "SELECT target_type, target_value FROM blacklist;"
+            await cur.execute(sql)
+            rows = await cur.fetchall()
+            for row in rows:
+                if row[0] == 1:
+                    result['blacklist']['ip'].append(row[1])
+                elif row[0] == 2:
+                    result['blacklist']['game_user'].append(int(row[1]))
+                elif row[0] == 3:
+                    result['blacklist']['game_clan'].append(int(row[1]))
+                else:
+                    continue
+            return result
+            
+        except Exception as e:
+            await conn.rollback()
+            raise e
+        finally:
+            await cur.close()
+            await MysqlConnection.release_connection(conn)
+
     
     @ExceptionLogger.handle_database_exception_async
     async def get_basic_user_overview():

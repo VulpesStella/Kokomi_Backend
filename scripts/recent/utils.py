@@ -1,30 +1,66 @@
 import time
-import pymysql
-from datetime import datetime, timezone
+import json
+import traceback
+from redis import Redis
+from pymysql import Connection
+from pymysql.cursors import Cursor
 
-from middlewares import db_pool
+from logger import logger
+from settings import BATCH_SIZE
 
 
-def get_max_id():
-    # 先获取数据库中id最大值，确定循环上限
-    conn = db_pool.connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
+def get_update_ids(conn: Connection, redis_client: Redis):
+    # 从数据库中批量读取并判断那些用户需要更新
+    update_list = []
+    cursor: Cursor = conn.cursor()
     try:
         sql = """
             SELECT 
-                MAX(id) AS max_id 
+                MAX(id) 
             FROM recent;
         """
         cursor.execute(sql)
         data = cursor.fetchone()
-        return data['max_id']
+        max_id = data[0]
+        logger.info(f'Max ID: {max_id}')
+        for offset in range(0, max_id, BATCH_SIZE):
+            sql = """
+                SELECT 
+                    r.region_id, 
+                    r.account_id,  
+                    r.enable_recent, 
+                    r.enable_daily, 
+                    s.total_battles 
+                FROM recent AS r 
+                LEFT JOIN user_stats AS s 
+                    ON r.account_id = s.account_id 
+                WHERE r.id BETWEEN %s AND %s;
+            """
+            cursor.execute(sql, [offset+1, offset+BATCH_SIZE])
+            rows = cursor.fetchall()
+            for row in rows:
+                if row is None:
+                    continue
+                region_id = row[0]
+                account_id = row[1]
+                if row[2] == 1:
+                    redis_key = f"token:ac:{account_id}"
+                    result = redis_client.get(redis_key)
+                    if result:
+                        result = json.loads(result)
+                        ac = result.get('ac')
+                    else:
+                        ac = None
+                update_list.append([region_id, account_id, row[3], row[4], ac])
+    except Exception:
+        logger.error((f"{traceback.format_exc()}"))
     finally:
         cursor.close()
-        conn.close()
+    return update_list
 
-def del_recent(region_id: int ,account_id: int):
-    conn = db_pool.connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
+def del_recent(conn: Connection, region_id: int ,account_id: int):
+    conn.begin()
+    cursor: Cursor = conn.cursor()
     try:
         sql = """
             UPDATE recent 
@@ -37,13 +73,15 @@ def del_recent(region_id: int ,account_id: int):
         """
         cursor.execute(sql, [region_id, account_id])
         conn.commit()
+    except Exception:
+        conn.rollback()
+        logger.error((f"{traceback.format_exc()}"))
     finally:
         cursor.close()
-        conn.close()
 
-def del_recents(region_id: int ,account_id: int):
-    conn = db_pool.connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
+def del_recents(conn: Connection, region_id: int ,account_id: int):
+    conn.begin()
+    cursor: Cursor = conn.cursor()
     try:
         sql = """
             UPDATE recent 
@@ -70,9 +108,11 @@ def del_recents(region_id: int ,account_id: int):
         """
         cursor.execute(sql, [game_id])
         conn.commit()
+    except Exception:
+        conn.rollback()
+        logger.error((f"{traceback.format_exc()}"))
     finally:
         cursor.close()
-        conn.close()
 
 def get_activity_level(is_public: bool, total_battles: int = 0, last_battle_time: int = 0):
         "获取activity_level"
@@ -102,7 +142,7 @@ def get_insignias(data: dict):
     else:
         return f"{data['texture_id']}-{data['symbol_id']}-{data['border_color_id']}-{data['background_color_id']}-{data['background_id']}"
 
-def update_base(region_id: int ,account_id: int, user_basic: dict):
+def update_base(conn: Connection, region_id: int ,account_id: int, user_basic: dict):
     refresh_data = {
         'is_enabled': 0,
         'activity_level': 0,
@@ -151,8 +191,7 @@ def update_base(region_id: int ,account_id: int, user_basic: dict):
         refresh_data['pvp_battles'] = 0 if user_basic['statistics']['pvp'] == {} else user_basic['statistics']['pvp']['battles_count']
         refresh_data['ranked_battles'] = ranked_count
         refresh_data['last_battle_at'] = user_basic['statistics']['basic']['last_battle_time']
-    conn = db_pool.connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    cursor: Cursor = conn.cursor()
     try:
         sql = """
             SELECT 
@@ -190,15 +229,19 @@ def update_base(region_id: int ,account_id: int, user_basic: dict):
                     is_enabled = %s, 
                     activity_level = %s, 
                     is_public = %s, 
+                    total_battles = 0, 
+                    pvp_battles = 0, 
+                    ranked_battles = 0,
+                    last_battle_at = NULL,
                     touch_at = CURRENT_TIMESTAMP 
                 WHERE account_id = %s;
             """
-            cursor.execute(sql, [refresh_data['is_enabled'], refresh_data['activity_level'], refresh_data['is_public'], region_id, account_id])
+            cursor.execute(sql, [refresh_data['is_enabled'], refresh_data['activity_level'], refresh_data['is_public'], account_id])
         else:
             if (
-                result['username'] != refresh_data['username'] or
-                result['register_time'] != refresh_data['register_time'] or
-                result['insignias'] != refresh_data['insignias']
+                result[0] != refresh_data['username'] or
+                result[1] != refresh_data['register_time'] or
+                result[2] != refresh_data['insignias']
             ):
                 sql = """
                     UPDATE user_base 
@@ -224,13 +267,14 @@ def update_base(region_id: int ,account_id: int, user_basic: dict):
                     touch_at = CURRENT_TIMESTAMP 
                 WHERE account_id = %s;
             """
-            
             cursor.execute(sql, [
                 refresh_data['is_enabled'],refresh_data['activity_level'],refresh_data['is_public'],
                 refresh_data['total_battles'],refresh_data['pvp_battles'],refresh_data['ranked_battles'],
-                refresh_data['last_battle_at'] if refresh_data['last_battle_at'] != 0 else None,account_id
+                refresh_data['last_battle_at'],account_id
             ])
         conn.commit()
+    except Exception:
+        conn.rollback()
+        logger.error((f"{traceback.format_exc()}"))
     finally:
         cursor.close()
-        conn.close()

@@ -1,14 +1,34 @@
 import time
-import traceback
 import json
-import pymysql
 import requests
+import traceback
+from redis import Redis
+from pymysql import Connection
+from pymysql.cursors import Cursor
 from datetime import datetime
+
 from logger import logger
-from settings import WG_API_TOKEN, LESTA_API_TOKEN
-from middlewares import redis_client, db_pool
+from settings import (
+    WG_API_TOKEN, 
+    LESTA_API_TOKEN, 
+    BATCH_SIZE
+)
 
 
+HOUR: int = 60 * 60
+DAY: int = 24 * HOUR
+REFRESH_TIME_CONFIG: dict[int, tuple[int, int, int]] = {
+    0: (5 * DAY,  6 * HOUR,   2 * HOUR),
+    1: (25 * DAY, 12 * HOUR,  2 * HOUR),
+    2: (1 * DAY,  int(0.5 * HOUR), 20 * 60),
+    3: (2 * DAY,  1 * HOUR,   25 * 60),
+    4: (3 * DAY,  2 * HOUR,   30 * 60),
+    5: (5 * DAY,  3 * HOUR,   30 * 60),
+    6: (7 * DAY,  4 * HOUR,   1 * HOUR),
+    7: (15 * DAY, 5 * HOUR,   2 * HOUR),
+    8: (20 * DAY, 6 * HOUR,   2 * HOUR),
+    9: (30 * DAY, 12 * HOUR,  2 * HOUR),
+}
 ONLINE_API = {
     1: 'https://api.worldoftanks.asia',
     2: 'https://api.worldoftanks.eu',
@@ -16,7 +36,6 @@ ONLINE_API = {
     4: 'https://api.tanki.su',
     5: None
 }
-
 VORTEX_API_URL_LIST = {
     1: 'https://vortex.worldofwarships.asia',
     2: 'https://vortex.worldofwarships.eu',
@@ -28,57 +47,80 @@ VORTEX_API_URL_LIST = {
 def now_iso() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
+def get_region(region_id: int):
+    region_dict = {1: 'asia',2: 'eu',3: 'na',4: 'ru',5: 'cn'}
+    return region_dict[region_id]
+
 def get_refresh_time(activity_level: int, lbt: int, enable_recent: bool, enable_daily: bool):
-    hour = 60*60
-    day = 24*hour
-    refresh_time_dict = {
-        0: [5*day,  6*hour,   2*hour],
-        1: [25*day, 12*hour,  2*hour],
-        2: [1*day,  0.5*hour, 20*60],
-        3: [2*day,  1*hour,   25*60],
-        4: [3*day,  2*hour,   30*60],
-        5: [5*day,  3*hour,   30*60],
-        6: [7*day,  4*hour,   60*60],
-        7: [15*day, 5*hour,   2*hour],
-        8: [20*day, 6*hour,   2*hour],
-        9: [30*day, 12*hour,  2*hour]
-    }
     if enable_daily:
         if lbt < 60*60:
             return 5*60
         else:
-            return refresh_time_dict[activity_level][2]
+            return REFRESH_TIME_CONFIG[activity_level][2]
     elif enable_recent:
-        return refresh_time_dict[activity_level][1]
+        return REFRESH_TIME_CONFIG[activity_level][1]
     else:
-        return refresh_time_dict[activity_level][0]
+        return REFRESH_TIME_CONFIG[activity_level][0]
 
-def get_max_id():
-    # 先获取数据库中id最大值，确定循环上限
-    conn = db_pool.connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
+def fetch_data(url):
+    try:
+        resp = requests.get(url,timeout=5)
+        if resp.status_code == 200:
+            result = resp.json()
+            logger.debug(f'200 {url}')
+            return result
+        logger.warning(f'Code_{resp.status_code} {url}')
+        return f'HTTP_STATUS_{resp.status_code}'
+    except Exception as e:
+        logger.warning(f"{type(e).__name__} {url}")
+        return f'ERROR_{type(e).__name__}'
+
+def post_data(url):
+    try:
+        body = [{"query":"query Version {\n  version\n}"}]
+        resp = requests.post(url,json=body,timeout=5)
+        if resp.status_code == 200:
+            result = resp.json()
+            logger.debug(f'200 {url}')
+            return result
+        logger.warning(f'Code_{resp.status_code} {url}')
+        return f'HTTP_STATUS_{resp.status_code}'
+    except Exception as e:
+        logger.warning(f"{type(e).__name__} {url}")
+        return f'ERROR_{type(e).__name__}'
+
+def verify_responses(region: str, redis_client: Redis, responses: list):
+    error = 0
+    error_return = None
+    now_time = now_iso()
+    for response in responses:
+        if isinstance(response, str):
+            error += 1
+            error_return = response
+    key = f"metrics:http:{now_time[:10]}:{region}_total"
+    redis_client.incrby(key, len(responses))
+    if error == 0:
+        return None
+    else:
+        key = f"metrics:http:{now_time[:10]}:{region}_error"
+        redis_client.incrby(key, error)
+        return error_return
+
+def get_update_ids(conn: Connection, redis_client: Redis):
+    # 从数据库中批量读取并判断那些用户需要更新
+    update_list = []
+    cursor: Cursor = conn.cursor()
     try:
         sql = """
             SELECT 
-                MAX(id) AS max_id 
+                MAX(id) 
             FROM user_stats;
         """
         cursor.execute(sql)
         data = cursor.fetchone()
-        return data['max_id']
-    except:
-        logger.error(f'Read max_id failed')
-    finally:
-        cursor.close()
-        conn.close()
-
-def get_recent_user():
-    recent_user = set()
-    recents_user = set()
-    # 先获取数据库中id最大值，确定循环上限
-    conn = db_pool.connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
-    try:
+        max_id = data[0] if data else 0
+        recent = set()
+        recents = set()
         sql = """
             SELECT 
                 account_id, 
@@ -87,23 +129,65 @@ def get_recent_user():
             FROM recent;
         """
         cursor.execute(sql)
-        datas = cursor.fetchall()
-        for data in datas:
-            if data['enable_recent'] == 1:
-                recent_user.add(data['account_id'])
-                if data['enable_daily'] == 1:
-                    recents_user.add(data['account_id'])
-    except:
-        logger.error(f'Read recent_user failed')
+        rows = cursor.fetchall()
+        for row in rows:
+            if row[1] == 1:
+                recent.add(row[0])
+            if row[2] == 1:
+                recents.add(row[0])
+        logger.info(f'Max ID: {max_id}')
+        logger.info(f'Recent: {len(recent)} | Recents: {len(recents)}')
+        temp_update_list = []
+        now_ts = int(time.time())
+        for offset in range(0, max_id, BATCH_SIZE):
+            sql = """
+                SELECT 
+                    b.region_id, 
+                    b.account_id, 
+                    s.activity_level, 
+                    UNIX_TIMESTAMP(s.last_battle_at), 
+                    UNIX_TIMESTAMP(s.touch_at) 
+                FROM user_base AS b 
+                LEFT JOIN user_stats AS s 
+                    ON b.account_id = s.account_id 
+                WHERE b.id BETWEEN %s AND %s;
+            """
+            cursor.execute(sql, [offset+1, offset+BATCH_SIZE])
+            rows = cursor.fetchall()
+            for user in rows:
+                region_id = user[0]
+                account_id = user[1]
+                enable_recent = account_id in recent
+                enable_daily = account_id in recents
+                touch_time = user[4] if user[4] else 0
+                last_battle_time = user[3] if user[3] else 0
+                next_refresh_time = get_refresh_time(
+                    user[2], 
+                    now_ts - last_battle_time, 
+                    enable_recent, 
+                    enable_daily
+                ) + touch_time
+                if next_refresh_time <= now_ts:
+                    temp_update_list.append((region_id,account_id))
+        pipe = redis_client.pipeline()
+        keys = [f"user_refresh:{rid}:{aid}" for rid, aid in temp_update_list]
+        for key in keys:
+            pipe.set(key, 1, nx=True, ex=4*60*60)
+        # 批量执行
+        results = pipe.execute()
+        # 根据结果过滤未重复的用户
+        update_list = [
+            temp_update_list[i] for i, r in enumerate(results) if r
+        ]
+    except Exception:
+        logger.error((f"{traceback.format_exc()}"))
     finally:
         cursor.close()
-        conn.close()
-    return recent_user, recents_user
+    return update_list
 
-def update_version(region_id: int, full_version: str):
-    # 先获取数据库中id最大值，确定循环上限
-    conn = db_pool.connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
+def update_version(conn: Connection, region_id: int, full_version: str):
+    conn.begin()
+    cursor: Cursor = conn.cursor()
     try:
         sql = """
             SELECT 
@@ -114,7 +198,7 @@ def update_version(region_id: int, full_version: str):
         cursor.execute(sql, [region_id])
         data = cursor.fetchone()
         short_version = ".".join(full_version.split(".")[:2])
-        if data is None or data['short_version'] != short_version:
+        if data is None or data[0] != short_version:
             sql = """
                 UPDATE region_version 
                 SET 
@@ -134,47 +218,21 @@ def update_version(region_id: int, full_version: str):
                 WHERE region_id = %s;
             """
             cursor.execute(
-                sql,[short_version, region_id]
+                sql,[full_version, region_id]
             )
         conn.commit()
-    except:
+    except Exception:
         conn.rollback()
         logger.error((f"{traceback.format_exc()}"))
     finally:
         cursor.close()
-        conn.close()
 
-def fetch_data(url):
-    try:
-        resp = requests.get(url,timeout=5)
-        if resp.status_code == 200:
-            result = resp.json()
-            logger.debug(f'200 {url}')
-            return result
-        logger.warning(f'Code_{resp.status_code} {url}')
-    except Exception as e:
-        logger.warning(f"{type(e).__name__} {url}")
-
-def post_data(url):
-    try:
-        body = [{"query":"query Version {\n  version\n}"}]
-        resp = requests.post(url,json=body,timeout=5)
-        if resp.status_code == 200:
-            result = resp.json()
-            logger.debug(f'200 {url}')
-            return result
-        logger.warning(f'Code_{resp.status_code} {url}')
-    except Exception as e:
-        logger.warning(f"{type(e).__name__} {url}")
-
-def get_online_player():
+def refresh_online_player(redis_client: Redis):
     try:
         result = redis_client.get('status:online_refresh_time')
         online_refresh_time = json.loads(result) if result else None
-    except:
+    except Exception:
         online_refresh_time = None
-    now_time = now_iso()
-    region_dict = {1: 'asia',2: 'eu',3: 'na',4: 'ru',5: 'cn'}
     online_data = {
         'total': 0,
         'asia': '/',
@@ -185,44 +243,39 @@ def get_online_player():
     }
     total_region = 0
     timestamp = int(time.time()) // 600 * 600
+    if online_refresh_time == timestamp:
+        return
     for region_id in [1, 2, 3, 4]:
-        if online_refresh_time == timestamp:
-            return
-        region = region_dict[region_id]
         base_url = ONLINE_API[region_id]
         if region_id == 4:
             url = f'{base_url}/wgn/servers/info/?application_id={LESTA_API_TOKEN}&game=wows'
         else:
             url = f'{base_url}/wgn/servers/info/?application_id={WG_API_TOKEN}&game=wows'
         result = fetch_data(url)
-        key = f"metrics:http:{now_time[:10]}:{region}_total"
-        redis_client.incrby(key, 1)
-        if result is None:
-            key = f"metrics:http:{now_time[:10]}:{region}_error"
-            redis_client.incrby(key, 1)
+        error = verify_responses(get_region(region_id), redis_client, [result])
+        if error != None:
+            pass
+            # return error
         else:
             try:
                 users = result['data']['wows'][0]['players_online']
                 online_data['total'] += users
-                online_data[region] = users
+                online_data[get_region(region_id)] = users
                 total_region += 1
-            except:
-                pass
+            except Exception:
+                logger.error(f"{traceback.format_exc()}")
     key = f"online:{timestamp}"
     redis_client.set(key, json.dumps(online_data), 25*60*60)
     if total_region == 4:
         redis_client.set('status:online_refresh_time', json.dumps(timestamp))
-    logger.info(f"Total: {online_data['total']}")
-    logger.info(f"Asia: {online_data['asia']} | Eu: {online_data['eu']} | Na: {online_data['na']} | Eu: {online_data['eu']} | Cn: {online_data['cn']}")
+    return [online_data['total'], online_data['asia'], online_data['eu'], online_data['na'], online_data['ru'], online_data['cn']]
 
-def get_version():
+def refresh_game_version(conn: Connection, redis_client: Redis):
     try:
         result = redis_client.get('status:version_refresh_time')
-        online_refresh_time = json.loads(result) if result else None
-    except:
-        online_refresh_time = None
-    now_time = now_iso()
-    region_dict = {1: 'asia',2: 'eu',3: 'na',4: 'ru',5: 'cn'}
+        version_refresh_time = json.loads(result) if result else None
+    except Exception:
+        version_refresh_time = None
     version_data = {
         'asia': '/',
         'eu': '/',
@@ -231,27 +284,25 @@ def get_version():
         'cn': '/'
     }
     total_region = 0
-    timestamp = int(time.time()) // 3600 * 3600
+    timestamp = int(time.time())
+    if version_refresh_time and (timestamp - version_refresh_time) < 6*60*60:
+        return
     for region_id in [1, 2, 3, 4, 5]:
-        if online_refresh_time == timestamp:
-            return
-        region = region_dict[region_id]
         base_url = VORTEX_API_URL_LIST[region_id]
         url = f'{base_url}/api/v2/graphql/glossary/version/'
         result = post_data(url)
-        key = f"metrics:http:{now_time[:10]}:{region}_total"
-        redis_client.incrby(key, 1)
-        if result is None:
-            key = f"metrics:http:{now_time[:10]}:{region}_error"
-            redis_client.incrby(key, 1)
+        error = verify_responses(get_region(region_id), redis_client, [result])
+        if error != None:
+            pass
+            # return error
         else:
             try:
                 version = result[0]['data']['version']
-                version_data[region] = ".".join(version.split(".")[:2])
-                update_version(region_id, version)
+                version_data[get_region(region_id)] = ".".join(version.split(".")[:2])
+                update_version(conn, region_id, version)
                 total_region += 1
-            except:
-                logger.error((f"{traceback.format_exc()}"))
+            except Exception:
+                logger.error(f"{traceback.format_exc()}")
     if total_region == 5:
         redis_client.set('status:version_refresh_time', timestamp)
-    logger.info(f"Asia: {version_data['asia']} | Eu: {version_data['eu']} | Na: {version_data['na']} | Ru: {version_data['ru']} | Cn: {version_data['cn']}")
+    return [version_data['asia'], version_data['eu'], version_data['na'], version_data['ru'], version_data['cn']]

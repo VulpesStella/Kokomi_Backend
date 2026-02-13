@@ -15,26 +15,26 @@ class MysqlConnection:
     async def __init_connection(self) -> None:
         "初始化MySQL连接"
         try:
-            config = EnvConfig.get_config()
+            config = EnvConfig.config
             self.__pool = await aiomysql.create_pool(
                 host=config.MYSQL_HOST, 
                 port=config.MYSQL_PORT, 
                 user=config.MYSQL_USERNAME, 
                 password=config.MYSQL_PASSWORD, 
-                db=config.MAIN_DB,
+                db=config.MYSQL_DATABASE,
                 pool_recycle=3600, # 设置连接的回收时间
                 autocommit=False   # 禁用隐式事务
                 # 由于禁用了隐式事务，必须确保事务被正确提交或者回滚！
                 # 如果未调用，事务将保持未提交状态，可能会导致死锁或连接超时问题
             )
-            api_logger.info(f'MySQL connection pool initialized for database: {config.MAIN_DB}')
+            api_logger.info(f'MySQL connection pool initialized')
         except Exception as e:
             api_logger.error(f'Failed to initialize the MySQL connection')
             api_logger.error(e)
             raise e
 
     @classmethod
-    async def test_mysql(self) -> None:
+    async def test_mysql(self) -> bool:
         "测试MySQL连接"
         try:
             if self.__pool == None:
@@ -50,6 +50,7 @@ class MysqlConnection:
                         api_logger.info(f'MYSQL Version: {result[0]}')
                     else:
                         api_logger.warning('Failed to test the MySQL connection')
+                        return False
                     await cur.execute("SELECT @@GLOBAL.transaction_isolation;")
                     result = await cur.fetchone()
                     if result != None:
@@ -57,8 +58,10 @@ class MysqlConnection:
                             api_logger.info(f'MYSQL transaction isolation: {result[0]}')
                         else:
                             api_logger.warning(f'MYSQL transaction isolation: {result[0]} (NOT READ-COMMITTED)')
+                        return True
                     else:
                         api_logger.warning('Failed to test the MySQL connection')
+                        return False
         except Exception as e:
             api_logger.warning(f'Failed to test the MySQL connection')
             api_logger.error(e)

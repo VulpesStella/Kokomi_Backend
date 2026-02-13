@@ -1,5 +1,5 @@
 services:
-  api: 
+  api:
     # 主API服务器
     build: .
     volumes:
@@ -8,7 +8,7 @@ services:
     container_name: backend-api
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level debug
     env_file:
-      - .env.dev
+      - .env.prod
     ports:
       - "8000:8000"
     restart: on-failure:1
@@ -18,7 +18,7 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  celery: 
+  celery:
     # 负责消费MQ中的任务，更新用户的基本信息
     build: .
     volumes:
@@ -26,7 +26,7 @@ services:
     container_name: backend-celery
     command: celery --app tasks.main:celery_app worker -Q refresh_queue --loglevel=info --concurrency=4
     env_file:
-      - .env.dev
+      - .env.prod
     restart: on-failure:1
     logging:
       driver: "json-file"
@@ -34,7 +34,7 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  beat: 
+  beat:
     # 定时任务，负责：
     # 1.定期更新服务器数据
     # 2.定时刷新用户授权数据
@@ -43,10 +43,11 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data
+      - ./temp:/app/temp
     container_name: backend-beat
     command: python scripts/beat/main.py
     env_file:
-      - .env.dev
+      - .env.prod
     restart: on-failure:1
     logging:
       driver: "json-file"
@@ -54,7 +55,7 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  maintenance: 
+  maintenance:
     # 维护进程，负责
     # 1.更新在线用户
     # 2.更新游戏版本
@@ -65,7 +66,7 @@ services:
     container_name: backend-maintenance
     command: python scripts/maintenance/main.py
     env_file:
-      - .env.dev
+      - .env.prod
     restart: on-failure:1
     logging:
       driver: "json-file"
@@ -73,7 +74,7 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  cache: 
+  cache:
     # 更新用户的船只缓存数据，主要负责排行榜数据
     build: .
     volumes:
@@ -82,7 +83,7 @@ services:
     container_name: scheduler-cache
     command: python scripts/scheduler/cache/main.py
     env_file:
-      - .env.dev
+      - .env.prod
     restart: on-failure:1
     logging:
       driver: "json-file"
@@ -97,7 +98,7 @@ services:
     container_name: scheduler-users
     command: python scripts/scheduler/users/main.py
     env_file:
-      - .env.dev
+      - .env.prod
     restart: on-failure:1
     logging:
       driver: "json-file"
@@ -112,7 +113,7 @@ services:
     container_name: scheduler-clan
     command: python scripts/scheduler/clan/main.py
     env_file:
-      - .env.dev
+      - .env.prod
     restart: on-failure:1
     logging:
       driver: "json-file"
@@ -128,7 +129,7 @@ services:
     container_name: backend-recent
     command: python scripts/recent/main.py
     env_file:
-      - .env.dev
+      - .env.prod
     restart: on-failure:1
     logging:
       driver: "json-file"

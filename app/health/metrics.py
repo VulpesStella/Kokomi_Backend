@@ -1,9 +1,8 @@
-import os
 import csv
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from app.core import API_LOG_PATH, ERROR_LOG_PATH
+from app.core import EnvConfig
 from app.middlewares import RedisClient
 
 
@@ -27,8 +26,8 @@ class ServiceMetrics:
         # 初始化桶
         buckets = defaultdict(int)
         # buckets = defaultdict(lambda: {"value1": 0, "value2": 0})
-        file = os.path.join(API_LOG_PATH, f"{today.isoformat()}.csv")
-        if os.path.exists(file):
+        file = EnvConfig.LOG_DIR / f"metrics/{today.isoformat()}.csv"
+        if file.exists():
             with open(file, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
@@ -55,8 +54,8 @@ class ServiceMetrics:
             else:
                 values.append(buckets.get(key, 0))
         error_count = 0
-        file = os.path.join(ERROR_LOG_PATH, f"{today.isoformat()}.txt")
-        if os.path.exists(file):
+        file =  EnvConfig.LOG_DIR / f"error/{today.isoformat()}.txt" 
+        if file.exists():
             with open(file, "r", encoding="utf-8") as f:
                 for line in f:
                     if line.startswith('>Platform:'):

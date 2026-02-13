@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Query, Path
-from typing import Optional
 
-from app.apis.demo import UserAPI, TestAPI
-from app.schemas import Region, Platform
+from app.schemas import Region
 from app.response import JSONResponse
 from app.utils import GameUtils
+from app.apis.demo import (
+    UserAPI, TestAPI, RecentDemoAPI
+)
 
 router = APIRouter()
 
@@ -22,27 +23,26 @@ async def getBriefByUID(region: Region = Query(Region.ASIA), uid: int = Query(..
         return JSONResponse.API_2007_IllegalAccoutID
     return await UserAPI.get_base(region, uid)
 
-@router.get("/permium/status/", summary="查看用户的premium信息")
-async def getPermiumStatus(platform: Platform = Query(Platform.QQ_BOT), user_id: str = Query(...)):
-    return await UserAPI.get_user_premium_status(platform, user_id)
-
 @router.get("/test/error/", summary="测试错误日志功能")
 async def testErrorLog():
     return await TestAPI.test_error_log()
 
-@router.get("/generate/code/", summary="生成激活码")
-async def generateCode(
-    max_use: int = Query(1),
-    validity: int = Query(30),
-    level: int = Query(1),
-    limit: int = Query(300),
-    describe: Optional[str] = None
-):
-    return await UserAPI.generate_code(
-        max_use,
-        validity,
-        level,
-        limit,
-        describe
-    )
+@router.post("/feature/recent/", summary="启用recent功能")
+async def enableRecent(region: Region = Query(Region.ASIA), uid: int = Query(...)):
+    result = await RecentDemoAPI.demo_enable_recent(region, uid)
+    return result
 
+@router.post("/feature/recent_pro/", summary="启用recent_pro功能")
+async def enableRecent(region: Region = Query(Region.ASIA), uid: int = Query(...)):
+    result = await RecentDemoAPI.demo_enable_recent_pro(region, uid)
+    return result
+
+@router.delete("/feature/recent/", summary="删除recent功能")
+async def enableRecent(region: Region = Query(Region.ASIA), uid: int = Query(...)):
+    result = await RecentDemoAPI.demo_delete_recent(region, uid)
+    return result
+
+@router.delete("/feature/recent_pro/", summary="删除recent_pro功能")
+async def enableRecent(region: Region = Query(Region.ASIA), uid: int = Query(...)):
+    result = await RecentDemoAPI.demo_delete_recent_pro(region, uid)
+    return result

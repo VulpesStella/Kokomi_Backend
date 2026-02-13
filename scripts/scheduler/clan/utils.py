@@ -1,11 +1,12 @@
 import requests
-import pymysql
 import traceback
+from redis import Redis
+from pymysql import Connection
+from pymysql.cursors import Cursor
 from datetime import datetime, time
 from zoneinfo import ZoneInfo
+
 from logger import logger
-from settings import SEASON_ID, SEASON_FINISH, SEASON_START
-from middlewares import db_pool, redis_client
 
 
 CLAN_API_URL_LIST = {
@@ -15,6 +16,7 @@ CLAN_API_URL_LIST = {
     4: 'https://clans.korabli.su',
     5: 'https://clans.wowsgame.cn'
 }
+
 CLAN_COLOR_INDEX = {
     13477119: 0,
     12511165: 1,
@@ -23,13 +25,6 @@ CLAN_COLOR_INDEX = {
     13408614: 4,
     11776947: 5,
 }
-
-class Status:
-    FirstLoop = True
-
-    @classmethod
-    def set_status(cls):
-        cls.FirstLoop = False
 
 # weekday: 周一=0 ... 周日=6
 WEEKLY_ZONEINFO = "Asia/Shanghai"
@@ -60,7 +55,14 @@ WEEKLY_WINDOWS = {
     ]
 }
 
-def is_cb_active(now_ts: int) -> bool:
+class Status:
+    FirstLoop = True
+
+    @classmethod
+    def set_status(cls):
+        cls.FirstLoop = False
+
+def is_cb_active(now_ts: int, SEASON_START: int, SEASON_FINISH: int) -> bool:
     if Status.FirstLoop == True:
         return True
     if not (SEASON_START <= now_ts <= SEASON_FINISH):
@@ -79,6 +81,10 @@ def now_iso() -> str:
 def formtime2timestamp(formtime: str):
     return int(datetime.fromisoformat(formtime).timestamp())
 
+def get_region(region_id: int):
+    region_dict = {1: 'asia',2: 'eu',3: 'na',4: 'ru',5: 'cn'}
+    return region_dict[region_id]
+
 def fetch_data(url):
     try:
         resp = requests.get(url,timeout=5)
@@ -91,22 +97,31 @@ def fetch_data(url):
     except Exception as e:
         logger.warning(f"{type(e).__name__} {url}")
         return f'ERROR_{type(e).__name__}'
-    
-def varify_response(responses: dict):
+
+def verify_responses(region: str, redis_client: Redis, responses: list):
     error = 0
     error_return = None
-    if type(responses) == str:
-        error += 1
-        error_return = responses
+    now_time = now_iso()
+    for response in responses:
+        if isinstance(response, str):
+            error += 1
+            error_return = response
+    key = f"metrics:http:{now_time[:10]}:{region}_total"
+    redis_client.incrby(key, len(responses))
     if error == 0:
-        return None, None
+        return None
     else:
-        return error, error_return
+        key = f"metrics:http:{now_time[:10]}:{region}_error"
+        redis_client.incrby(key, error)
+        return error_return
 
-def get_clan_rank_data(region_id: int):
+def get_clan_rank_data(redis_client: Redis, region_id: int):
     if region_id == 5:
         base_url = CLAN_API_URL_LIST[region_id]
         region = 'cn'
+    elif region_id == 4:
+        base_url = CLAN_API_URL_LIST[region_id]
+        region = 'ru'
     else:
         base_url = CLAN_API_URL_LIST[1]
         region = 'asia'
@@ -122,30 +137,15 @@ def get_clan_rank_data(region_id: int):
     }
     clan_data_list = []
     realm = realm_list[region_id]
-    now_time = now_iso()
     for i in range(13):
         league=league_list[i][0]
         division=league_list[i][1]
         url = f'{base_url}/api/ladder/structure/?realm={realm}&league={league}&division={division}&limit=1000'
         result = fetch_data(url)
-        key = f"metrics:http:{now_time[:10]}:{region}_total"
-        redis_client.incrby(key, 1)
-        error_count, _ = varify_response(result)
-        if error_count != None:
-            key = f"metrics:http:{now_time[:10]}:{region}_error"
-            redis_client.incrby(key, error_count)
-            return clan_data_list
+        error = verify_responses(region, redis_client, [result])
+        if error != None:
+            continue
         for temp_data in result:
-            # clan_data_list.append({
-            #     region_id,
-            #     temp_data['id'],
-            #     temp_data['tag'],
-            #     temp_data['public_rating'],
-            #     temp_data['league'],
-            #     temp_data['division'],
-            #     temp_data['division_rating'],
-            #     int(datetime.fromisoformat(temp_data['last_battle_at']).timestamp())
-            # })
             clan_data_list.append([
                 region_id,
                 temp_data['id'],
@@ -154,37 +154,34 @@ def get_clan_rank_data(region_id: int):
             ])
     return clan_data_list
 
-def get_clan_cvc_data(region_id: int, clan_id: int):
+def get_clan_cvc_data(redis_client: Redis, SEASON_ID: int, region_id: int, clan_id: int):
     api_url = CLAN_API_URL_LIST.get(region_id)
-    region_dict = {1: 'asia',2: 'eu',3: 'na',4: 'ru',5: 'cn'}
-    region = region_dict[region_id]
     url = f'{api_url}/api/clanbase/{clan_id}/claninfo/'
     result = fetch_data(url)
-    now_time = now_iso()
-    key = f"metrics:http:{now_time[:10]}:{region}_total"
-    redis_client.incrby(key, 1)
-    error_count, error_return = varify_response(result)
-    if error_count != None:
-        key = f"metrics:http:{now_time[:10]}:{region}_error"
-        redis_client.incrby(key, error_count)
-        return error_return
-    last_battle_at = result['clanview']['wows_ladder']['last_battle_at']
+    error = verify_responses(get_region(region_id), redis_client, [result])
+    if error != None:
+        return error
+    if region_id == 4:
+        ladder_name = 'mk_ladder'
+    else:
+        ladder_name = 'wows_ladder'
+    last_battle_at = result['clanview'][ladder_name]['last_battle_at']
     clan_result = {
         'clan_id': clan_id,
         'region_id': region_id,
         'tag': result['clanview']['clan']['tag'],
-        'color': result['clanview']['wows_ladder']['color'], 
-        'public_rating': result['clanview']['wows_ladder']['public_rating'], 
-        'league': result['clanview']['wows_ladder']['league'], 
-        'division': result['clanview']['wows_ladder']['division'], 
-        'division_rating': result['clanview']['wows_ladder']['division_rating'], 
+        'color': result['clanview'][ladder_name]['color'], 
+        'public_rating': result['clanview'][ladder_name]['public_rating'], 
+        'league': result['clanview'][ladder_name]['league'], 
+        'division': result['clanview'][ladder_name]['division'], 
+        'division_rating': result['clanview'][ladder_name]['division_rating'], 
         'last_battle_time': formtime2timestamp(last_battle_at),
         'team_data': {
             1: [],
             2: []
         }
     }
-    for team_data in result['clanview']['wows_ladder']['ratings']:
+    for team_data in result['clanview'][ladder_name]['ratings']:
         if team_data['season_number'] != SEASON_ID:
             continue
         team_number = team_data['team_number']
@@ -213,17 +210,36 @@ def get_clan_cvc_data(region_id: int, clan_id: int):
         clan_result['team_data'][team_number] = team_result
     return clan_result
 
-def check_clan_stats(clan_data_list: list):
+def get_season(conn: Connection):
+    cursor: Cursor = conn.cursor()
+    try:
+        sql = """
+            SELECT 
+                season_id, 
+                UNIX_TIMESTAMP(season_start), 
+                UNIX_TIMESTAMP(season_finish) 
+            FROM clan_battle;
+        """
+        cursor.execute(sql)
+        data = cursor.fetchone()
+        return data[0], data[1], data[2]
+    except Exception:
+        logger.warning("Failed to read season data")
+        logger.error((f"{traceback.format_exc()}"))
+    finally:
+        cursor.close()
+
+def get_update_ids(conn: Connection, SEASON_ID: int, clan_data_list: list):
     update_ids = []
-    conn = db_pool.connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    conn.begin()
+    cursor: Cursor = conn.cursor()
     try:
         for clan_data in clan_data_list:
             sql = """
                 SELECT 
                     clan_id, 
                     season, 
-                    UNIX_TIMESTAMP(last_battle_at) AS last_battle_at 
+                    UNIX_TIMESTAMP(last_battle_at) 
                 FROM clan_stats 
                 WHERE clan_id = %s;
             """
@@ -238,22 +254,26 @@ def check_clan_stats(clan_data_list: list):
                     INSERT INTO clan_stats (clan_id) VALUES (%s);
                 """
                 cursor.execute(sql, [clan_data[1]])
-                conn.commit()
+                sql = """
+                    INSERT INTO clan_users (clan_id) VALUES (%s);
+                """
+                cursor.execute(sql, [clan_data[1]])
                 update_ids.append([clan_data[0],clan_data[1]])
             else:
                 if clan_data[3] is None:
                     continue
                 if (
-                    clan['last_battle_at'] is None or 
-                    clan['last_battle_at'] != clan_data[3] or 
-                    clan['season'] != SEASON_ID
+                    clan[2] is None or 
+                    clan[2] != clan_data[3] or 
+                    clan[1] != SEASON_ID
                 ):
                     update_ids.append([clan_data[0],clan_data[1]])
-    except Exception as e:
+        conn.commit()
+    except Exception:
+        conn.rollback()
         logger.error((f"{traceback.format_exc()}"))
     finally:
         cursor.close()
-        conn.close()
     return update_ids
 
 def format_clan_data(data: list):
@@ -271,9 +291,8 @@ def format_clan_data(data: list):
     else:
         return None
 
-def update_clan_season(clan_season: dict):
-    conn = db_pool.connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
+def update_clan_season(conn: Connection, SEASON_ID: int, clan_season: dict):
+    cursor: Cursor = conn.cursor()
     try:
         result = None
         clan_id = clan_season['clan_id']
@@ -282,13 +301,17 @@ def update_clan_season(clan_season: dict):
         team_data_1 = clan_season['team_data'][1]
         team_data_2 = clan_season['team_data'][2]
         sql = """
-            SELECT season, team_data FROM clan_stats WHERE clan_id = %s;
+            SELECT 
+                season, 
+                team_data 
+            FROM clan_stats 
+            WHERE clan_id = %s;
         """
         cursor.execute(sql, [clan_id])
         clan = cursor.fetchone()
         insert_data_list = []
-        if Status.FirstLoop == False and clan and clan['season'] == SEASON_ID:
-            original_team_data = eval(clan['team_data']) 
+        if Status.FirstLoop == False and clan and clan[0] == SEASON_ID:
+            original_team_data = eval(clan[1]) 
             old_team_data = {
                 1: format_clan_data(original_team_data[0]),
                 2: format_clan_data(original_team_data[1])
@@ -388,7 +411,7 @@ def update_clan_season(clan_season: dict):
                             insert_data_list.append(temp_list+['defeat'])
             result = f'Add {len(insert_data_list)} CW records'
         else:
-            result = 'FullChanged'
+            result = 'Full Changed'
         sql = """
             UPDATE clan_base 
             SET 
@@ -469,4 +492,3 @@ def update_clan_season(clan_season: dict):
         return type(e).__name__
     finally:
         cursor.close()
-        conn.close()

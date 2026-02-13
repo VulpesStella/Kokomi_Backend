@@ -1,5 +1,4 @@
 import httpx
-from httpx import Auth
 
 from app.core import api_logger, EnvConfig
 from app.middlewares import RedisClient
@@ -16,7 +15,7 @@ async def server_check():
             api_logger.info(f"{server_name} Server running.")
 
 async def rabbitmq_check():
-    config = EnvConfig.get_config()
+    config = EnvConfig.config
     url = f'http://{config.RABBITMQ_HOST}:15672/api'
     client = httpx.Client(
         base_url=url,

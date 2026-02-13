@@ -64,7 +64,7 @@ def refresh_user(user_id: dict):
     base_url = VORTEX_API_ENDPOINTS[region_id]
     url = f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else '')
     try:
-        response = requests.get(url=url,timeout=3)
+        response = requests.get(url=url,timeout=5)
     except:
         key = f"metrics:http:{now_time[:10]}:{region}_total"
         redis_client.incr(key)
