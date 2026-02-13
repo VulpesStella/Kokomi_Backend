@@ -1,5 +1,7 @@
 ﻿
-namespace KokomiPJ_Dashboard_BLL.Models.Dtos.KokomiAPI;
+using Newtonsoft.Json;
+
+namespace KokomiPJ_DotNet_Utils.Models.Dto;
 
 
 #region KokomiAPI返回值模型区

@@ -10,6 +10,9 @@
 用于 **KokomiPJ** 的后台运维监控（Dashboard / Ops Monitoring）。
 
 ## 当前功能
+### 0) API接口测试页面
+- 路由：`/Swagger`
+- 说明：Swagger页面，用于展示并测试当前所有接口
 
 ### 1) 导航页
 - 路由：`Home/Index`
@@ -18,13 +21,19 @@
 ### 2) 后台 API 运行状态统计
 - 接口模块：`APIStatus`
 - 功能点：请求统计 `ReqStats`
+- 
+### 3) 船只信息运维
+- 接口模块：`ShipInfo`
+- 页面模块:`ShipInfo`
+- 功能点：维护船只基础信息 
 
-## 路由与模块速查
+## 前端路由与模块速查
 
 | 功能 | 页面/模块 | 路由/接口 |
 |------|----------|-----------|
 | 导航页 | Home | `Home/Index` |
 | API 状态统计 | APIStatus | `APIStatus/ReqStats` |
+## 后端功能
 
 ## 计划中
 
