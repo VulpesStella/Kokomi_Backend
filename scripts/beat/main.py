@@ -40,7 +40,7 @@ async def main():
             for index, update_id in enumerate(update_ids, 1):
                 result = await update_user_token(redis_client, update_id[0],update_id[1],update_id[2])
                 logger.info(f'[{index}/{len_update_ids}] {update_id[0]}-{update_id[1]} | {result}')
-            # process_region_stats(conn, redis_client)
+            process_region_stats(conn, redis_client)
         finally:
             redis_client.close()
             conn.close()

@@ -5,7 +5,6 @@ from .scripts import refresh_user
 @celery_app.task(name="user_refresh")
 def task_update_user_data(user_id: dict):
     """更新用户数据库的数据"""
-    return 'ok'
     result = refresh_user(user_id)
     return result
 
