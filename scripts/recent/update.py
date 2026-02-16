@@ -16,7 +16,7 @@ from utils import del_recent, del_recents, update_base
 from settings import SQLITE_PATH
 
 
-MAX_HTTP_CONCURRENCY = 3
+MAX_HTTP_CONCURRENCY = 7
 TIMEOUT = httpx.Timeout(
     connect = 2.0,
     read = 10.0,
@@ -156,7 +156,6 @@ def init_db_if_needed(
         logger.error((f"{now_iso()} | {traceback.format_exc()}"))
         return False
         
-
 def responeses_processing(responses: list):
     battles_dict = {}
     statis_dict = {}
@@ -416,6 +415,25 @@ async def update(
                 if date1_data[1] == total_battles:
                     return 'NoChanaged'
                 # 用户有数据的情况下，数据不一致，有新增数据
+                base_url = VORTEX_API_URL_LIST[region_id]
+                if region_id == 4:
+                    urls = [
+                        f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else ''),
+                        f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac}' if ac else ''),
+                        f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac}' if ac else ''),
+                        f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac}' if ac else ''),
+                        f'{base_url}/api/accounts/{account_id}/ships/rank_solo/' + (f'?ac={ac}' if ac else ''),
+                        f'{base_url}/api/accounts/{account_id}/ships/rating_solo/' + (f'?ac={ac}' if ac else ''),
+                        f'{base_url}/api/accounts/{account_id}/ships/rating_div/' + (f'?ac={ac}' if ac else '')
+                    ]
+                else:
+                    urls = [
+                        f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else ''),
+                        f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac}' if ac else ''),
+                        f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac}' if ac else ''),
+                        f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac}' if ac else ''),
+                        f'{base_url}/api/accounts/{account_id}/ships/rank_solo/' + (f'?ac={ac}' if ac else '')
+                    ]
                 tasks = [fetch_data(url) for url in urls]
                 responses = await asyncio.gather(*tasks)
                 error = verify_responses(get_region(region_id), redis_client, responses)

@@ -132,10 +132,12 @@ CREATE TABLE clan_stats (
     clan_id          BIGINT       NOT NULL,     -- 10位的非连续数字
     -- 关于工会活跃的信息，用于工会排行榜功能
     season           TINYINT      DEFAULT 0,    -- 当前赛季代码 1-30+
+    battles_count    INT          DEFAULT 0,    -- 场次
     public_rating    INT          DEFAULT 1100, -- 工会评分 1199 - 3000+  1100表示无数据
     league           TINYINT      DEFAULT 4,    -- 段位 0紫金 1白金 2黄金 3白银 4青铜
     division         TINYINT      DEFAULT 2,    -- 分段 1 2 3
     division_rating  INT          DEFAULT 0,    -- 分段分数，示例：白金 1段 25分
+    longest_winning_streak INT    DEFAULT 0,    -- 连胜
     last_battle_at   TIMESTAMP    DEFAULT NULL, -- 上次战斗结束时间，用于判断是否有更新数据
     team_data        VARCHAR(100) DEFAULT NULL, -- 小队数据
     -- 记录数据创建的时间和更新时间

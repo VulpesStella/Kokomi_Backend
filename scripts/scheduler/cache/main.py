@@ -28,7 +28,7 @@ async def main():
             update_ids = get_update_ids(conn)
             len_update_ids = len(update_ids)
             logger.info(f'Update Numbers: {len_update_ids}')
-            versions = get_versions()
+            versions = get_versions(conn)
             for index, user_info in enumerate(update_ids, 1):
                     region_id = user_info[0]
                     account_id = user_info[1]
@@ -57,4 +57,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print('The process is closing')
+        logger.info('The process is closing')

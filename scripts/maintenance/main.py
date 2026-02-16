@@ -71,4 +71,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print('The process is closing')
+        logger.info('The process is closing')

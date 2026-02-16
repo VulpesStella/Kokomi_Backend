@@ -282,9 +282,9 @@ def update_base(conn: Connection, region_id: int ,account_id: int, user_basic: d
             cursor.execute(sql, [refresh_data['is_enabled'], refresh_data['activity_level'], refresh_data['is_public'], account_id])
         else:
             if (
-                result['username'] != refresh_data['username'] or
-                result['register_time'] != refresh_data['register_time'] or
-                result['insignias'] != refresh_data['insignias']
+                result[0] != refresh_data['username'] or
+                result[1] != refresh_data['register_time'] or
+                result[2] != refresh_data['insignias']
             ):
                 sql = """
                     UPDATE user_base 
@@ -323,6 +323,7 @@ def update_base(conn: Connection, region_id: int ,account_id: int, user_basic: d
         cursor.close()
 
 async def get_cache_data(
+    conn: Connection,
     redis_client: Redis, 
     region_id: int,
     account_id: int,
@@ -342,7 +343,7 @@ async def get_cache_data(
     result = {}
     overall = {}
     basic_data = responses[0]
-    update_base(region_id, account_id, basic_data)
+    update_base(conn, region_id, account_id, basic_data)
     if basic_data:
             basic_data = basic_data[str(account_id)]
     if 'hidden_profile' in basic_data:
@@ -420,7 +421,7 @@ async def update_user_cahce(
         ac = None
     old_data = None
     old_pvp = None
-    cache_data = await get_cache_data(region_id, account_id, ac)
+    cache_data = await get_cache_data(conn, redis_client, region_id, account_id, ac)
     if isinstance(cache_data, str):
         return cache_data
     cursor: Cursor = conn.cursor()

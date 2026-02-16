@@ -53,4 +53,4 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print('The process is closing')
+        logger.info('The process is closing')

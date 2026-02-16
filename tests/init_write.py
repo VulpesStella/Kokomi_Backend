@@ -57,9 +57,12 @@ for root, dirs, files in os.walk(file_path):
                 if user_data['base']['is_enabled'] == 0:
                     continue
                 # 先检查用户id是否存在
+                pvp_count = 0
+                cache_data = {}
                 sql = "SELECT region_id FROM user_base WHERE region_id = %s AND account_id = %s;"
                 cursor.execute(sql, [region_id, account_id])
                 data = cursor.fetchone()
+                # 写MySQL数据库
                 if data is None:
                     dafault_name = f'User_{account_id}'
                     sql = """
@@ -228,7 +231,8 @@ for root, dirs, files in os.walk(file_path):
                                 account_id
                             ]
                         )
-                conn.commit()
+                    pvp_count = user_data['brief']['battles_count']
+                    cache_data = user_data['cache']
             cursor.close()
             conn.close()
             print(f'文件: {path} 数据写入数据库成功')

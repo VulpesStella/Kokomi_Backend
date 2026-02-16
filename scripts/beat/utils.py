@@ -466,7 +466,7 @@ def process_region_stats(conn: Connection, redis_client: Redis):
             stats_dict = all_region_stats[r_id]
             short_ver = region_version_map[r_id]
             output_path = DATA_DIR / f'stats/{r_id}/{short_ver}.csv'
-            temp_path = TEMP_DIR / f'{r_id}_{short_ver}.csv'
+            temp_path = TEMP_DIR / f'{short_ver}.csv'
             with open(temp_path, 'w', newline='', encoding='utf-8') as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerow(headers)
@@ -475,14 +475,15 @@ def process_region_stats(conn: Connection, redis_client: Redis):
                 csvfile.flush()
                 os.fsync(csvfile.fileno())
             os.replace(temp_path, output_path)
-            os.remove(temp_path)
+            if temp_path.exists():
+                os.remove(temp_path)
             for ship_id, ship_data in stats_dict.items():
                 ship_id = str(ship_id)
-                if ship_id not in ship_data_result['ship_data']:
-                    ship_data_result['ship_data'][ship_id] = {
-                        'asia': {}, 'eu': {}, 'na': {}, 'ru': {}, 'cn': {}
-                    }
                 if ship_data[0] >= 1000:
+                    if ship_id not in ship_data_result['ship_data']:
+                        ship_data_result['ship_data'][ship_id] = {
+                            'asia': {}, 'eu': {}, 'na': {}, 'ru': {}, 'cn': {}
+                        }
                     ship_data_result['ship_data'][ship_id][region] = {
                         "win_rate": round(ship_data[1]/ship_data[0]*100,4),
                         "avg_damage": round(ship_data[2]/ship_data[0],4),

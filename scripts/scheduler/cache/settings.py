@@ -6,7 +6,7 @@ from datetime import datetime
 CLIENT_NAME = 'SchedulerCache'
 LOG_LEVEL = 'debug'
 REFRESH_INTERVAL = 3600
-BATCH_SIZE = 10
+BATCH_SIZE = 1000
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
 
 if os.getenv('PLATFORM') is None:

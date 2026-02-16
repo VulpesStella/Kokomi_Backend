@@ -171,10 +171,12 @@ def get_clan_cvc_data(redis_client: Redis, SEASON_ID: int, region_id: int, clan_
         'region_id': region_id,
         'tag': result['clanview']['clan']['tag'],
         'color': result['clanview'][ladder_name]['color'], 
+        'battles_count': result['clanview'][ladder_name]['battles_count'],
         'public_rating': result['clanview'][ladder_name]['public_rating'], 
         'league': result['clanview'][ladder_name]['league'], 
         'division': result['clanview'][ladder_name]['division'], 
         'division_rating': result['clanview'][ladder_name]['division_rating'], 
+        'longest_winning_streak': result['clanview'][ladder_name]['longest_winning_streak'],
         'last_battle_time': formtime2timestamp(last_battle_at),
         'team_data': {
             1: [],
@@ -431,20 +433,24 @@ def update_clan_season(conn: Connection, SEASON_ID: int, clan_season: dict):
             UPDATE clan_stats 
             SET 
                 season = %s, 
+                battles_count = %s, 
                 public_rating = %s, 
                 league = %s, 
                 division = %s, 
                 division_rating = %s, 
+                longest_winning_streak = %s, 
                 last_battle_at = FROM_UNIXTIME(%s), 
                 team_data = %s 
             WHERE clan_id = %s;
         """
         cursor.execute(sql,[
             SEASON_ID,
+            clan_season['battles_count'],
             clan_season['public_rating'],
             clan_season['league'],
             clan_season['division'],
             clan_season['division_rating'],
+            clan_season['longest_winning_streak'],
             clan_season['last_battle_time'],
             str([team_data_1,team_data_2]),
             clan_id
