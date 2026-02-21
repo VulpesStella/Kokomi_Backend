@@ -1,55 +1,36 @@
-import os
 import time
 import json
-import httpx
+import random
 import sqlite3
 import asyncio
 import traceback
-from redis import Redis
 from pathlib import Path
+from redis import Redis
+from httpx import AsyncClient
 from pymysql import Connection
 from pymysql.cursors import Cursor
 from datetime import datetime, timezone
 
 from logger import logger
-from utils import del_recent, del_recents, update_base
-from settings import SQLITE_PATH
+from utils import del_recent, del_recents, update_base, now_iso, fetch_data, verify_responses, formtimestamp
+from settings import SQLITE_PATH, REGION, TIMEZOEN, VORTEX_API
 
 
-MAX_HTTP_CONCURRENCY = 7
-TIMEOUT = httpx.Timeout(
-    connect = 2.0,
-    read = 10.0,
-    write = 3.0,
-    pool = 2.0,
-)
-http_semaphore = asyncio.Semaphore(MAX_HTTP_CONCURRENCY)
-async_client = httpx.AsyncClient(
-    timeout=TIMEOUT,
-    limits=httpx.Limits(
-        max_connections=100,
-        max_keepalive_connections=20
-    )
-)
-VORTEX_API_URL_LIST = {
-    1: 'https://vortex.worldofwarships.asia',
-    2: 'https://vortex.worldofwarships.eu',
-    3: 'https://vortex.worldofwarships.com',
-    4: 'https://vortex.korabli.su',
-    5: 'https://vortex.wowsgame.cn'
-}
-REGION_UTC_LIST = {
-    1:8, 2:1, 3:-7, 4:3, 5:8
-}
 CreateSQL = """
 CREATE TABLE users (
     date int PRIMARY KEY,
     is_public bool, 
     leveling_points int, 
     karma int, 
+    pvp_count int,
     win_rate float, 
     avg_damage float, 
     avg_frags float, 
+    table_name str
+);
+CREATE TABLE cache (
+    date int PRIMARY KEY,
+    total_battles int,
     cache str
 );
 CREATE TABLE ships (
@@ -59,17 +40,6 @@ CREATE TABLE ships (
 );
 CREATE UNIQUE INDEX idx_ship ON ships(ship_id, date);
 """
-
-def now_iso() -> str:
-    return datetime.now().isoformat(timespec="seconds")
-
-def get_region(region_id: int):
-    region_dict = {1: 'asia',2: 'eu',3: 'na',4: 'ru',5: 'cn'}
-    return region_dict[region_id]
-
-def formtimestamp(region_id: int, diff: int = 0):
-    timestamp = time.time() + REGION_UTC_LIST[region_id]*3600 - 5*3600 - diff*24*60*60
-    return datetime.fromtimestamp(timestamp, timezone.utc).strftime("%Y%m%d")
 
 def diff_lists(new_data, old_data):
     battles = 0
@@ -88,42 +58,7 @@ def diff_lists(new_data, old_data):
         return None
     return result
 
-def verify_responses(region: str, redis_client: Redis, responses: list):
-    error = 0
-    error_return = None
-    now_time = now_iso()
-    for response in responses:
-        if isinstance(response, str):
-            error += 1
-            error_return = response
-    key = f"metrics:http:{now_time[:10]}:{region}_total"
-    redis_client.incrby(key, len(responses))
-    if error == 0:
-        return None
-    else:
-        key = f"metrics:http:{now_time[:10]}:{region}_error"
-        redis_client.incrby(key, error)
-        return error_return
-
-async def fetch_data(url):
-    async with http_semaphore:
-        try:
-            res = await async_client.get(url)
-            requset_code = res.status_code
-            requset_result = res.json()
-            if requset_code == 200:
-                return requset_result['data']
-            if requset_code == 404:
-                return {}
-            logger.warning(f'Code_{requset_code} {url}')
-            return f'HTTP_STATUS_{requset_code}'
-        except Exception as e:
-            logger.warning(f"{type(e).__name__} {url}")
-            return f'ERROR_{type(e).__name__}'
-
-def init_db_if_needed(
-    db_path: Path
-) -> bool:
+def init_db_if_needed(db_path: Path) -> bool:
     """
     检查 sqlite3 数据库是否存在且包含用户表，
     若不存在或为空数据库，则创建表。
@@ -157,84 +92,152 @@ def init_db_if_needed(
         return False
         
 def responeses_processing(responses: list):
-    battles_dict = {}
     statis_dict = {}
     if len(responses) == 4:
-        type_list = ['pvp_solo', 'pvp_div2', 'pvp_div3', 'rank_solo']
-        i = 0
-        for response in responses:
-            for ship_id, ship_data in response.items():
-                if ship_id not in battles_dict:
-                    battles_dict[ship_id] = 0
-                    statis_dict[ship_id] = [[],[],[],[]]
-                battle_type = type_list[i]
-                if ship_data[battle_type] != {}:
-                    battles_dict[ship_id] += ship_data[battle_type]['battles_count']
-                    statis_dict[ship_id][i] = [
-                        ship_data[battle_type]['battles_count'],
-                        ship_data[battle_type]['wins'],
-                        ship_data[battle_type]['losses'],
-                        ship_data[battle_type]['damage_dealt'],
-                        ship_data[battle_type]['frags'],
-                        ship_data[battle_type]['survived'],
-                        ship_data[battle_type]['scouting_damage'],
-                        ship_data[battle_type]['art_agro'],
-                        ship_data[battle_type]['original_exp'],
-                        ship_data[battle_type]['planes_killed'],
-                        ship_data[battle_type]['hits_by_main'],
-                        ship_data[battle_type]['shots_by_main']
-                    ]
-            i += 1
-        return battles_dict, statis_dict
+        type_list = [None, 'pvp_solo', 'pvp_div2', 'pvp_div3', 'rank_solo']
+        none_list = [0,[],[],[],[]]
     else:
-        type_list = ['pvp_solo', 'pvp_div2', 'pvp_div3', 'rank_solo', 'rating_solo', 'rating_div']
-        i = 0
-        for response in responses:
-            for ship_id, ship_data in response.items():
-                if ship_id not in battles_dict:
-                    battles_dict[ship_id] = 0
-                    statis_dict[ship_id] = [[],[],[],[],[],[]]
-                battle_type = type_list[i]
-                if ship_data[battle_type] != {}:
-                    battles_dict[ship_id] += ship_data[battle_type]['battles_count']
-                    statis_dict[ship_id][i] = [
-                        ship_data[battle_type]['battles_count'],
-                        ship_data[battle_type]['wins'],
-                        ship_data[battle_type]['losses'],
-                        ship_data[battle_type]['damage_dealt'],
-                        ship_data[battle_type]['frags'],
-                        ship_data[battle_type]['survived'],
-                        max(
-                            ship_data[battle_type]['assist_damage'], 
-                            ship_data[battle_type].get('scouting_damage', 0)
-                        ),
-                        ship_data[battle_type]['art_agro'],
-                        ship_data[battle_type]['original_exp'],
-                        ship_data[battle_type]['planes_killed'],
-                        ship_data[battle_type]['hits_by_main'],
-                        ship_data[battle_type]['shots_by_main']
-                    ]
-            i += 1
-        return battles_dict, statis_dict
+        type_list = [None, 'pvp_solo', 'pvp_div2', 'pvp_div3', 'rank_solo', 'rating_solo', 'rating_div']
+        none_list = [0,[],[],[],[],[],[]]
+    i = 1
+    for response in responses:
+        for ship_id, ship_data in response.items():
+            if ship_id not in statis_dict:
+                statis_dict[ship_id] = none_list.copy()
+            battle_type = type_list[i]
+            if ship_data[battle_type] != {}:
+                statis_dict[ship_id][0] += ship_data[battle_type]['battles_count']
+                statis_dict[ship_id][i] = [
+                    ship_data[battle_type]['battles_count'],
+                    ship_data[battle_type]['wins'],
+                    ship_data[battle_type]['losses'],
+                    ship_data[battle_type]['damage_dealt'],
+                    ship_data[battle_type]['frags'],
+                    ship_data[battle_type]['survived'],
+                    max(
+                        ship_data[battle_type].get('assist_damage', 0), 
+                        ship_data[battle_type].get('scouting_damage', 0)
+                    ),
+                    ship_data[battle_type]['art_agro'],
+                    ship_data[battle_type]['original_exp'],
+                    ship_data[battle_type]['planes_killed'],
+                    ship_data[battle_type]['hits_by_main'],
+                    ship_data[battle_type]['shots_by_main']
+                ]
+        i += 1
+    return statis_dict
 
-async def update(
-    connection: Connection,
-    redis_client: Redis,
-    region_id: int, 
+async def get_recent_data(
+    mysql_connection: Connection, 
+    redis_client: Redis, 
+    async_client: AsyncClient, 
     account_id: int, 
-    enable_daily: bool, 
-    total_battles: int,
-    ac: str = None
+    enable_daily: bool,
+    ac: str
 ):
-    region_dict = {1: 'asia',2: 'eu',3: 'na',4: 'ru',5: 'cn'}
-    region = region_dict[region_id]
+    # 对于新用户的更新逻辑
+    base_url = random.choice(VORTEX_API)
+    if REGION == 'ru':
+        urls = [
+            f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else ''),
+            f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac}' if ac else ''),
+            f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac}' if ac else ''),
+            f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac}' if ac else ''),
+            f'{base_url}/api/accounts/{account_id}/ships/rank_solo/' + (f'?ac={ac}' if ac else ''),
+            f'{base_url}/api/accounts/{account_id}/ships/rating_solo/' + (f'?ac={ac}' if ac else ''),
+            f'{base_url}/api/accounts/{account_id}/ships/rating_div/' + (f'?ac={ac}' if ac else '')
+        ]
+    else:
+        urls = [
+            f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else ''),
+            f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac}' if ac else ''),
+            f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac}' if ac else ''),
+            f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac}' if ac else ''),
+            f'{base_url}/api/accounts/{account_id}/ships/rank_solo/' + (f'?ac={ac}' if ac else '')
+        ]
+    tasks = [fetch_data(async_client, url) for url in urls]
+    responses = await asyncio.gather(*tasks)
+    error = verify_responses(redis_client, responses)
+    if error != None:
+        return error
+    user_basic = responses[0]
+    update_base(mysql_connection, account_id, user_basic)
+    if user_basic:
+        user_basic = user_basic[str(account_id)]
+    if 'hidden_profile' in user_basic:
+        if enable_daily:
+            del_recents(mysql_connection, account_id)
+        return 'HiddenProfile'
+    elif (
+        user_basic == None or
+        'statistics' not in user_basic or 
+        'basic' not in user_basic['statistics'] or 
+        user_basic['statistics']['basic']['leveling_points'] == 0
+    ):
+        # 用户数据不存在删除recent
+        del_recent(mysql_connection, account_id)
+        return 'DeleteRecent'
+    else:
+        lbt = user_basic['statistics']['basic']['last_battle_time']
+        if int(time.time()) - lbt >= 360*24*60*60:
+            # 用户长期不活跃删除recent
+            del_recent(mysql_connection, account_id)
+            return 'DeleteRecent'
+        if enable_daily:
+            if int(time.time()) - lbt >= 90*24*60*60:
+                # 用户长期不活跃删除recents
+                del_recents(mysql_connection, account_id)
+                return 'DeleteRecents'
+        leveling_points = user_basic['statistics']['basic']['leveling_points']
+        karma = user_basic['statistics']['basic']['karma']
+        if user_basic['statistics']['pvp'] == {}:
+            pvp_count = 0
+            win_rate = 0
+            avg_damage = 0
+            avg_frags = 0
+        else:
+            pvp_count = user_basic['statistics']['pvp']['battles_count']
+            win_rate = round(user_basic['statistics']['pvp']['wins']/pvp_count*100,4)
+            avg_damage = round(user_basic['statistics']['pvp']['damage_dealt']/pvp_count,4)
+            avg_frags = round(user_basic['statistics']['pvp']['frags']/pvp_count,4)
+        if REGION == 'ru':
+            statis_dict = responeses_processing([
+                responses[1][str(account_id)]['statistics'],
+                responses[2][str(account_id)]['statistics'],
+                responses[3][str(account_id)]['statistics'],
+                responses[4][str(account_id)]['statistics'],
+                responses[5][str(account_id)]['statistics'],
+                responses[6][str(account_id)]['statistics']
+            ])
+        else:
+            statis_dict = responeses_processing([
+                responses[1][str(account_id)]['statistics'],
+                responses[2][str(account_id)]['statistics'],
+                responses[3][str(account_id)]['statistics'],
+                responses[4][str(account_id)]['statistics']
+            ])
+        return [leveling_points,karma,pvp_count,win_rate,avg_damage,avg_frags,statis_dict]
+
+async def update_user_recent(
+    mysql_connection: Connection,
+    redis_client: Redis,
+    async_client: AsyncClient,
+    account_id: int, 
+    enable_daily: bool
+):
     # 先检测db文件是否存在，不存在则创建
-    db_path = SQLITE_PATH / f'{region_id}' / f'{account_id}.db'
+    db_path = SQLITE_PATH / f'{account_id}.db'
     if init_db_if_needed(db_path) is False:
         return 'SQLite3InitializationError'
+    redis_key = f"token:ac:{account_id}"
+    result = redis_client.get(redis_key)
+    if result:
+        ac = json.loads(result)
+    else:
+        ac = None
     # 获取当前和昨天的user表数据
-    date_1 = formtimestamp(region_id, 0)
-    date_2 = formtimestamp(region_id, 1)
+    date_1 = formtimestamp(0)
+    date_2 = formtimestamp(1)
     try:
         # 连接数据库（不存在会自动创建）
         conn = sqlite3.connect(db_path)
@@ -245,359 +248,290 @@ async def update(
                 is_public, 
                 leveling_points, 
                 karma, 
+                pvp_count,
                 win_rate, 
                 avg_damage, 
                 avg_frags, 
-                cache 
+                table_name 
             FROM users 
             WHERE date = ?;
         """, [date_2])
-        date2_data = cursor.fetchone()
+        date2_data = cursor.fetchone()    # 昨日数据
+        # 新用户，直接写数据库
         if date2_data is None:
-            # 对于新用户的更新逻辑
-            base_url = VORTEX_API_URL_LIST[region_id]
-            if region_id == 4:
-                urls = [
-                    f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else ''),
-                    f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac}' if ac else ''),
-                    f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac}' if ac else ''),
-                    f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac}' if ac else ''),
-                    f'{base_url}/api/accounts/{account_id}/ships/rank_solo/' + (f'?ac={ac}' if ac else ''),
-                    f'{base_url}/api/accounts/{account_id}/ships/rating_solo/' + (f'?ac={ac}' if ac else ''),
-                    f'{base_url}/api/accounts/{account_id}/ships/rating_div/' + (f'?ac={ac}' if ac else '')
-                ]
-            else:
-                urls = [
-                    f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else ''),
-                    f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac}' if ac else ''),
-                    f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac}' if ac else ''),
-                    f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac}' if ac else ''),
-                    f'{base_url}/api/accounts/{account_id}/ships/rank_solo/' + (f'?ac={ac}' if ac else '')
-                ]
-            tasks = [fetch_data(url) for url in urls]
-            responses = await asyncio.gather(*tasks)
-            error = verify_responses(get_region(region_id), redis_client, responses)
-            if error != None:
-                return error
-            user_basic = responses[0]
-            update_base(connection, region_id, account_id, user_basic)
-            if user_basic:
-                user_basic = user_basic[str(account_id)]
-            if 'hidden_profile' in user_basic:
+            recent_data = await get_recent_data(mysql_connection, redis_client, async_client, account_id, enable_daily, ac)
+            # 处理异常
+            if isinstance(recent_data, str):
+                if recents_data == 'HiddenProfile':
+                    # 用户隐藏战绩
+                    cursor.execute("""
+                        INSERT INTO users (
+                            date,is_public,leveling_points,
+                            karma,pvp_count,win_rate,avg_damage,
+                            avg_frags,table_name
+                        ) VALUES (
+                            ?,?,?,?,?,?,?,?,?
+                        );
+                    """,[date_2,0,0,0,0,0,0,0,None])
+                    cursor.execute("""
+                        INSERT INTO users (
+                            date,is_public,leveling_points,
+                            karma,pvp_count,win_rate,avg_damage,
+                            avg_frags,table_name
+                        ) VALUES (
+                            ?,?,?,?,?,?,?,?,?
+                        );
+                    """,[date_1,0,0,0,0,0,0,0,None])
+                    conn.commit()
+                return recent_data
+            leveling_points = recent_data[0]
+            karma = recent_data[1]
+            pvp_count = recent_data[2]
+            win_rate = recent_data[3]
+            avg_damage = recent_data[4]
+            avg_frags = recent_data[5]
+            statis_dict = recent_data[6]
+            total_battles = 0
+            cache_data = {}
+            for ship_id, ship_data in statis_dict.items():
+                if ship_data[0] == 0:
+                    continue
+                total_battles = ship_data[0]
+                cache_data[ship_id] = f'{date_2}_{ship_data[0]}'
+                cursor.execute("""
+                    INSERT OR REPLACE INTO ships (
+                        ship_id,
+                        date,
+                        cache
+                    ) VALUES (
+                        ?, ?, ?
+                    );
+                """, [ship_id, date_2, json.dumps(ship_data[1:])])
+            cursor.execute("""
+                INSERT INTO users (
+                    date,is_public,leveling_points,
+                    karma,pvp_count,win_rate,avg_damage,
+                    avg_frags,table_name
+                ) VALUES (
+                    ?,?,?,?,?,?,?,?,?
+                );
+            """,[date_2,1,leveling_points,karma,pvp_count,win_rate,avg_damage,avg_frags,date_1])
+            cursor.execute("""
+                INSERT INTO users (
+                    date,is_public,leveling_points,
+                    karma,pvp_count,win_rate,avg_damage,
+                    avg_frags,table_name
+                ) VALUES (
+                    ?,?,?,?,?,?,?,?,?
+                );
+            """,[date_1,1,leveling_points,karma,pvp_count,win_rate,avg_damage,avg_frags,date_1])
+            cursor.execute("""
+                INSERT INTO cache (
+                    date,total_battles,cache 
+                ) VALUES (
+                    ?,?,?
+                );
+            """,[date_1,total_battles, json.dumps(cache_data)])
+            conn.commit()
+            return 'NewAccount'
+        cursor.execute("""
+            SELECT 
+                is_public, 
+                leveling_points, 
+                karma, 
+                pvp_count,
+                win_rate, 
+                avg_damage, 
+                avg_frags, 
+                table_name
+            FROM users
+            WHERE date = ?;
+        """, [date_1])
+        date1_data = cursor.fetchone()    # 今日数据
+        # 今日日期下没有数据条目，先复制昨日数据条目
+        if date1_data is None:
+            cursor.execute("""
+                INSERT INTO users (
+                    date,is_public,leveling_points,karma,
+                    pvp_count,win_rate,avg_damage,
+                    avg_frags,table_name
+                ) VALUES (
+                    ?,?,?,?,?,?,?,?
+                );
+            """,[date_1,date2_data[0],date2_data[1],date2_data[2],date2_data[3],date2_data[4],date2_data[5],date2_data[6],date2_data[7]])
+        recent_data = await get_recent_data(mysql_connection, redis_client, async_client, account_id, enable_daily, ac)
+        # 处理异常和隐藏战绩
+        if isinstance(recent_data, str):
+            if recents_data == 'HiddenProfile':
                 # 用户隐藏战绩
                 cursor.execute("""
                     INSERT INTO users (
                         date,is_public,leveling_points,
-                        karma,win_rate,avg_damage,
-                        avg_frags,cache
+                        karma,pvp_count,win_rate,avg_damage,
+                        avg_frags,table_name
                     ) VALUES (
                         ?,?,?,?,?,?,?,?,?
                     );
-                """,[date_2,0,0,0,0,0,0,None])
-                cursor.execute("""
-                    INSERT INTO users (
-                        date,is_public,leveling_points,
-                        karma,win_rate,avg_damage,
-                        avg_frags,cache
-                    ) VALUES (
-                        ?,?,?,?,?,?,?,?,?
-                    );
-                """,[date_1,0,0,0,0,0,0,None])
+                """,[date_1,0,0,0,0,0,0,0,None])
                 conn.commit()
-                return 'HiddenProfile'
-            elif (
-                user_basic == None or
-                'statistics' not in user_basic or 
-                'basic' not in user_basic['statistics'] or 
-                user_basic['statistics']['basic']['leveling_points'] == 0
-            ):
-                # 用户数据不存在删除recent
-                del_recent(connection, region_id, account_id)
-                return 'DeleteRecent'
-            else:
-                lbt = user_basic['statistics']['basic']['last_battle_time']
-                if int(time.time()) - lbt >= 360*24*60*60:
-                    # 用户长期不活跃删除recent
-                    del_recent(connection, region_id, account_id)
-                    return 'DeleteRecent'
-                leveling_points = user_basic['statistics']['basic']['leveling_points']
-                karma = user_basic['statistics']['basic']['karma']
-                if user_basic['statistics']['pvp'] == {}:
-                    win_rate = 0
-                    avg_damage = 0
-                    avg_frags = 0
-                else:
-                    pvp_count = user_basic['statistics']['pvp']['battles_count']
-                    win_rate = round(user_basic['statistics']['pvp']['wins']/pvp_count*100,4)
-                    avg_damage = round(user_basic['statistics']['pvp']['damage_dealt']/pvp_count,4)
-                    avg_frags = round(user_basic['statistics']['pvp']['frags']/pvp_count,4)
-                if region_id == 4:
-                    battle_dict, statis_dict = responeses_processing([
-                        responses[1][str(account_id)]['statistics'],
-                        responses[2][str(account_id)]['statistics'],
-                        responses[3][str(account_id)]['statistics'],
-                        responses[4][str(account_id)]['statistics'],
-                        responses[5][str(account_id)]['statistics'],
-                        responses[6][str(account_id)]['statistics']
-                    ])
-                else:
-                    battle_dict, statis_dict = responeses_processing([
-                        responses[1][str(account_id)]['statistics'],
-                        responses[2][str(account_id)]['statistics'],
-                        responses[3][str(account_id)]['statistics'],
-                        responses[4][str(account_id)]['statistics']
-                    ])
-                user_cache = {}
-                ships_cache = []
-                for ship_id, ship_battles in battle_dict.items():
-                    if ship_battles > 0:
-                        user_cache[ship_id] = [ship_battles, int(date_2)]
-                        ships_cache.append([ship_id,date_2,json.dumps(statis_dict[ship_id],separators=(",", ":"))])
-                user_cache = json.dumps(user_cache,separators=(",", ":"))
+            return recent_data
+        leveling_points = recent_data[0]
+        karma = recent_data[1]
+        pvp_count = recent_data[2]
+        win_rate = recent_data[3]
+        avg_damage = recent_data[4]
+        avg_frags = recent_data[5]
+        statis_dict = recent_data[6]
+        total_battles = 0
+        new_data = {}
+        for ship_id, ship_data in statis_dict.items():
+            if ship_data[0] == 0:
+                continue
+            total_battles = ship_data[0]
+            new_data[ship_id] = f'{date_1}_{ship_data[0]}'
+        # 过去两天都隐藏数据，直接写数据库
+        if date1_data[0] == 0 and date2_data[0] == 0:
+            total_battles = 0
+            cache_data = {}
+            for ship_id, ship_data in statis_dict.items():
+                if ship_data[0] == 0:
+                    continue
+                total_battles = ship_data[0]
+                cache_data[ship_id] = f'{date_1}_{ship_data[0]}'
                 cursor.execute("""
-                    INSERT INTO users (
-                        date,is_public,leveling_points,
-                        karma,win_rate,avg_damage,
-                        avg_frags,cache
+                    INSERT OR REPLACE INTO ships (
+                        ship_id,
+                        date,
+                        cache
                     ) VALUES (
-                        ?,?,?,?,?,?,?,?
+                        ?, ?, ?
                     );
-                """,[date_2,1,leveling_points,karma,win_rate,avg_damage,avg_frags,user_cache])
-                cursor.execute("""
-                    INSERT INTO users (
-                        date,is_public,leveling_points,
-                        karma,win_rate,avg_damage,
-                        avg_frags,cache
-                    ) VALUES (
-                        ?,?,?,?,?,?,?,?
-                    );
-                """,[date_1,1,leveling_points,karma,win_rate,avg_damage,avg_frags,user_cache])
-                for ship_cache in ships_cache:
-                    cursor.execute("""
-                        INSERT OR REPLACE INTO ships (
-                            ship_id,
-                            date,
-                            cache
-                        ) VALUES (
-                            ?, ?, ?
-                        );
-                    """, ship_cache)
-                conn.commit()
-                return 'NewAccount'
-        else:
+                """, [ship_id, date_2, ship_data[1:]])
             cursor.execute("""
-                SELECT 
-                    is_public, 
-                    leveling_points, 
-                    karma, 
-                    win_rate, 
-                    avg_damage, 
-                    avg_frags, 
+                INSERT INTO users (
+                    date,is_public,leveling_points,
+                    karma,pvp_count,win_rate,avg_damage,
+                    avg_frags,table_name
+                ) VALUES (
+                    ?,?,?,?,?,?,?,?,?
+                );
+            """,[date_2,1,leveling_points,karma,pvp_count,win_rate,avg_damage,avg_frags,date_2])
+            cursor.execute("""
+                INSERT INTO users (
+                    date,is_public,leveling_points,
+                    karma,pvp_count,win_rate,avg_damage,
+                    avg_frags,table_name
+                ) VALUES (
+                    ?,?,?,?,?,?,?,?,?
+                );
+            """,[date_1,1,leveling_points,karma,pvp_count,win_rate,avg_damage,avg_frags,date_2])
+            cursor.execute("""
+                INSERT INTO cache (
+                    date,total_battles,cache 
+                ) VALUES (
+                    ?,?,?
+                );
+            """,[date_2,total_battles, json.dumps(cache_data)])
+            conn.commit()
+            return 'FullUpdate'
+        # 今日或昨日有数据
+        if date1_data[0] == 0 and date2_data[0] == 1:
+            old_table_name = date2_data[7]
+        else:
+            old_table_name = date1_data[7]
+        cursor.execute("""
+            SELECT 
+                total_battles, 
+                cache 
+            FROM cache 
+            WHERE date = ?;
+        """, [old_table_name])
+        old_data = cursor.fetchone()
+        old_total_battles = old_data[0]
+        old_battles = json.loads(old_data[1])
+        changed_ship_ids = []
+        # 没有数据更改
+        new_battles = {}
+        if total_battles == old_total_battles and old_battles == new_data:
+            sql = """
+                REPLACE INTO users (
+                    date,is_public,leveling_points,
+                    karma,pvp_count,win_rate,avg_damage,
+                    avg_frags,table_name
+                ) VALUES (
+                    ?,?,?,?,?,?,?,?,?
+                );
+            """
+            cursor.execute(sql, [
+                date_1,1,leveling_points,karma,pvp_count,win_rate,avg_damage,avg_frags,old_table_name
+            ])
+            return 'NoChanged'
+        for ship_id, ship_data in new_data.items():
+            if ship_id not in old_battles:
+                changed_ship_ids.append(ship_id)
+                new_battles[ship_id] = ship_data
+            if old_battles[ship_id] != ship_data:
+                changed_ship_ids.append(ship_id)
+                new_battles[ship_id] = ship_data
+            new_battles[ship_id] = old_battles[ship_id]
+        # 对于启用recents用户计算数据
+        if enable_daily and date1_data[0] == 1:
+            recents_data = {}
+            redis_key = f"recent:{account_id}:{int(time.time())}"
+            for ship_id in changed_ship_ids:
+                if ship_id not in old_battles:
+                    if statis_dict[ship_id][0] > 0:
+                        recents_data[ship_id] = statis_dict[ship_id][1:]
+                else:
+                    old_ship_table_name = old_battles[ship_id].split('_')[0]
+                    sql = """
+                        SELECT 
+                            cache 
+                        FROM ships 
+                        WHERE ship_id = ? 
+                        AND date = ?;
+                    """
+                    cursor.execute(sql, [ship_id, old_ship_table_name])
+                    old_data = json.loads(cursor.fetchone())
+                    temp_data = diff_lists(statis_dict[ship_id][1:],old_data)
+                    if temp_data:
+                        recents_data[ship_id] = temp_data
+            if recents_data != {}:
+                redis_client.set(redis_key, json.dumps(recents_data), 7*24*60*60)
+        # 将新数据写入数据库
+        cursor.execute("""
+            REPLACE INTO cache (
+                date,total_battles,cache 
+            ) VALUES (
+                ?,?,?
+            );
+        """,[date_1,total_battles, json.dumps(new_battles)])
+        cursor.execute("""
+            REPLACE INTO users (
+                date,is_public,leveling_points,
+                karma,pvp_count,win_rate,avg_damage,
+                avg_frags,table_name
+            ) VALUES (
+                ?,?,?,?,?,?,?,?,?
+            );
+        """,[date_1,1,leveling_points,karma,pvp_count,win_rate,avg_damage,avg_frags,date_1])
+        ships_cache = []
+        for ship_id in changed_ship_ids:
+            ships_cache.append([ship_id,date_1,json.dumps(statis_dict[ship_id][1:],separators=(",", ":"))])
+        for ship_cache in ships_cache:
+            cursor.execute("""
+                INSERT OR REPLACE INTO ships (
+                    ship_id,
+                    date,
                     cache
-                FROM users
-                WHERE date = ?;
-            """, [date_1])
-            date1_data = cursor.fetchone()
-            if date1_data is None:
-                # 今日日期下没有数据条目，先复制昨日数据条目
-                cursor.execute("""
-                    INSERT INTO users (
-                        date,is_public,leveling_points,
-                        karma,win_rate,avg_damage,
-                        avg_frags,cache
-                    ) VALUES (
-                        ?,?,?,?,?,?,?,?
-                    );
-                """,[date_1,date2_data[0],date2_data[1],date2_data[2],date2_data[3],date2_data[4],date2_data[5],date2_data[6]])
-                conn.commit()
-                return 'CopyFile'
-            else:
-                if date1_data[1] == total_battles:
-                    return 'NoChanaged'
-                # 用户有数据的情况下，数据不一致，有新增数据
-                base_url = VORTEX_API_URL_LIST[region_id]
-                if region_id == 4:
-                    urls = [
-                        f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else ''),
-                        f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac}' if ac else ''),
-                        f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac}' if ac else ''),
-                        f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac}' if ac else ''),
-                        f'{base_url}/api/accounts/{account_id}/ships/rank_solo/' + (f'?ac={ac}' if ac else ''),
-                        f'{base_url}/api/accounts/{account_id}/ships/rating_solo/' + (f'?ac={ac}' if ac else ''),
-                        f'{base_url}/api/accounts/{account_id}/ships/rating_div/' + (f'?ac={ac}' if ac else '')
-                    ]
-                else:
-                    urls = [
-                        f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else ''),
-                        f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac}' if ac else ''),
-                        f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac}' if ac else ''),
-                        f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac}' if ac else ''),
-                        f'{base_url}/api/accounts/{account_id}/ships/rank_solo/' + (f'?ac={ac}' if ac else '')
-                    ]
-                tasks = [fetch_data(url) for url in urls]
-                responses = await asyncio.gather(*tasks)
-                error = verify_responses(get_region(region_id), redis_client, responses)
-                if error != None:
-                    return error
-                user_basic = responses[0]
-                update_base(connection, region_id, account_id, user_basic)
-                if user_basic:
-                    user_basic = user_basic[str(account_id)]
-                if 'hidden_profile' in user_basic:
-                    # 用户隐藏战绩
-                    cursor.execute("""
-                        REPLACE INTO users (
-                            date,is_public,leveling_points,
-                            karma,win_rate,avg_damage,
-                            avg_frags,cache
-                        ) VALUES (
-                            ?,?,?,?,?,?,?,?,?
-                        );
-                    """,[date_1,0,0,0,0,0,0,None])
-                    if enable_daily:
-                        del_recents(connection, region_id, account_id)
-                    conn.commit()
-                    return 'HiddenProfile'
-                elif (
-                    user_basic == None or
-                    'statistics' not in user_basic or 
-                    'basic' not in user_basic['statistics'] or 
-                    user_basic['statistics']['basic']['leveling_points'] == 0
-                ):
-                    # 用户数据不存在删除recent
-                    del_recent(connection, region_id, account_id)
-                    if enable_daily:
-                        del_recents(connection, region_id, account_id)
-                    return 'DeleteRecent'
-                else:
-                    lbt = user_basic['statistics']['basic']['last_battle_time']
-                    if enable_daily and (int(time.time()) - lbt >= 90*24*60*60):
-                        del_recents(connection, region_id, account_id)
-                        enable_daily = 0
-                    if int(time.time()) - lbt >= 360*24*60*60:
-                        # 用户长期不活跃删除recent
-                        del_recent(connection, region_id, account_id)
-                        return 'DeleteRecent'
-                    leveling_points = user_basic['statistics']['basic']['leveling_points']
-                    karma = user_basic['statistics']['basic']['karma']
-                    if user_basic['statistics']['pvp'] == {}:
-                        win_rate = 0
-                        avg_damage = 0
-                        avg_frags = 0
-                    else:
-                        pvp_count = user_basic['statistics']['pvp']['battles_count']
-                        win_rate = round(user_basic['statistics']['pvp']['wins']/pvp_count*100,4)
-                        avg_damage = round(user_basic['statistics']['pvp']['damage_dealt']/pvp_count,4)
-                        avg_frags = round(user_basic['statistics']['pvp']['frags']/pvp_count,4)
-                    if region_id == 4:
-                        battle_dict, statis_dict = responeses_processing([
-                            responses[1][str(account_id)]['statistics'],
-                            responses[2][str(account_id)]['statistics'],
-                            responses[3][str(account_id)]['statistics'],
-                            responses[4][str(account_id)]['statistics'],
-                            responses[5][str(account_id)]['statistics'],
-                            responses[6][str(account_id)]['statistics']
-                        ])
-                    else:
-                        battle_dict, statis_dict = responeses_processing([
-                            responses[1][str(account_id)]['statistics'],
-                            responses[2][str(account_id)]['statistics'],
-                            responses[3][str(account_id)]['statistics'],
-                            responses[4][str(account_id)]['statistics']
-                        ])
-                    if date1_data[0] == 0 or date1_data[6] == None:
-                        user_cache = {}
-                        ships_cache = []
-                        for ship_id, ship_battles in battle_dict.items():
-                            if ship_battles > 0:
-                                user_cache[ship_id] = [ship_battles, int(date_1)]
-                                ships_cache.append([ship_id,date_1,json.dumps(statis_dict[ship_id],separators=(",", ":"))])
-                        user_cache = json.dumps(user_cache,separators=(",", ":"))
-                        cursor.execute("""
-                            INSERT INTO users (
-                                date,is_public,leveling_points,
-                                karma,win_rate,avg_damage,
-                                avg_frags,cache
-                            ) VALUES (
-                                ?,?,?,?,?,?,?,?
-                            );
-                        """,[date_1,1,leveling_points,karma,win_rate,avg_damage,avg_frags,user_cache])
-                        for ship_cache in ships_cache:
-                            cursor.execute("""
-                                INSERT OR REPLACE INTO ships (
-                                    ship_id,
-                                    date,
-                                    cache
-                                ) VALUES (
-                                    ?, ?, ?
-                                );
-                            """, ship_cache)
-                        conn.commit()
-                        return 'FullUpdate'
-                    else:
-                        # 更新有变更船只数据的索引
-                        diff_ship_ids = []
-                        old_battles = json.loads(date1_data[6])
-                        for ship_id, ship_battles in battle_dict.items():
-                            if ship_battles > 0:
-                                if ship_id not in old_battles:
-                                    diff_ship_ids.append([ship_id, None])
-                                    old_battles[ship_id] = [ship_battles, int(date_1)]
-                                if ship_battles != old_battles[ship_id][0]:
-                                    diff_ship_ids.append([ship_id, str(old_battles[ship_id][1])])
-                                    old_battles[ship_id] = [ship_battles, int(date_1)]
-                        # 对于启用recents用户计算数据
-                        if enable_daily:
-                            recents_data = {}
-                            region_dict = {1: 'asia',2: 'eu',3: 'na',4: 'ru',5: 'cn'}
-                            region = region_dict[region_id]
-                            redis_key = f"recent:{region}:{account_id}:{int(time.time())}"
-                            for ship_id, ship_refer in diff_ship_ids:
-                                if ship_refer == None:
-                                    if region_id == 4:
-                                        old_data = [[],[],[],[],[],[]]
-                                    else:
-                                        old_data = [[],[],[],[]]
-                                else:
-                                    cursor.execute("""
-                                        SELECT 
-                                            cache 
-                                        FROM ships 
-                                        WHERE ship_id = ? 
-                                          AND date = ?;
-                                    """,[ship_id, ship_refer])
-                                    old_data = json.loads(cursor.fetchone()[0])
-                                temp_data = diff_lists(statis_dict[ship_id],old_data)
-                                if temp_data:
-                                    recents_data[ship_id] = temp_data
-                            if recents_data:
-                                redis_client.set(redis_key, json.dumps(recents_data), 7*24*60*60)
-                        # 将新数据写入数据库
-                        cursor.execute("""
-                            REPLACE INTO users (
-                                date,is_public,leveling_points,
-                                karma,win_rate,avg_damage,
-                                avg_frags,cache
-                            ) VALUES (
-                                ?,?,?,?,?,?,?,?
-                            );
-                        """,[date_1,1,leveling_points,karma,win_rate,avg_damage,avg_frags,json.dumps(old_battles,separators=(",", ":"))])
-                        ships_cache = []
-                        for ship_id in [x[0] for x in diff_ship_ids]:
-                            ships_cache.append([ship_id,date_1,json.dumps(statis_dict[ship_id],separators=(",", ":"))])
-                        for ship_cache in ships_cache:
-                            cursor.execute("""
-                                INSERT OR REPLACE INTO ships (
-                                    ship_id,
-                                    date,
-                                    cache
-                                ) VALUES (
-                                    ?,?,?
-                                );
-                            """, ship_cache)
-                        conn.commit()
-                        return 'ChangedUpdate'
+                ) VALUES (
+                    ?,?,?
+                );
+            """, ship_cache)
+        conn.commit()
+        return 'ChangedUpdate'
     except Exception as e:
+        conn.rollback()
         logger.error((f"{traceback.format_exc()}"))
         return type(e).__name__
     finally:

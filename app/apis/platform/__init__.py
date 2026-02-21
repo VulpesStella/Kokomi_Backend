@@ -1,13 +1,7 @@
-from .refresh import RefreshAPI
-from .database import MySQLAPI
-from .update import UpdateAPI
 from .status import StatusAPI
-from .user import UserAPI
+from .token import TokenAPI
 
 __all__ = [
-    'RefreshAPI',
-    'MySQLAPI',
-    'UpdateAPI',
     'StatusAPI',
-    'UserAPI'
+    'TokenAPI'
 ]

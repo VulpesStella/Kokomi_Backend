@@ -1,6 +1,6 @@
-from .overall import RecentOverallAPI
+from .manager import RecentManagerAPI
 
 
 __all__ = [
-    'RecentOverallAPI'
+    'RecentManagerAPI'
 ]

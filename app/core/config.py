@@ -1,9 +1,16 @@
 import os
+import json
 from pathlib import Path
 from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class RuntimeConfig:
+    PLATFORM: str
+
+    API_URL: str
+    API_TOKEN: str
+    BIND_HOST: list
+
     MYSQL_HOST: str
     MYSQL_PORT: int
     MYSQL_USERNAME: str
@@ -23,8 +30,16 @@ class RuntimeConfig:
     WG_API_TOKEN: str
     LESTA_API_TOKEN: str
 
+@dataclass(frozen=True)
+class EndpointsConfig:
+    VORTEX_API: list
+    CLAN_API: str
+    OFFICIAL_API: str | None
+
 class EnvConfig:
     config = None
+    endpoints = None
+    REGION = None
     DATA_DIR = Path('/app/data')
     LOG_DIR = Path('/app/logs')
 
@@ -38,7 +53,11 @@ class EnvConfig:
                 return None
             env_file = '.env.dev'
         # 加载config
-        config = RuntimeConfig(
+        cls.config = RuntimeConfig(
+            PLATFORM = os.getenv('PLATFORM'),
+            API_URL = os.getenv('API_URL'),
+            API_TOKEN = os.getenv('API_TOKEN'),
+            BIND_HOST = os.getenv('BIND_HOST').split('_'),
             MYSQL_HOST = os.getenv("MYSQL_HOST"),
             MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306)),
             MYSQL_USERNAME = os.getenv("MYSQL_USERNAME"),
@@ -54,7 +73,18 @@ class EnvConfig:
             RABBITMQ_USERNAME = os.getenv("RABBITMQ_USERNAME"),
             RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
         )
-        cls.config = config
         cls.DATA_DIR = Path(os.getenv("DATA_DIR"))
         cls.LOG_DIR = Path(os.getenv("LOG_DIR"))
+        file_path = cls.DATA_DIR / 'json/init_marker.json'
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            cls.REGION = data['region']
+        file_path = cls.DATA_DIR / 'json/endpoints.json'
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            cls.endpoints = EndpointsConfig(
+                VORTEX_API=data['vortex_api'],
+                CLAN_API=data['clan_api'],
+                OFFICIAL_API=data['official_api']
+            )
         return env_file

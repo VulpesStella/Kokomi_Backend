@@ -1,3 +1,3 @@
 class Limits:
-    DefaultRecentLimit = 60
-    MaxBindingLimit = 5
+    DefaultRecentLimit = 100
+    DefaultRecentProLimit = 400

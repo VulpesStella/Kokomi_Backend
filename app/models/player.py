@@ -9,9 +9,8 @@ from app.utils import GameUtils
 
 
 class PlatyerModel:
-
     @ExceptionLogger.handle_database_exception_async
-    async def check_base(region_id: int, account_id: int, username: str = None):
+    async def check_base(account_id: int, username: str = None):
         '''
         检查该uid是否存在于数据库中，确保事务正常
         '''
@@ -24,26 +23,24 @@ class PlatyerModel:
                 SELECT 
                     username
                 FROM user_base 
-                WHERE region_id = %s 
-                  AND account_id = %s;
+                WHERE account_id = %s;
             """
             await cur.execute(
-                sql,[region_id, account_id]
+                sql,[account_id]
             )
             result = await cur.fetchone()
             if result is None:
                 default_name = GameUtils.get_user_default_name(account_id)
                 sql = """
                     INSERT INTO user_base (
-                        region_id, 
                         account_id, 
                         username
                     ) VALUES (
-                        %s, %s, %s
+                        %s, %s
                     );
                 """
                 await cur.execute(
-                    sql,[region_id, account_id, default_name]
+                    sql,[account_id, default_name]
                 )
                 sql = """
                     INSERT INTO user_stats (
@@ -81,11 +78,10 @@ class PlatyerModel:
                         UPDATE user_base 
                         SET 
                             username = %s
-                        WHERE region_id = %s 
-                          AND account_id = %s;
+                        WHERE account_id = %s;
                     """
                     await cur.execute(
-                        sql,[username, region_id, account_id]
+                        sql,[username, account_id]
                     )
 
             await conn.commit()
@@ -98,7 +94,7 @@ class PlatyerModel:
             await MysqlConnection.release_connection(conn)
 
     @ExceptionLogger.handle_database_exception_async
-    async def get_user_brief(region_id: int, account_id: int):
+    async def get_user_brief(account_id: int):
         '''
         从数据库中获取用户的基本数据，如果玩家或者工会的缓存数据不存在则返回none
 
@@ -114,7 +110,6 @@ class PlatyerModel:
             cur: Cursor = await conn.cursor()
 
             data = {
-                'region': GameUtils.get_region(region_id),
                 'account_id': account_id,
                 'username': None,
                 'register_time': None,
@@ -136,11 +131,10 @@ class PlatyerModel:
                 FROM user_base as b 
                 LEFT JOIN user_stats as i 
                   ON b.account_id = i.account_id 
-                WHERE b.region_id = %s 
-                  AND b.account_id = %s;
+                WHERE b.account_id = %s;
             """
             await cur.execute(
-                sql,[region_id, account_id]
+                sql,[account_id]
             )
             result = await cur.fetchone()
             # 用户在数据库中不存在或者没有缓存数据
@@ -177,11 +171,10 @@ class PlatyerModel:
                             tag, 
                             league 
                         FROM clan_base 
-                        WHERE region_id = %s 
-                          AND clan_id = %s;
+                        WHERE clan_id = %s;
                     """
                     await cur.execute(
-                        sql,[region_id, result[0]]
+                        sql,[result[0]]
                     )
                     result = await cur.fetchone()
                     # 判断工会数据是否在数据库中
@@ -217,26 +210,24 @@ class PlatyerModel:
                     UNIX_TIMESTAMP(register_time), 
                     insignias 
                 FROM user_base 
-                WHERE region_id = %s 
-                  AND account_id = %s;
+                WHERE account_id = %s;
             """
             await cur.execute(
-                sql,[data.region_id, data.account_id]
+                sql,[data.account_id]
             )
             result = await cur.fetchone()
             if result is None:
                 default_name = GameUtils.get_user_default_name(data.account_id)
                 sql = """
                     INSERT INTO user_base (
-                        region_id, 
                         account_id, 
                         username
                     ) VALUES (
-                        %s, %s, %s
+                        %s, %s
                     );
                 """
                 await cur.execute(
-                    sql,[data.region_id, data.account_id, default_name]
+                    sql,[data.account_id, default_name]
                 )
                 sql = """
                     INSERT INTO user_stats (
@@ -287,11 +278,10 @@ class PlatyerModel:
                         SET 
                             username = %s, 
                             touch_at = CURRENT_TIMESTAMP 
-                        WHERE region_id = %s 
-                          AND account_id = %s;
+                        WHERE account_id = %s;
                     """
                     await cur.execute(
-                        sql,[data.username, data.region_id, data.account_id]
+                        sql,[data.username, data.account_id]
                     )
                 sql = """
                     UPDATE user_stats 
@@ -318,11 +308,10 @@ class PlatyerModel:
                             register_time = FROM_UNIXTIME(%s), 
                             insignias = %s, 
                             touch_at = CURRENT_TIMESTAMP 
-                        WHERE region_id = %s 
-                          AND account_id = %s;
+                        WHERE account_id = %s;
                     """
                     await cur.execute(
-                        sql,[data.username, data.register_time, data.insignias, data.region_id, data.account_id]
+                        sql,[data.username, data.register_time, data.insignias, data.account_id]
                     )
                 else:
                     sql = """
@@ -330,11 +319,10 @@ class PlatyerModel:
                         SET 
                             insignias = %s, 
                             touch_at = CURRENT_TIMESTAMP 
-                        WHERE region_id = %s 
-                          AND account_id = %s;
+                        WHERE account_id = %s;
                     """
                     await cur.execute(
-                        sql,[data.insignias, data.region_id, data.account_id]
+                        sql,[data.insignias, data.account_id]
                     )
                 sql = """
                     UPDATE user_stats 
@@ -374,29 +362,27 @@ class PlatyerModel:
                         tag, 
                         league 
                     FROM clan_base 
-                    WHERE region_id = %s 
-                      AND clan_id = %s;
+                    WHERE clan_id = %s;
                 """
                 await cur.execute(
-                    sql,[data.region_id, data.clan.clan_id]
+                    sql,[data.clan.clan_id]
                 )
                 result = await cur.fetchone()
                 if result is None:
                     default_name = GameUtils.get_clan_default_name()
                     sql = """
                         INSERT INTO clan_base (
-                            region_id, 
                             clan_id, 
                             tag
                         ) VALUES (
-                            %s, %s, %s
+                            %s, %s
                         );
                     """
                     await cur.execute(
-                        sql,[data.region_id, data.clan.clan_id, default_name]
+                        sql,[data.clan.clan_id, default_name]
                     )
                     sql = """
-                        INSERT INTO clan_stats (
+                        INSERT INTO clan_users (
                             clan_id 
                         ) VALUES (
                             %s
@@ -423,11 +409,10 @@ class PlatyerModel:
                             tag = %s, 
                             league = %s, 
                             touch_at = CURRENT_TIMESTAMP 
-                        WHERE region_id = %s 
-                          AND clan_id = %s;
+                        WHERE clan_id = %s;
                     """
                     await cur.execute(
-                        sql,[data.clan.tag, data.clan.league, data.region_id, data.clan.clan_id]
+                        sql,[data.clan.tag, data.clan.league, data.clan.clan_id]
                     )
 
             await conn.commit()

@@ -1,36 +1,31 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import json
+
 import asyncio
 import threading
-from typing import Optional
-from fastapi import FastAPI, Request, HTTPException, Security
+from fastapi import FastAPI, Request, Security
+from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
 from starlette.responses import StreamingResponse
 
-from app.response import JSONResponse
-from app.schemas import Region, Platform, AuthResponse, ACResponse
+from app.response import JSONResponse as API_JSONResponse
 from app.core import EnvConfig, api_logger
-from app.utils import TimeUtils, GameUtils
+from app.utils import TimeUtils
 from app.loggers import CSVWriter, log_queue
 from app.database import MysqlConnection
 from app.health import HealthManager, ServiceMetrics
-from app.apis.robot import BindAPI, TokenAPI
 from app.apis.platform import StatusAPI
-from app.models import PlatformModel
 from app.middlewares import (
-    TokenManager,
-    AccessManager, 
     RedisConnection,
-    get_role, 
-    require_root, 
-    require_user
+    get_role,
 )
 
 from app.routers import (
-    bot_router, platform_router, demo_router, statistics_router,
+    platform_router, 
+    demo_router, 
+    statistics_router,
     recent_router
 )
 
@@ -81,23 +76,14 @@ async def lifespan(app: FastAPI):
         api_logger.info(f"Env config loaded: {env_file}")
     else:
         api_logger.error("Env config load failed")
+    api_logger.info(f"Current region: {EnvConfig.REGION}")
     # 启动定时任务
     task = asyncio.create_task(schedule())
     # 启动API日志写入线程
     writer_thread = threading.Thread(target=csv_writer_thread, daemon=True)
     writer_thread.start()
     # 初始化mysql并测试mysql连接
-    test_result = await MysqlConnection.test_mysql()
-    if test_result:
-        db_config = await PlatformModel.load_config()
-        ip_count, user_count, clan_count = AccessManager().reload(
-            data=db_config.get('blacklist', {})
-        )
-        api_logger.info(f"Loaded blacklist: IP({ip_count}) User({user_count}) Clan({clan_count})")
-        root_users, regular_users = TokenManager().reload(
-            data=db_config.get('token', {})
-        )
-        api_logger.info(f"Loaded access users: Root({root_users}) User({regular_users})")
+    await MysqlConnection.test_mysql()
     # 初始化并测试redis连接
     await RedisConnection.test_redis()
     # 启动 lifespan
@@ -132,11 +118,11 @@ app.add_middleware(
 # ------------------------------------------------------
 @app.middleware("http")
 async def request_rate_limiter(request: Request, call_next):
-    client_ip = request.client.host
-    if AccessManager().is_ip_blacklisted(client_ip):
-        raise HTTPException(
+    client_ip = request.client.host if request.client else None
+    if client_ip not in EnvConfig.config.BIND_HOST:
+        return JSONResponse(
             status_code=403,
-            detail="Forbidden"
+            content={"detail": "Forbidden"}
         )
     start = TimeUtils.timestamp_ms()
     now_time = TimeUtils.now_iso()
@@ -151,13 +137,11 @@ async def request_rate_limiter(request: Request, call_next):
         response.status_code,
         elapsed
     ]
-
     try:
         log_queue.put_nowait(record)
     except Exception:
         api_logger.warning('Log queue full!')
         pass  # 队列满时直接丢弃，避免阻塞接口
-
     return response
 
 
@@ -170,69 +154,14 @@ async def root():
     return {'status':'ok','messgae':'Hello! Welcome to KokomiPlatform Interface.'}
 
 @app.get("/status/", summary="API指标", tags=['Default'])
-async def testRootPermission(page: str = 'api'):
-    """
-    获取API运行期间的部分指标
-    """
-    
+async def testRootPermission():
     return await StatusAPI.api_stats()
 
-@app.get("/permission/", summary="测试token权限", tags=['Default'])
-async def testRootPermission(role: str = Security(get_role)):
-    """
-    测试当前token是否可用，以及token权限
-    """
-    
-    return JSONResponse.get_success_response(role)
+@app.get("/permission/", summary="测试当前token是否可用", tags=['Default'])
+async def testRootPermission(role: bool = Security(get_role)):
+    return API_JSONResponse.get_success_response(role)
 
-@app.post("/auth-token/{region}/", summary='用户授权数据接入', tags=['Default'])
-async def authToken(request: Request, region: Region = Region.ASIA, platform: Optional[Platform] = None, user_id: Optional[str] = None):
-    """
-    通过授权连接绑定或者接入数据
-    """
-    body_bytes = await request.body()
-    if body_bytes is None:
-        return templates.TemplateResponse("auth_failed.html",{"request": request})
-    try:
-        body_dict = json.loads(body_bytes.decode('utf-8'))
-    except:
-        return templates.TemplateResponse("auth_failed.html",{"request": request})
-    if body_dict.get('status') == 'ok':
-        # 先将auth数据写入
-        try:
-            body = AuthResponse(**body_dict)
-            if GameUtils.check_aid_and_rid(region, body.account_id) == False:
-                raise ValueError
-        except:
-            return templates.TemplateResponse("auth_failed.html",{"request": request})
-        result = await TokenAPI.set_auth_by_link(body,region,platform,user_id)
-        if result['code'] != 1000:
-            return templates.TemplateResponse("auth_failed.html",{"request": request})
-        # 如果有通过platfrom数据则写入绑定数据
-        if platform:
-            result = await BindAPI.postBindByLink(platform,user_id,region,body.account_id)
-            if result['code'] != 1000:
-                return templates.TemplateResponse("auth_failed.html",{"request": request})
-        expire_time = TimeUtils.fromtimestamp(body.expires_at)
-        return templates.TemplateResponse(
-            "auth_success.html",
-            {
-                "request": request,
-                "region": region.upper(),
-                "username": body.nickname,
-                "expires_at": expire_time
-            }
-        )
-    return templates.TemplateResponse("auth_failed.html",{"request": request})
 
-@app.post("/access-token/{region}/", summary='用户授权数据接入', tags=['Default'])
-async def acToken(ac: ACResponse, region: Region = Region.ASIA, platform: Optional[Platform] = None, user_id: Optional[str] = None):
-    """
-    通过授权接入数据
-    """
-    if GameUtils.check_aid_and_rid(region, ac.account_id) == False:
-        return JSONResponse.API_2007_IllegalAccoutID
-    return await TokenAPI.set_ac(ac, region, platform, user_id)
 # ------------------------------------------------------
 # 在主路由中注册子路由
 # 功能逻辑：
@@ -245,35 +174,28 @@ app.include_router(
     demo_router, 
     prefix="/api/demo", 
     tags=['Demo Interface'],
-    dependencies=[Security(require_root)]
+    dependencies=[Security(get_role)]
 )
 
 app.include_router(
     platform_router, 
     prefix="/api/platform", 
     tags=['Platform Interface'],
-    dependencies=[Security(require_root)]
-)
-
-app.include_router(
-    bot_router, 
-    prefix="/api/bot", 
-    tags=['Robot Interface'],
-    dependencies=[Security(require_user)]
+    dependencies=[Security(get_role)]
 )
 
 app.include_router(
     statistics_router,
     prefix="/api/stats",
     tags=['Statistics Interface'],
-    dependencies=[Security(require_user)]
+    dependencies=[Security(get_role)]
 )
 
 app.include_router(
     recent_router,
     prefix="/api/recent",
     tags=['Recent Interface'],
-    dependencies=[Security(require_user)]
+    dependencies=[Security(get_role)]
 )
 
 # ------------------------------------------------------

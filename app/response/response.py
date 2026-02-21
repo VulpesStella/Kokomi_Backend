@@ -2,6 +2,8 @@ import uuid
 from typing import Optional, Literal, Union, Any, Dict, List
 from typing_extensions import TypedDict
 
+from app.core import EnvConfig
+
 
 class ResponseDict(TypedDict):
     '''返回数据格式'''
@@ -125,6 +127,6 @@ class JSONResponse:
             'message': message,
             'data': {
                 'error_id': error_id,
-                'platform': 'API'
+                'platform': EnvConfig.config.PLATFORM
             }
         }

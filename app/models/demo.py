@@ -8,7 +8,7 @@ from app.response import JSONResponse
 
 class DemoModel:
     @ExceptionLogger.handle_database_exception_async
-    async def demo():
+    async def _example():
         '''
         函数注释
         '''
@@ -21,7 +21,6 @@ class DemoModel:
             cursor: Cursor = await connection.cursor()
 
             # 这里进行数据库读写操作
-            # 这里指定数据库的原因是主要业务数据库和缓存数据库不在一个库内
             sql = """
                 SELECT 
                     * 

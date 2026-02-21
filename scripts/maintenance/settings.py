@@ -1,10 +1,10 @@
 import os
+import json
 from pathlib import Path
 from datetime import datetime
 
 
 CLIENT_NAME = 'Maintenanse'
-LOG_LEVEL = 'debug'
 REFRESH_INTERVAL = 60
 BATCH_SIZE = 10000
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
@@ -16,7 +16,10 @@ if os.getenv('PLATFORM') is None:
 else:
     print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: .env.prod")
 
+LOG_LEVEL = os.getenv("LOG_LEVEL")
 LOG_DIR = Path(os.getenv("LOG_DIR"))
+TEMP_DIR = Path(os.getenv("TEMP_DIR"))
+DATA_DIR = Path(os.getenv("DATA_DIR"))
 WG_API_TOKEN = os.getenv("WG_API_TOKEN")
 LESTA_API_TOKEN = os.getenv("LESTA_API_TOKEN")
 MYSQL_CONFIG = {
@@ -39,3 +42,13 @@ RABBITMQ_CONFIG = {
     "user": os.getenv("RABBITMQ_USERNAME"),
     "password": os.getenv("RABBITMQ_PASSWORD")
 }
+
+file_path = DATA_DIR / 'json/init_marker.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    REGION: str = data['region']
+    print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Init config loaded: init_marker.json")
+file_path = DATA_DIR / 'json/endpoints.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    VORTEX_API: list = data['vortex_api']

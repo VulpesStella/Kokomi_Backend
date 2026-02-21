@@ -1,16 +1,18 @@
 import os
+import json
 from pathlib import Path
 from celery.app.base import logger
-
 
 if os.getenv('PLATFORM') is None:
     from dotenv import load_dotenv
     load_result = load_dotenv('.env.dev')
-    logger.info(f"Env config loaded: .env.dev")
+    logger.info("Env config loaded: .env.dev")
 else:
-    logger.info(f"Env config loaded: .env.prod")
+    logger.info("Env config loaded: .env.prod")
 
+LOG_LEVEL = os.getenv("LOG_LEVEL")
 LOG_DIR = Path(os.getenv("LOG_DIR"))
+DATA_DIR = Path(os.getenv("DATA_DIR"))
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST"),
     "port": int(os.getenv("MYSQL_PORT", 3306)),
@@ -30,3 +32,14 @@ RABBITMQ_CONFIG = {
     "user": os.getenv("RABBITMQ_USERNAME"),
     "password": os.getenv("RABBITMQ_PASSWORD")
 }
+
+file_path = DATA_DIR / 'json/init_marker.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    REGION: str = data['region']
+    logger.info("Init config loaded: init_marker.json")
+file_path = DATA_DIR / 'json/endpoints.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    VORTEX_API: list = data['vortex_api']
+    CLAN_API: str = data['clan_api']

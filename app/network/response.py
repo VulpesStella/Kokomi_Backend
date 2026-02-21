@@ -33,10 +33,6 @@ class JSONResponse:
     API_3006_Token1isInvalid = {'status': 'ok','code': 3006,'message': 'Token1isInvalid','data' : None}
     # token2已失效
     API_3007_Token2isInvalid = {'status': 'ok','code': 3007,'message': 'Token2isInvalid','data' : None}
-    # 未读取到船只数据
-    API_3008_VehiclesDataLoadFailed = {'status': 'ok','code': 3008,'message': 'VehiclesDataLoadFailed','data' : None}
-    # 未读取到船只数据
-    API_3009_NoVehiclesChangesFound = {'status': 'ok','code': 3009,'message': 'NoVehiclesChangesFound','data' : None}
     # 用户名称未有匹配结果
     API_3010_UserNameNotFound = {'status': 'ok','code': 3010,'message': 'UserNameNotFound','data' : None}
     # 工会名称未有匹配结果

@@ -1,27 +1,5 @@
 from enum import Enum
 
-class Region(str, Enum):
-    ASIA = "asia"
-    EU = "eu"
-    NA = "na"
-    RU = "ru"
-    CN = "cn"
-
-class Language(str, Enum):
-    CN = 'cn'
-    EN = 'en'
-    JA = 'ja'
-
-class Server(str, Enum):
-    WG = 'wg'
-    LESTA = 'lesta'
-
-class Platform(str, Enum):
-    QQ_BOT = 'qq_bot'
-    QQ_GROUP = 'qq_group'
-    QQ_GUILD = 'qq_guild'
-    DISCORD = 'discord'
-
 class ShipType(str, Enum):
     AIRCARRIER = "AirCarrier"
     BATTLESHIP = "Battleship"
@@ -56,13 +34,6 @@ class ShipNation(str, Enum):
     UK = "uk"
     USA = "usa"
     USSR = "ussr"
-
-class BindIndex(int, Enum):
-    IDX1 = 1
-    IDX2 = 2
-    IDX3 = 3
-    IDX4 = 4
-    IDX5 = 5
 
 class PVPField(str, Enum):
     PVP = 'pvp'

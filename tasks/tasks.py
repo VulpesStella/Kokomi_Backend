@@ -1,16 +1,17 @@
 from .main import celery_app
-from .scripts import refresh_user
+from .scripts import refresh_user, refresh_clan
 
 
 @celery_app.task(name="user_refresh")
 def task_update_user_data(user_id: dict):
     """更新用户数据库的数据"""
-    result = refresh_user(user_id)
-    return result
+    account_id = user_id['account_id']
+    result = refresh_user(account_id)
+    return f'U_{account_id} | {result}'
 
-# @celery_app.task(name="data_refresh")
-# def task_sum_recent(data: dict):
-#     """更新近期数据"""
-#     result = sum_recent(data)
-#     return result
-
+@celery_app.task(name="clan_refresh")
+def task_update_user_data(user_id: dict):
+    """更新工会数据库的数据"""
+    clan_id = user_id['clan_id']
+    result = refresh_clan(clan_id)
+    return f'C_{clan_id} | {result}'

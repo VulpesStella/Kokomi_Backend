@@ -1,22 +1,22 @@
 import os
 import csv
-import sys
+import time
 import gzip
 import json
 import array
 import bisect
 import sqlite3
 import traceback
-from redis import Redis
 from pymysql import Connection
 from pymysql.cursors import Cursor
 from datetime import datetime, timezone
 
-from settings import BATCH_SIZE, DATA_DIR, TEMP_DIR
+from settings import BATCH_SIZE, DATA_DIR, TEMP_DIR, REGION
 from logger import logger
 
 
 TOP_N_LIMIT = 50
+TWO_YEAR_SECONDS = 2*365*24*60*60
 BATTLES_LIMIT = {
     6: 40, 7: 40,
     8: 40, 9: 50,
@@ -33,24 +33,19 @@ OLD_SHIP_ID_LIST = [
     '4282365936','4279219920'
 ]
 USER_CSV_HEADER = [
-    'ranking', 'region_id', 'account_id', 'battles', 'rating', 'rating_amend', 
+    'ranking', 'account_id', 'battles', 'rating', 'rating_amend', 
     'win_rate', 'solo_rate', 'avg_damage', 'avg_frags', 'avg_exp', 
-    'max_damage_dealt', 'max_exp', 'rating_level', 'win_rate_level', 
+    'max_exp', 'max_damage_dealt', 'rating_level', 'win_rate_level', 
     'solo_rate_level', 'avg_damage_level', 'avg_frags_level '
-]
-CLAN_CSV_HEADER = [
-    'ranking', 'region_id', 'clan_id', 'clan_tag', 'battles_count', 'rating', 'league', 
-    'division', 'division_rating', 'longest_winning_streak', 'last_battle_time'
 ]
 UserCreateSQL = """
 CREATE TABLE users (
     id INTEGER PRIMARY KEY,
-    region_id int,
     account_id int, 
     pvp_count int, 
     cache str
 );
-CREATE UNIQUE INDEX idx_user ON users(region_id, account_id);
+CREATE UNIQUE INDEX idx_user ON users(account_id);
 """
 ExistsCreateSQL = """
 CREATE TABLE exists_ids (
@@ -71,16 +66,16 @@ def decompress(gzip_bytes: bytes):
         return {}
     
 def read_ship_tier():
-    result = {
-        'wg': {},
-        'lesta': {}
-    }
-    for realm in ['wg', 'lesta']:
-        file_path = DATA_DIR / f'json/ship_name_{realm}.json'
-        with open(file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            for ship_id, ship_data in data.items():
-                result[realm][ship_id] = ship_data['tier']
+    result = {}
+    if REGION == 'ru':
+        realm = 'lesta'
+    else:
+        realm = 'wg'
+    file_path = DATA_DIR / f'json/ship_name_{realm}.json'
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+        for ship_id, ship_data in data.items():
+            result[ship_id] = ship_data['tier']
     return result
 
 def read_ship_server():
@@ -116,7 +111,6 @@ def get_region_rating(
     expected_wins = server_data[0]
     expected_dmg = server_data[1]
     expected_frags = server_data[2]
-    # 计算PR
     # 计算比率
     r_wins = actual_wins / expected_wins
     r_dmg = actual_dmg / expected_dmg
@@ -157,27 +151,16 @@ def get_content_class(
             return i + 1
     return 8
 
-def get_season(connection: Connection):
-    cursor: Cursor = connection.cursor()
-    try:
-        sql = """
-            SELECT 
-                season_id 
-            FROM clan_battle;
-        """
-        cursor.execute(sql)
-        data = cursor.fetchone()
-        return data[0]
-    except Exception:
-        logger.warning("Failed to read season data")
-        logger.error((f"{traceback.format_exc()}"))
-    finally:
-        cursor.close()
+def get_version():
+    file_path = DATA_DIR / f"json/version.json"
+    with open(file_path, "r", encoding="utf-8") as f:
+        version_data = json.load(f)
+        return version_data['version']
 
-def get_update_ids(connection: Connection):
+def get_update_ids(mysql_connection: Connection):
     # 先获取数据库中id最大值，确定循环上限
     update_list = []
-    cursor: Cursor = connection.cursor()
+    mysql_cursor: Cursor = mysql_connection.cursor()
     try:
         # 读取缓存中的用户数据
         numbers = array.array("Q")
@@ -190,16 +173,15 @@ def get_update_ids(connection: Connection):
                 conn.commit()
             else:
                 sql = """
-                    SELECT region_id, account_id, pvp_count
+                    SELECT account_id, pvp_count
                     FROM users
                 """
                 cur.execute(sql)
-                for region_id, account_id, pvp_count in cur:
-                    combined = int(str(region_id) + str(account_id) + str(pvp_count))
+                for account_id, pvp_count in cur:
+                    combined = int(str(account_id) + str(pvp_count))
                     pos = bisect.bisect_left(numbers, combined)
                     numbers.insert(pos, combined)
                 logger.debug(f"Array Len: {len(numbers)}")  
-                logger.debug(f"Array Size: {sys.getsizeof(numbers) / 1024 / 1024:.2f} MB")
             cur.close()
         # 读取用户的数据，并判断那些用户的缓存数据和数据库不同
         sql = """
@@ -207,36 +189,31 @@ def get_update_ids(connection: Connection):
                 MAX(id) 
             FROM user_cache;
         """
-        cursor.execute(sql)
-        data = cursor.fetchone()
+        mysql_cursor.execute(sql)
+        data = mysql_cursor.fetchone()
         max_id = data[0]
-        logger.info(f'User Max ID: {max_id}')
+        logger.info(f'Max id in table user_cache: {max_id}')
         for offset in range(0, max_id, BATCH_SIZE):
             sql = """
                 SELECT 
-                    b.region_id, 
-                    b.account_id, 
-                    c.pvp_count 
-                FROM user_cache AS c 
-                LEFT JOIN user_base AS b 
-                  ON c.account_id = b.account_id 
-                LEFT JOIN user_clan as s 
-                  ON c.account_id = s.account_id
-                WHERE c.id BETWEEN %s AND %s;
+                    account_id, 
+                    pvp_count 
+                FROM user_cache 
+                WHERE id BETWEEN %s AND %s;
             """
-            cursor.execute(sql, [offset+1, offset+BATCH_SIZE])
-            rows = cursor.fetchall()
+            mysql_cursor.execute(sql, [offset+1, offset+BATCH_SIZE])
+            rows = mysql_cursor.fetchall()
             for row in rows:
                 if row is None:
                     continue
-                if row[2] <= 40:
+                if row[1] <= 40:
                     continue
-                if not user_exists(numbers, int(str(row[0])+str(row[1])+str(row[2]))):
-                    update_list.append([row[0], row[1]])
+                if not user_exists(numbers, int(str(row[0])+str(row[1]))):
+                    update_list.append(row[0])
     except Exception:
         logger.error((f"{traceback.format_exc()}"))
     finally:
-        cursor.close()
+        mysql_cursor.close()
     return update_list
 
 def format_ship_data(ship_data: list):
@@ -250,27 +227,12 @@ def format_ship_data(ship_data: list):
         ship_data[7],
         ship_data[8]
     ]
-    # return [
-    #     str(ship_data[0]),
-    #     str(round(ship_data[1]/ship_data[0]*100, 2)),
-    #     str(round(ship_data[2]/ship_data[0]*100, 2)),
-    #     str(round(ship_data[3]/ship_data[0], 2)),
-    #     str(round(ship_data[4]/ship_data[0], 2)),
-    #     str(round(ship_data[5]/ship_data[0], 2)),
-    #     str(ship_data[7]),
-    #     str(ship_data[8])
-    # ]
 
-def update_user_cache(connection: Connection, ship_tier_data: dict, region_id: int, account_id: int):
+def update_user_cache(mysql_connection: Connection, ship_tier_data: dict, account_id: int):
     # 解压数据库中的数据
     pvp_count = 0
     db_data = {}
-    new_cache_data = []
-    if region_id == 4:
-        tier_data = ship_tier_data['lesta']
-    else:
-        tier_data = ship_tier_data['wg']
-    cursor: Cursor = connection.cursor()
+    mysql_cursor: Cursor = mysql_connection.cursor()
     try:
         sql = """
             SELECT  
@@ -279,24 +241,23 @@ def update_user_cache(connection: Connection, ship_tier_data: dict, region_id: i
             FROM user_cache 
             WHERE account_id = %s;
         """
-        cursor.execute(sql, [account_id])
-        row = cursor.fetchone()
+        mysql_cursor.execute(sql, [account_id])
+        row = mysql_cursor.fetchone()
         if row is None:
             return 'NoData'
         pvp_count = row[0]
         for ship_id, ship_data in decompress(row[1]).items():
-            ship_tier = tier_data.get(ship_id, 1)
+            ship_tier = ship_tier_data.get(ship_id, 1)
             if ship_tier <= 5:
                 continue
             ship_battles_limit = BATTLES_LIMIT.get(ship_tier, 40)
             if ship_data[0] < ship_battles_limit:
                 continue
             db_data[int(ship_id)] = ship_data
-            new_cache_data.append(f"{ship_id}_{ship_data[0]}")
     except Exception:
         logger.error((f"{traceback.format_exc()}"))
     finally:
-        cursor.close()
+        mysql_cursor.close()
     # 读取缓存中的数据
     user_cache_exists = True
     cache_data = {}
@@ -311,10 +272,9 @@ def update_user_cache(connection: Connection, ship_tier_data: dict, region_id: i
             SELECT 
                 cache 
             FROM users 
-            WHERE region_id = ? 
-                AND account_id = ?;
+            WHERE account_id = ?;
         """
-        cur.execute(sql, [region_id, account_id])
+        cur.execute(sql, [account_id])
         data = cur.fetchone()
         if data:
             if data[0]:
@@ -326,16 +286,18 @@ def update_user_cache(connection: Connection, ship_tier_data: dict, region_id: i
         if pvp_count == 0 or db_data == {}:
             if user_cache_exists:
                 sql = """
-                    UPDATE users SET pvp_count = ?, cache = ?  
-                    WHERE region_id = ? 
-                        AND account_id = ?;
+                    UPDATE users 
+                    SET 
+                        pvp_count = ?, 
+                        cache = ?  
+                    WHERE account_id = ?;
                 """
-                cur.execute(sql, [pvp_count, None, region_id, account_id])
+                cur.execute(sql, [pvp_count, None, account_id])
             else:
                 sql = """
-                    INSERT INTO users (region_id, account_id, pvp_count, cache) VALUES (?,?,?,?);
+                    INSERT INTO users (account_id, pvp_count, cache) VALUES (?,?,?);
                 """
-                cur.execute(sql, [region_id, account_id, pvp_count, None])
+                cur.execute(sql, [account_id, pvp_count, None])
             conn.commit()
             cur.close()
             return 0
@@ -375,7 +337,6 @@ def update_user_cache(connection: Connection, ship_tier_data: dict, region_id: i
         for ship_id in missing_ship_ids:
             sql = f"""
                 CREATE TABLE ship_{ship_id} (
-                    region_id int, 
                     account_id int,
                     battles_count int,
                     solo_rate float,
@@ -387,13 +348,6 @@ def update_user_cache(connection: Connection, ship_tier_data: dict, region_id: i
                     max_damage int
                 );
             """
-            # sql = f"""
-            #     CREATE TABLE ship_{ship_id} (
-            #         region_id int, 
-            #         account_id int,
-            #         ship_data str
-            #     );
-            # """
             cur.execute(sql)
             sql = f"""
                 INSERT INTO exists_ids (ship_id) VALUES (?);
@@ -404,7 +358,6 @@ def update_user_cache(connection: Connection, ship_tier_data: dict, region_id: i
         for ship_id, ship_data in insert_ship_data.items():
             sql = f"""
                 INSERT OR REPLACE INTO ship_{ship_id} (
-                    region_id, 
                     account_id,
                     battles_count,
                     solo_rate,
@@ -415,133 +368,41 @@ def update_user_cache(connection: Connection, ship_tier_data: dict, region_id: i
                     max_exp,
                     max_damage
                 ) VALUES (
-                    ?,?,?,?,?,?,?,?,?,?
+                    ?,?,?,?,?,?,?,?,?
                 );
             """
-            cur.execute(sql, [region_id, account_id] + ship_data)
-            # sql = f"""
-            #     INSERT OR REPLACE INTO ship_{ship_id} (
-            #         region_id, 
-            #         account_id,
-            #         ship_data
-            #     ) VALUES (
-            #         ?,?,?
-            #     );
-            # """
-            # cur.execute(sql, [region_id, account_id, ':'.join(ship_data)])
+            cur.execute(sql, [account_id] + ship_data)
         conn.commit()
         cur.close()
     # 更新用户缓存
+    new_cache_list = []
+    for ship_id, ship_data in db_data.items():
+        new_cache_list.append(f'{ship_id}_{ship_data[0]}')
+    new_cache_data = ':'.join(new_cache_list)
     with sqlite3.connect(cache_path) as conn:
         cur = conn.cursor()
         if user_cache_exists:
             sql = """
-                UPDATE users SET pvp_count = ?, cache = ?  
-                WHERE region_id = ? 
-                    AND account_id = ?;
+                UPDATE users 
+                SET 
+                    pvp_count = ?, 
+                    cache = ?  
+                WHERE account_id = ?;
             """
-            cur.execute(sql, [pvp_count, ':'.join(new_cache_data), region_id, account_id])
+            cur.execute(sql, [pvp_count, new_cache_data, account_id])
         else:
             sql = """
-                INSERT INTO users (region_id, account_id, pvp_count, cache) VALUES (?,?,?,?);
+                INSERT INTO users (
+                    account_id, 
+                    pvp_count, 
+                    cache
+                ) VALUES (
+                    ?,?,?
+                );
             """
-            cur.execute(sql, [region_id, account_id, pvp_count, ':'.join(new_cache_data)])
+            cur.execute(sql, [account_id, pvp_count, new_cache_data])
         cur.close()
     return len(insert_ship_data)
-
-def process_clan(connection: Connection, SEASON_ID: int):
-    cursor: Cursor = connection.cursor()
-    try:
-        sql = """
-            SELECT 
-                b.region_id, 
-                s.clan_id, 
-                b.tag, 
-                s.battles_count, 
-                s.public_rating, 
-                s.league, 
-                s.division, 
-                s.division_rating, 
-                s.longest_winning_streak, 
-                UNIX_TIMESTAMP(s.last_battle_at)
-            FROM clan_stats AS s
-            LEFT JOIN clan_base AS b 
-              ON s.clan_id = b.clan_id
-            WHERE s.season = %s;
-        """
-        cursor.execute(sql, [SEASON_ID])
-        rows = cursor.fetchall()
-        if rows and len(rows) != 1:
-            rows = list(rows)
-            rows.sort(key=lambda x: x[4], reverse=True)
-        # 处理单独服务器
-        region_groups = {1: [], 2: [], 3: [], 4: [], 5: []}
-        for row in rows:
-            region_id = int(row[0])
-            if region_id in region_groups:
-                region_groups[region_id].append(row)
-        for region_id, data in region_groups.items():
-            ranked_data = []
-            for i, row in enumerate(data):
-                row = list(row)
-                current_rating = int(row[4])
-                if i == 0:
-                    rank = 1
-                else:
-                    prev_rating = int(data[i-1][4])
-                    prev_rank = ranked_data[i-1][0]
-                    if current_rating == prev_rating:
-                        rank = prev_rank
-                    else:
-                        rank = i + 1
-                new_row = [rank] + row
-                ranked_data.append(new_row)
-            output_path = DATA_DIR / f'ranking/{region_id}/clan.csv'
-            temp_path = TEMP_DIR / f'clan.csv'
-            with open(temp_path, 'w', newline='', encoding='utf-8') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(CLAN_CSV_HEADER)
-                for row in ranked_data:
-                    writer.writerow(row)
-                csvfile.flush()
-                os.fsync(csvfile.fileno())
-            os.replace(temp_path, output_path)
-            if temp_path.exists():
-                os.remove(temp_path)
-        # 处理总服务器
-        ranked_data = []
-        for i, row in enumerate(rows[:50]):
-            row = list(row)
-            current_rating = int(row[4])
-            if i == 0:
-                rank = 1
-            else:
-                prev_rating = int(rows[i-1][4])
-                prev_rank = ranked_data[i-1][0] # 上一行的排名是最后一列
-                if current_rating == prev_rating:
-                    rank = prev_rank
-                else:
-                    rank = i + 1
-            new_row = [rank] + row
-            ranked_data.append(new_row)
-        output_path = DATA_DIR / f'ranking/0/clan.csv'
-        temp_path = TEMP_DIR / f'clan.csv'
-        with open(temp_path, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(CLAN_CSV_HEADER)
-            for row in ranked_data:
-                writer.writerow(row)
-            csvfile.flush()
-            os.fsync(csvfile.fileno())
-        os.replace(temp_path, output_path)
-        if temp_path.exists():
-            os.remove(temp_path)
-        return 'Success'
-    except Exception:
-        logger.warning("Failed to read season data")
-        logger.error((f"{traceback.format_exc()}"))
-    finally:
-        cursor.close()
 
 def process_user(ship_server_data: dict):
     ship_path = DATA_DIR / 'cache/leaderboard_ship.db'
@@ -566,79 +427,77 @@ def process_user(ship_server_data: dict):
         for ship_id in existing_ship_ids:
             if str(ship_id) not in ship_server_data:
                 continue
-            for region_id in [1,2,3,4,5]:
-                region_data = []
-                server_data = ship_server_data[str(ship_id)].get(get_region(region_id))
-                if server_data != {}:
-                    sql = f"""
-                        SELECT 
-                            region_id, 
-                            account_id,
-                            battles_count,
-                            solo_rate,
-                            win_rate,
-                            avg_damage,
-                            avg_frags,
-                            avg_exp,
-                            max_exp,
-                            max_damage 
-                        FROM ship_{ship_id} 
-                        WHERE region_id = ?;
-                    """
-                    cur.execute(sql, [region_id])
-                    rows = cur.fetchall()
-                    for row in rows:
-                        rating,adjusted_rating,n_dmg,n_kd = get_region_rating(
-                            ship_data=[row[3], row[4], row[5], row[6]],
-                            server_data=[
-                                server_data['win_rate'],
-                                server_data['avg_damage'],
-                                server_data['avg_frags']
-                            ]
-                        )
-                        region_data.append([
-                            row[0], row[1], row[2], rating, adjusted_rating, 
-                            row[3], row[4], row[5], row[6], row[7], row[8], 
-                            row[9], n_dmg, n_kd
-                        ])
-                region_data.sort(key=lambda x: x[3], reverse=True)
-                ranked_data = []
-                for i, row in enumerate(region_data):
-                    row = list(row)
-                    current_rating = int(row[3])
-                    if i == 0:
-                        rank = 1
-                    else:
-                        prev_rating = int(region_data[i-1][3])
-                        prev_rank = ranked_data[i-1][0]
-                        if current_rating == prev_rating:
-                            rank = prev_rank
-                        else:
-                            rank = i + 1
-                    rating_level = get_content_class(3, row[3])
-                    win_rate_level = get_content_class(0, row[6])
-                    solo_rate_level = get_content_class(4, row[5])
-                    avg_damage_level = get_content_class(1, row[12])
-                    avg_frags_level = get_content_class(2, row[13])
-                    new_row = [
-                        rank, row[0], row[1], row[2], int(row[3]), row[4], row[6], 
-                        row[5], int(row[7]), row[8], int(row[9]), row[11], row[10],
-                        rating_level, win_rate_level, solo_rate_level, 
-                        avg_damage_level, avg_frags_level
+            region_data = []
+            server_data = ship_server_data[str(ship_id)]
+            if server_data == {}:
+                continue
+            sql = f"""
+                SELECT 
+                    account_id,
+                    battles_count,
+                    solo_rate,
+                    win_rate,
+                    avg_damage,
+                    avg_frags,
+                    avg_exp,
+                    max_exp,
+                    max_damage 
+                FROM ship_{ship_id};
+            """
+            cur.execute(sql)
+            for row in cur.fetchall():
+                rating,adjusted_rating,n_dmg,n_kd = get_region_rating(
+                    ship_data=[row[2], row[3], row[4], row[5]],
+                    server_data=[
+                        server_data['win_rate'],
+                        server_data['avg_damage'],
+                        server_data['avg_frags']
                     ]
-                    ranked_data.append(new_row)
-                if len(ranked_data) == 0:
-                    continue
-                output_path = DATA_DIR / f'ranking/{region_id}/ship_{ship_id}.csv'
-                temp_path = TEMP_DIR / f'ship_{ship_id}.csv'
-                with open(temp_path, 'w', newline='', encoding='utf-8') as csvfile:
-                    writer = csv.writer(csvfile)
-                    writer.writerow(USER_CSV_HEADER)
-                    for row in ranked_data:
-                        writer.writerow(row)
-                    csvfile.flush()
-                    os.fsync(csvfile.fileno())
-                os.replace(temp_path, output_path)
-                if temp_path.exists():
-                    os.remove(temp_path)
+                )
+                region_data.append([
+                    row[0], row[1], rating, adjusted_rating, row[2], 
+                    row[3], row[4], row[5], row[6], row[7], row[8], 
+                    n_dmg, n_kd
+                ])
+            region_data.sort(key=lambda x: x[2], reverse=True)
+            ranked_data = []
+            for i, row in enumerate(region_data):
+                row = list(row)
+                current_rating = int(row[2])
+                if i == 0:
+                    rank = 1
+                else:
+                    prev_rating = int(region_data[i-1][2])
+                    prev_rank = ranked_data[i-1][0]
+                    if current_rating == prev_rating:
+                        rank = prev_rank
+                    else:
+                        rank = i + 1
+                rating_level = get_content_class(3, row[2])
+                win_rate_level = get_content_class(0, row[5])
+                solo_rate_level = get_content_class(4, row[4])
+                avg_damage_level = get_content_class(1, row[11])
+                avg_frags_level = get_content_class(2, row[12])
+                new_row = [
+                    rank, row[0], row[1], int(row[2]), row[3], row[5], 
+                    row[4], int(row[6]), row[7], int(row[8]), row[9], row[10],
+                    rating_level, win_rate_level, solo_rate_level, 
+                    avg_damage_level, avg_frags_level
+                ]
+                ranked_data.append(new_row)
+            if len(ranked_data) == 0:
+                continue
+            output_path = DATA_DIR / f'ranking/{REGION}_{ship_id}.csv'
+            temp_path = TEMP_DIR / f'{REGION}_{ship_id}.csv'
+            with open(temp_path, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(USER_CSV_HEADER)
+                for row in ranked_data:
+                    writer.writerow(row)
+                csvfile.flush()
+                os.fsync(csvfile.fileno())
+            os.replace(temp_path, output_path)
+            if temp_path.exists():
+                os.remove(temp_path)
+        cur.close()
     return 'Success'

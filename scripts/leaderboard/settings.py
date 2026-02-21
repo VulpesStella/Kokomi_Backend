@@ -1,11 +1,12 @@
 import os
+import json
 from pathlib import Path
 from datetime import datetime
 
 
 CLIENT_NAME = 'Leaderboard'
 LOG_LEVEL = 'debug'
-REFRESH_INTERVAL = 1200
+REFRESH_INTERVAL = 600
 BATCH_SIZE = 10000
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
 
@@ -33,3 +34,9 @@ REDIS_CONFIG = {
     "password": os.getenv("REDIS_PASSWORD"),
     "decode_responses": True
 }
+
+file_path = DATA_DIR / 'json/init_marker.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    REGION: str = data['region']
+    print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Init config loaded: init_marker.json")

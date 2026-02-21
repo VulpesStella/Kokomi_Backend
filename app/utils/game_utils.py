@@ -1,3 +1,5 @@
+from app.core import EnvConfig
+
 from .time_utils import TimeUtils
 
 
@@ -10,38 +12,6 @@ class GameUtils:
     def get_clan_default_name():
         "获取工会的默认名称"
         return f'N/A'
-    
-    @staticmethod
-    def get_region_id(region: str) -> int:
-        region_id_dict = {
-            'asia': 1,
-            'eu': 2,
-            'na': 3,
-            'ru': 4,
-            'cn': 5
-        }
-        return region_id_dict[region]
-    
-    @staticmethod
-    def get_region(region_id: int) -> int:
-        region_dict = {
-            1: 'asia',
-            2: 'eu',
-            3: 'na',
-            4: 'ru',
-            5: 'cn'
-        }
-        return region_dict[region_id]
-    
-    @staticmethod
-    def get_platform_id(platform: str) -> int:
-        platform_id_dict = {
-            'qq_bot': 1,
-            'qq_group': 2,
-            'qq_guild': 3,
-            'discord': 4
-        }
-        return platform_id_dict[platform]
     
     @staticmethod
     def get_insignias(data: dict):
@@ -64,13 +34,14 @@ class GameUtils:
         }
 
     @staticmethod
-    def check_aid_and_rid(region: str, account_id: int) -> bool:
+    def check_aid(account_id: int) -> bool:
         "检查account_id是否合法"
         account_id_len = len(str(account_id))
         if account_id_len > 10:
             return False
         # 由于不知道后续会使用什么字段
         # 目前的检查逻辑是判断aid不在其他的字段内
+        region = EnvConfig.REGION
 
         # 俄服 1-9 [~5字段]
         if region == 'ru' and account_id_len < 9:
@@ -112,9 +83,10 @@ class GameUtils:
         return False
     
     @staticmethod
-    def check_cid_and_rid(region: str, clan_id: int) -> bool:
+    def check_cid(clan_id: int) -> bool:
         "检查clan_id和region_id是否合法"
         clan_id_len = len(str(clan_id))
+        region = EnvConfig.REGION
         # 亚服 10 [2字端]
         if (
             region == 'asia' and 

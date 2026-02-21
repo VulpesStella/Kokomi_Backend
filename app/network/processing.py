@@ -1,3 +1,4 @@
+from app.core import EnvConfig
 from app.constants import GameData
 
 
@@ -140,7 +141,7 @@ def processing_cb_season(data: dict):
     result.sort(key=lambda x: x['season_id'], reverse=True)
     return total, result
 
-def processing_cb_achieve(region: str, response: dict):
+def processing_cb_achieve(response: dict):
     result = {
         0: 0,
         1: 0,
@@ -150,7 +151,7 @@ def processing_cb_achieve(region: str, response: dict):
     }
     if response is None:
         return result
-    if region == 'ru':
+    if EnvConfig.REGION == 'ru':
         realm_data = GameData.LESTA_CLAN_SEAESON_LIST
     else:
         realm_data = GameData.WG_CLAN_SEAESON_LIST

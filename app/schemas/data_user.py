@@ -7,7 +7,6 @@ class ClanBaseData(BaseModel):
     league: int = None
 
 class UserBasicData(BaseModel):
-    region_id: int = 0
     account_id: int = 0
     is_enabled: int = 0
     activity_level: int = 0

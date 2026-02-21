@@ -1,56 +1,12 @@
 SET GLOBAL TRANSACTION ISOLATION LEVEL READ COMMITTED;
 
-CREATE DATABASE IF NOT EXISTS wows;
+CREATE DATABASE IF NOT EXISTS wows_test;
 
-USE wows;
-
-CREATE TABLE region (
-    id               TINYINT      PRIMARY KEY,
-    name             VARCHAR(5)   NOT NULL,
-    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE platform (
-    id               TINYINT      PRIMARY KEY,
-    name             VARCHAR(10)  NOT NULL,
-    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE region_version (
-    id             INT            AUTO_INCREMENT,
-    region_id      TINYINT        NOT NULL,
-    short_version  VARCHAR(10)    NOT NULL,
-    full_version   VARCHAR(100)   NOT NULL,
-    version_start  TIMESTAMP      NOT NULL,
-    -- 记录数据创建的时间和更新时间
-    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id), -- 主键
-
-    INDEX idx_region_id (region_id), -- 索引
-
-    FOREIGN KEY (region_id) REFERENCES region(id) ON DELETE CASCADE -- 外键
-);
-
-CREATE TABLE clan_battle (
-    -- 相关id
-    id               INT          AUTO_INCREMENT,
-    -- 赛季相关信息和ID
-    season_id        INT          NOT NULL,
-    season_start     TIMESTAMP    NOT NULL,
-    season_finish    TIMESTAMP    NOT NULL,
-    -- 记录数据创建的时间和更新时间
-    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id) -- 主键
-);
+USE wows_test;
 
 CREATE TABLE user_base (
     -- 相关id
     id               INT          AUTO_INCREMENT,
-    region_id        TINYINT      NOT NULL,
     account_id       BIGINT       NOT NULL UNIQUE,    -- 1-11位的非连续数字
     -- 用户基础信息数据: name
     username         VARCHAR(25)  NOT NULL,    -- 最大25个字符，编码：utf-8
@@ -63,13 +19,12 @@ CREATE TABLE user_base (
 
     PRIMARY KEY (id), -- 主键
 
-    UNIQUE INDEX idx_rid_aid (region_id, account_id) -- 索引
+    UNIQUE INDEX idx_rid_aid (account_id) -- 索引
 );
 
 CREATE TABLE clan_base (
     -- 相关id
     id               INT          AUTO_INCREMENT,
-    region_id        TINYINT      NOT NULL,
     clan_id          BIGINT       NOT NULL UNIQUE,     -- 11位的非连续数字
     -- 工会基础信息数据: tag league
     tag              VARCHAR(10)  NOT NULL,     -- 最大5个字符，编码：utf-8
@@ -81,9 +36,7 @@ CREATE TABLE clan_base (
 
     PRIMARY KEY (id), -- 主键
 
-    INDEX idx_tag (tag), -- 索引
-
-    UNIQUE INDEX idx_rid_cid (region_id, clan_id) -- 索引
+    UNIQUE INDEX idx_rid_cid (clan_id) -- 索引
 );
 
 CREATE TABLE user_stats (
@@ -126,29 +79,6 @@ CREATE TABLE clan_users (
     UNIQUE INDEX idx_cid (clan_id) -- 索引
 );
 
-CREATE TABLE clan_stats (
-    -- 相关id
-    id               INT          AUTO_INCREMENT,
-    clan_id          BIGINT       NOT NULL,     -- 10位的非连续数字
-    -- 关于工会活跃的信息，用于工会排行榜功能
-    season           TINYINT      DEFAULT 0,    -- 当前赛季代码 1-30+
-    battles_count    INT          DEFAULT 0,    -- 场次
-    public_rating    INT          DEFAULT 1100, -- 工会评分 1199 - 3000+  1100表示无数据
-    league           TINYINT      DEFAULT 4,    -- 段位 0紫金 1白金 2黄金 3白银 4青铜
-    division         TINYINT      DEFAULT 2,    -- 分段 1 2 3
-    division_rating  INT          DEFAULT 0,    -- 分段分数，示例：白金 1段 25分
-    longest_winning_streak INT    DEFAULT 0,    -- 连胜
-    last_battle_at   TIMESTAMP    DEFAULT NULL, -- 上次战斗结束时间，用于判断是否有更新数据
-    team_data        VARCHAR(100) DEFAULT NULL, -- 小队数据
-    -- 记录数据创建的时间和更新时间
-    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id), -- 主键
-
-    UNIQUE INDEX idx_cid (clan_id) -- 索引
-);
-
 CREATE TABLE clan_action (
     -- 相关id
     id               INT          AUTO_INCREMENT,
@@ -166,36 +96,6 @@ CREATE TABLE clan_action (
 
     INDEX idx_account_time (account_id, created_at)
 );  
-
-CREATE TABLE clan_battle_s33 (
-    -- 相关id
-    id               INT          AUTO_INCREMENT,
-    -- 对局相关信息和ID
-    battle_time      TIMESTAMP    NOT NULL,     -- 战斗时间
-    region_id        TINYINT      NOT NULL,     -- 服务器id
-    clan_id          BIGINT       NOT NULL,     -- 10位的非连续数字
-    team_number      TINYINT      NOT NULL,     -- 队伍id
-    -- 对局结果
-    battle_result    VARCHAR(10)  NOT NULL,     -- 对局结果 胜利或者失败
-    battle_rating    VARCHAR(10)  DEFAULT NULL, -- 对局分数 如果是晋级赛则会显示为0
-    battle_stage     VARCHAR(10)  DEFAULT NULL, -- 对局结果 仅对于stage有效
-    -- 对局结算的数据
-    league           TINYINT      DEFAULT NULL, -- 段位 0紫金 1白金 2黄金 3白银 4青铜
-    division         TINYINT      DEFAULT NULL, -- 分段 1 2 3
-    division_rating  INT          DEFAULT NULL, -- 分段分数，示例：白金 1段 25分
-    public_rating    INT          DEFAULT NULL, -- 工会评分 1199 - 3000
-    stage_type       VARCHAR(10)  DEFAULT NULL, -- 晋级赛/保级赛 默认为Null
-    stage_progress   VARCHAR(50)  DEFAULT NULL, -- 晋级赛/保级赛的当前结果
-    -- 记录数据创建的时间和更新时间
-    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    -- 因为数据不会更新，所以不需要updated_at，只需要created_at
-
-    PRIMARY KEY (id), -- 主键
-
-    INDEX idx_time (battle_time), -- 索引
-
-    INDEX idx_cid (clan_id) -- 索引
-);
 
 CREATE TABLE user_clan (
     id               INT          AUTO_INCREMENT,
@@ -263,7 +163,6 @@ CREATE TABLE user_private (
 CREATE TABLE recent (
     -- 相关id
     id               INT          AUTO_INCREMENT,
-    region_id        TINYINT      NOT NULL,
     account_id       BIGINT       NOT NULL,
     -- 用户配置
     enable_recent    TINYINT      DEFAULT 0,      -- 是否启用recent功能
@@ -276,111 +175,5 @@ CREATE TABLE recent (
 
     PRIMARY KEY (id), -- 主键
 
-    UNIQUE INDEX idx_rid_aid (region_id, account_id) -- 索引
-);
-
-CREATE TABLE recent_pro (
-    -- 相关id
-    id               INT          AUTO_INCREMENT,
-    user_id          INT          NOT NULL,
-    game_id          INT          NOT NULL,
-    -- 记录数据创建的时间和更新时间
-    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id), -- 主键
-
-    INDEX idx_user (user_id),
-    INDEX idx_game (game_id)
-);
-
-CREATE TABLE bind_idx (
-    id               INT          AUTO_INCREMENT,
-    platform_id      TINYINT      NOT NULL,
-    platform_user_id VARCHAR(64)  NOT NULL,
-
-    current_id       INT          DEFAULT NULL,
-    renew_token      TINYINT      DEFAULT 0,
-    premium_expired_at TIMESTAMP  DEFAULT NULL,
-    premium_level    INT          DEFAULT 0,
-    premium_limit    INT          DEFAULT 0,
-
-    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id), -- 主键
-
-    UNIQUE INDEX idx_platform_user (platform_id, platform_user_id) -- 索引
-);
-
-CREATE TABLE bind_list (
-    id               INT          AUTO_INCREMENT,
-    user_id          INT          NOT NULL,
-    game_id          INT          NOT NULL,
-    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id), -- 主键
-
-    UNIQUE INDEX idx_user_game (user_id, game_id) -- 索引
-);
-
-CREATE TABLE app_token (
-    -- 相关id
-    id               INT          AUTO_INCREMENT,
-    -- 激活码相关信息
-    token            VARCHAR(50)  NOT NULL,    -- 令牌
-    permission       VARCHAR(10)  NOT NULL,    -- 权限
-    extra            VARCHAR(50)  DEFAULT NULL,-- 备注
-    -- 记录数据创建的时间和更新时间
-    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id) -- 主键
-);
-
-CREATE TABLE blacklist (
-    -- 相关id
-    id               INT          AUTO_INCREMENT,
-    -- 激活码相关信息
-    target_type      TINYINT      NOT NULL,    -- 1=IP, 2=USER, 3=CLAN
-    target_value     VARCHAR(50)  NOT NULL,    -- z值
-    -- 记录数据创建的时间和更新时间
-    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id) -- 主键
-);
-
-CREATE TABLE activation_codes (
-    -- 相关id
-    id               INT          AUTO_INCREMENT,
-    -- 激活码相关信息
-    code             VARCHAR(20)  NOT NULL,    -- 激活码
-    max_use          INT          NOT NULL,    -- 最多使用次数
-    used_count       INT          NOT NULL,    -- 已使用次数
-    validity         INT          NOT NULL,    -- 有效期(Days)
-    premium_level    INT          NOT NULL,    -- 绑定账号限制
-    recent_limit     INT          NOT NULL,    -- 限制
-    code_describe    VARCHAR(50)  DEFAULT NULL,-- 备注
-    -- 记录数据创建的时间和更新时间
-    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id), -- 主键
-
-    UNIQUE INDEX idx_code (code) -- 索引
-);
-
-CREATE TABLE user_activation (
-    -- 相关id
-    id               INT          AUTO_INCREMENT,
-    -- 激活码相关信息
-    code             VARCHAR(20)  NOT NULL,    -- 激活码
-    user_id          INT          NOT NULL,    -- 用户id
-    -- 记录数据创建的时间和更新时间
-    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id), -- 主键
-
-    UNIQUE INDEX idx_code_user (code, user_id) -- 索引
+    UNIQUE INDEX idx_rid_aid (account_id) -- 索引
 );

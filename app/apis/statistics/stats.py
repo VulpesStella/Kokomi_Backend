@@ -1,3 +1,4 @@
+from app.core import EnvConfig
 from app.response import JSONResponse
 from app.loggers import ExceptionLogger
 from app.models import PlatyerModel
@@ -16,42 +17,40 @@ from .processing import (
 
 class StatsAPI:
     @ExceptionLogger.handle_program_exception_async
-    async def refresh_user_cache(region: str, account_id: int):
+    async def refresh_user_cache(account_id: int):
         redis_key = f"token:ac:{account_id}"
         result = await RedisClient.get(redis_key)
         if result['code'] != 1000:
             return result
         if result['data']:
-            ac = result['data'].get('ac')
+            ac = result['data']
         else:
             ac = None
-        result = await ExternalAPI.get_user_basic(region, account_id, ac)
+        result = await ExternalAPI.get_user_basic(account_id, ac)
         return result
     
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_user_pvp(
-        region: str,
         account_id: int,
         field: str = None,
         include_old: bool = True
     ):
-        region_id = GameUtils.get_region_id(region)
         redis_key = f"token:ac:{account_id}"
         result = await RedisClient.get(redis_key)
         if result['code'] != 1000:
             return result
         if result['data']:
-            ac = result['data'].get('ac')
+            ac = result['data']
         else:
             ac = None
         # 先读数据库，读不到数据再请求
-        result = await PlatyerModel.get_user_brief(region_id, account_id)
+        result = await PlatyerModel.get_user_brief(account_id)
         if result['code'] != 1000:
             return result
         if result['data'] is None:
             # 数据库中无用户数据，进行网络请求获取数据
-            result = await ExternalAPI.get_user_brief(region, account_id, ac)
+            result = await ExternalAPI.get_user_brief(account_id, ac)
             if result['code'] != 1000:
                 return result
         data = {
@@ -59,7 +58,7 @@ class StatsAPI:
             'basic': result['data'],
             'statistics': {}
         }
-        result = await ExternalAPI.get_user_pvp(region, account_id, ac, field, include_old)
+        result = await ExternalAPI.get_user_pvp(account_id, ac, field, include_old)
         if result['code'] != 1000:
             return result
         data['statistics'] = {
@@ -71,11 +70,11 @@ class StatsAPI:
         }
         
         server_data = JsonUtils.read('ship_data')
-        if region == 'ru':
+        if EnvConfig.REGION == 'ru':
             shipid_data = JsonUtils.read('ship_name_lesta')
         else:
             shipid_data = JsonUtils.read('ship_name_wg')
-        original_data = pvp_calculate_rating(region, result['data']['original_data'], server_data['ship_data'])
+        original_data = pvp_calculate_rating(result['data']['original_data'], server_data['ship_data'])
         data['statistics']['overall'] = processing_overall_data(original_data, 'pvp')
         data['statistics']['battle_type'] = processing_battle_type_data(original_data)
         data['statistics']['ship_type'] = processing_ship_type_data(original_data, 'pvp', shipid_data)
@@ -86,13 +85,7 @@ class StatsAPI:
     
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
-    async def get_user_cb(
-        region: str,
-        account_id: int
-    ):
-        region_id = GameUtils.get_region_id(region)
-        if region_id == 5:
-            return JSONResponse.API_2028_ServerNotSupported
+    async def get_user_cb(account_id: int):
         redis_key = f"token:ac:{account_id}"
         result = await RedisClient.get(redis_key)
         if result['code'] != 1000:
@@ -104,12 +97,12 @@ class StatsAPI:
         if ac:
             return JSONResponse.API_2027_ACQueryNotSupported
         # 先读数据库，读不到数据再请求
-        result = await PlatyerModel.get_user_brief(region_id, account_id)
+        result = await PlatyerModel.get_user_brief(account_id)
         if result['code'] != 1000:
             return result
         if result['data'] is None:
             # 数据库中无用户数据，进行网络请求获取数据
-            result = await ExternalAPI.get_user_brief(region, account_id, ac)
+            result = await ExternalAPI.get_user_brief(account_id, ac)
             if result['code'] != 1000:
                 return result
         data = {
@@ -117,7 +110,7 @@ class StatsAPI:
             'basic': result['data'],
             'statistics': {}
         }
-        result = await ExternalAPI.get_user_cb(region,account_id)
+        result = await ExternalAPI.get_user_cb(account_id)
         if result['code'] != 1000:
             return result
         data['statistics'] = {

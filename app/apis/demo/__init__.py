@@ -1,9 +1,9 @@
 from .user import UserAPI
 from .test import TestAPI
-from .recent import RecentDemoAPI
+from .db import MySQLAPI
 
 __all__ = [
     'UserAPI',
     'TestAPI',
-    'RecentDemoAPI'
+    'MySQLAPI'
 ]

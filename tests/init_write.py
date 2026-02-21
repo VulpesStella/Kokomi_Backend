@@ -15,6 +15,7 @@ DB_CONFIG = {
     "password": os.getenv("MYSQL_PASSWORD"),
     "database": os.getenv("MYSQL_DATABASE")
 }
+REGION_ID = os.getenv("REGION_ID")
 
 file_path = r'F:/Kokomi_PJ_API/temp/'
 
@@ -49,9 +50,11 @@ for root, dirs, files in os.walk(file_path):
             cursor = conn.cursor()
 
             for user_data in datas:
-                region_id = user_data['id']['region']
+                r_id = user_data['id']['region']
+                if r_id != REGION_ID:
+                    continue
                 account_id = user_data['id']['account']
-                str_id = f'{region_id}-{account_id}'
+                str_id = f'{REGION_ID}-{account_id}'
                 if len(str_id) < 12:
                     str_id = str_id + ' '*(12-len(str_id))
                 if user_data['base']['is_enabled'] == 0:
@@ -59,22 +62,21 @@ for root, dirs, files in os.walk(file_path):
                 # 先检查用户id是否存在
                 pvp_count = 0
                 cache_data = {}
-                sql = "SELECT region_id FROM user_base WHERE region_id = %s AND account_id = %s;"
-                cursor.execute(sql, [region_id, account_id])
+                sql = "SELECT region_id FROM user_base WHERE account_id = %s;"
+                cursor.execute(sql, [account_id])
                 data = cursor.fetchone()
                 # 写MySQL数据库
                 if data is None:
                     dafault_name = f'User_{account_id}'
                     sql = """
                         INSERT INTO user_base (
-                            region_id, 
                             account_id, 
                             username
                         ) VALUES (
-                            %s, %s, %s
+                            %s, %s
                         );
                     """
-                    cursor.execute(sql,[region_id, account_id, dafault_name])
+                    cursor.execute(sql,[account_id, dafault_name])
                     sql = """
                         INSERT INTO user_stats (
                             account_id
@@ -101,20 +103,19 @@ for root, dirs, files in os.walk(file_path):
                     cursor.execute(sql,[account_id])
                 if user_data['clan'] != {}:
                     clan_id = user_data['clan']['id']
-                    sql = "SELECT region_id FROM clan_base WHERE region_id = %s AND clan_id = %s;"
-                    cursor.execute(sql, [region_id, clan_id])
+                    sql = "SELECT region_id FROM clan_base WHERE clan_id = %s;"
+                    cursor.execute(sql, [clan_id])
                     data = cursor.fetchone()
                     if data is None:
                         sql = """
                             INSERT INTO clan_base (
-                                region_id, 
                                 clan_id, 
                                 tag
                             ) VALUES (
-                                %s, %s, %s
+                                %s, %s
                             );
                         """
-                        cursor.execute(sql,[region_id, clan_id, 'N/A'])
+                        cursor.execute(sql,[clan_id, 'N/A'])
                         sql = """
                             INSERT INTO clan_stats (
                                 clan_id 
@@ -145,11 +146,10 @@ for root, dirs, files in os.walk(file_path):
                         SET 
                             username = %s, 
                             touch_at = CURRENT_TIMESTAMP 
-                        WHERE region_id = %s 
-                            AND account_id = %s;
+                        WHERE account_id = %s;
                     """
                     cursor.execute(
-                        sql,[user_data['base']['username'], region_id, account_id]
+                        sql,[user_data['base']['username'], account_id]
                     )
                     sql = """
                         UPDATE user_stats 
@@ -175,11 +175,10 @@ for root, dirs, files in os.walk(file_path):
                             register_time = FROM_UNIXTIME(%s), 
                             insignias = %s, 
                             touch_at = CURRENT_TIMESTAMP 
-                        WHERE region_id = %s 
-                            AND account_id = %s;
+                        WHERE account_id = %s;
                     """
                     cursor.execute(
-                        sql,[user_data['base']['username'], user_data['base']['register_time'], user_data['base']['insignias'], region_id, account_id]
+                        sql,[user_data['base']['username'], user_data['base']['register_time'], user_data['base']['insignias'], account_id]
                     )
                     sql = """
                         UPDATE user_stats 

@@ -50,7 +50,6 @@ class MysqlConnection:
                         api_logger.info(f'MYSQL Version: {result[0]}')
                     else:
                         api_logger.warning('Failed to test the MySQL connection')
-                        return False
                     await cur.execute("SELECT @@GLOBAL.transaction_isolation;")
                     result = await cur.fetchone()
                     if result != None:
@@ -58,10 +57,8 @@ class MysqlConnection:
                             api_logger.info(f'MYSQL transaction isolation: {result[0]}')
                         else:
                             api_logger.warning(f'MYSQL transaction isolation: {result[0]} (NOT READ-COMMITTED)')
-                        return True
                     else:
                         api_logger.warning('Failed to test the MySQL connection')
-                        return False
         except Exception as e:
             api_logger.warning(f'Failed to test the MySQL connection')
             api_logger.error(e)
