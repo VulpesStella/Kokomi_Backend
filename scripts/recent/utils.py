@@ -500,6 +500,7 @@ def get_recent_update_ids(mysql_connection: Connection):
                     is_public, 
                     leveling_points, 
                     karma, 
+                    pvp_count,
                     win_rate, 
                     avg_damage, 
                     avg_frags, 
@@ -533,7 +534,7 @@ def get_recent_update_ids(mysql_connection: Connection):
                         pvp_count,win_rate,avg_damage,
                         avg_frags,table_name
                     ) VALUES (
-                        ?,?,?,?,?,?,?,?
+                        ?,?,?,?,?,?,?,?,?
                     );
                 """,[date_1,date2_data[0],date2_data[1],date2_data[2],date2_data[3],date2_data[4],date2_data[5],date2_data[6],date2_data[7]])
                 conn.commit()

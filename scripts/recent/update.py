@@ -12,8 +12,8 @@ from pymysql.cursors import Cursor
 from datetime import datetime, timezone
 
 from logger import logger
-from utils import del_recent, del_recents, update_base, now_iso, fetch_data, verify_responses, formtimestamp
-from settings import SQLITE_PATH, REGION, TIMEZOEN, VORTEX_API
+from utils import del_recent, del_recents, update_base, fetch_data, verify_responses, formtimestamp, init_db_if_needed
+from settings import SQLITE_PATH, REGION, VORTEX_API
 
 
 CreateSQL = """
@@ -57,39 +57,6 @@ def diff_lists(new_data, old_data):
     if battles == 0:
         return None
     return result
-
-def init_db_if_needed(db_path: Path) -> bool:
-    """
-    检查 sqlite3 数据库是否存在且包含用户表，
-    若不存在或为空数据库，则创建表。
-    """
-    need_init = False
-    # 文件是否存在
-    if not db_path.exists():
-        need_init = True
-    try:
-        # 连接数据库（不存在会自动创建）
-        with sqlite3.connect(db_path) as conn:
-            cursor = conn.cursor()
-            # 检查是否存在用户表
-            cursor.execute("""
-                SELECT name
-                FROM sqlite_master
-                WHERE type = 'table'
-                AND name NOT LIKE 'sqlite_%'
-                LIMIT 1;
-            """)
-            has_table = cursor.fetchone() is not None
-            if not has_table:
-                need_init = True
-            # 需要初始化 → 创建表
-            if need_init:
-                cursor.executescript(CreateSQL)
-                conn.commit()
-            return True
-    except Exception:
-        logger.error((f"{now_iso()} | {traceback.format_exc()}"))
-        return False
         
 def responeses_processing(responses: list):
     statis_dict = {}
@@ -218,6 +185,14 @@ async def get_recent_data(
             ])
         return [leveling_points,karma,pvp_count,win_rate,avg_damage,avg_frags,statis_dict]
 
+def verify_same(old_data, new_data):
+    for ship_id, ship_data in new_data.items():
+        if ship_id not in old_data:
+            return False
+        if ship_data.split('_')[1] != old_data[ship_id].split('_')[1]:
+            return False
+    return True
+
 async def update_user_recent(
     mysql_connection: Connection,
     redis_client: Redis,
@@ -229,6 +204,7 @@ async def update_user_recent(
     db_path = SQLITE_PATH / f'{account_id}.db'
     if init_db_if_needed(db_path) is False:
         return 'SQLite3InitializationError'
+    # 读取ac
     redis_key = f"token:ac:{account_id}"
     result = redis_client.get(redis_key)
     if result:
@@ -236,10 +212,10 @@ async def update_user_recent(
     else:
         ac = None
     # 获取当前和昨天的user表数据
-    date_1 = formtimestamp(0)
-    date_2 = formtimestamp(1)
+    date_1 = formtimestamp(0)  # 今日日期key
+    date_2 = formtimestamp(1)  # 昨日日期key
     try:
-        # 连接数据库（不存在会自动创建）
+        # 连接数据库
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         # 检查是否存在用户表
@@ -257,10 +233,11 @@ async def update_user_recent(
             WHERE date = ?;
         """, [date_2])
         date2_data = cursor.fetchone()    # 昨日数据
-        # 新用户，直接写数据库
+        # 没有昨日数据则视为新用户，直接写数据库
         if date2_data is None:
+            # 请求api获取数据
             recent_data = await get_recent_data(mysql_connection, redis_client, async_client, account_id, enable_daily, ac)
-            # 处理异常
+            # 处理异常和隐藏战绩的情况
             if isinstance(recent_data, str):
                 if recents_data == 'HiddenProfile':
                     # 用户隐藏战绩
@@ -296,8 +273,10 @@ async def update_user_recent(
             for ship_id, ship_data in statis_dict.items():
                 if ship_data[0] == 0:
                     continue
-                total_battles = ship_data[0]
+                total_battles += ship_data[0]
+                # 生成cache表的缓存数据
                 cache_data[ship_id] = f'{date_2}_{ship_data[0]}'
+                # 插入ships表的数据
                 cursor.execute("""
                     INSERT OR REPLACE INTO ships (
                         ship_id,
@@ -306,7 +285,8 @@ async def update_user_recent(
                     ) VALUES (
                         ?, ?, ?
                     );
-                """, [ship_id, date_2, json.dumps(ship_data[1:])])
+                """, [ship_id, date_2, json.dumps(ship_data[1:],separators=(",", ":"))])
+            # 插入users表今日和昨日两行数据
             cursor.execute("""
                 INSERT INTO users (
                     date,is_public,leveling_points,
@@ -315,7 +295,7 @@ async def update_user_recent(
                 ) VALUES (
                     ?,?,?,?,?,?,?,?,?
                 );
-            """,[date_2,1,leveling_points,karma,pvp_count,win_rate,avg_damage,avg_frags,date_1])
+            """,[date_2,1,leveling_points,karma,pvp_count,win_rate,avg_damage,avg_frags,date_2])
             cursor.execute("""
                 INSERT INTO users (
                     date,is_public,leveling_points,
@@ -324,14 +304,15 @@ async def update_user_recent(
                 ) VALUES (
                     ?,?,?,?,?,?,?,?,?
                 );
-            """,[date_1,1,leveling_points,karma,pvp_count,win_rate,avg_damage,avg_frags,date_1])
+            """,[date_1,1,leveling_points,karma,pvp_count,win_rate,avg_damage,avg_frags,date_2])
+            # 插入
             cursor.execute("""
                 INSERT INTO cache (
                     date,total_battles,cache 
                 ) VALUES (
                     ?,?,?
                 );
-            """,[date_1,total_battles, json.dumps(cache_data)])
+            """,[date_2,total_battles, json.dumps(cache_data,separators=(",", ":"))])
             conn.commit()
             return 'NewAccount'
         cursor.execute("""
@@ -383,11 +364,12 @@ async def update_user_recent(
         avg_frags = recent_data[5]
         statis_dict = recent_data[6]
         total_battles = 0
+        # 新缓存数据
         new_data = {}
         for ship_id, ship_data in statis_dict.items():
             if ship_data[0] == 0:
                 continue
-            total_battles = ship_data[0]
+            total_battles += ship_data[0]
             new_data[ship_id] = f'{date_1}_{ship_data[0]}'
         # 过去两天都隐藏数据，直接写数据库
         if date1_data[0] == 0 and date2_data[0] == 0:
@@ -431,14 +413,16 @@ async def update_user_recent(
                 ) VALUES (
                     ?,?,?
                 );
-            """,[date_2,total_battles, json.dumps(cache_data)])
+            """,[date_2,total_battles, json.dumps(cache_data,separators=(",", ":"))])
             conn.commit()
             return 'FullUpdate'
         # 今日或昨日有数据
+        # 读取旧的缓存数据的table_name
         if date1_data[0] == 0 and date2_data[0] == 1:
             old_table_name = date2_data[7]
         else:
             old_table_name = date1_data[7]
+        # 读取缓存数据，等下和新数据作比较
         cursor.execute("""
             SELECT 
                 total_battles, 
@@ -449,10 +433,12 @@ async def update_user_recent(
         old_data = cursor.fetchone()
         old_total_battles = old_data[0]
         old_battles = json.loads(old_data[1])
+        # 写入ships表的ids
         changed_ship_ids = []
-        # 没有数据更改
+        # 写入的cache表的cache
         new_battles = {}
-        if total_battles == old_total_battles and old_battles == new_data:
+        # 没有数据更改,直接沿用旧的table_name
+        if total_battles == old_total_battles and verify_same(old_battles, new_data):
             sql = """
                 REPLACE INTO users (
                     date,is_public,leveling_points,
@@ -466,10 +452,13 @@ async def update_user_recent(
                 date_1,1,leveling_points,karma,pvp_count,win_rate,avg_damage,avg_frags,old_table_name
             ])
             return 'NoChanged'
+        # 查找数据修改的部分
         for ship_id, ship_data in new_data.items():
+            # 存在ship_id不存在旧表中
             if ship_id not in old_battles:
                 changed_ship_ids.append(ship_id)
                 new_battles[ship_id] = ship_data
+            # 新旧数据不一致
             if old_battles[ship_id] != ship_data:
                 changed_ship_ids.append(ship_id)
                 new_battles[ship_id] = ship_data
@@ -505,7 +494,7 @@ async def update_user_recent(
             ) VALUES (
                 ?,?,?
             );
-        """,[date_1,total_battles, json.dumps(new_battles)])
+        """,[date_1,total_battles, json.dumps(new_battles,separators=(",", ":"))])
         cursor.execute("""
             REPLACE INTO users (
                 date,is_public,leveling_points,
@@ -529,7 +518,7 @@ async def update_user_recent(
                 );
             """, ship_cache)
         conn.commit()
-        return 'ChangedUpdate'
+        return 'Changed'
     except Exception as e:
         conn.rollback()
         logger.error((f"{traceback.format_exc()}"))
