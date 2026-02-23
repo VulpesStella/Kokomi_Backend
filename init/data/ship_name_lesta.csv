@@ -876,7 +876,6 @@
 3730749232,8,Cruiser,germany,1,0,,PGSC538_Sabie,Sabie,Sabie,,萨比,,Sabie,Sabie,1
 3749656560,10,Battleship,usa,0,1,,PASB520_President,President,President,,总统,,President,President,1
 3759093584,11,Battleship,france,0,1,,PFSB511_Aquitaine,Aquitaine,Aquitaine,,阿基坦,,Aquitaine,Aquitaine,1
-3256858608,10,AirCarrier,usa,0,1,,,Midway Test,Midway Test,,Midway Test,,Midway Test,Midway Test,0
 3550361584,10,Destroyer,usa,0,1,,PASD710_William_R_Rush,William R. Rush,William R. Rush,,威廉·R·拉什,,William R. Rush,William R. Rush,1
 3709777904,8,Cruiser,usa,1,0,,PASC558_Constitution,Constitution,Constitution,,宪法,,Constitution,Constitution,1
 3760108848,10,Cruiser,europe,0,1,,PWSC510_Tordenskjold,Tordenskjold,Tordenskjold,,托登斯基尔德,,Tordenskjold,Tordenskjold,1
@@ -913,3 +912,8 @@
 4182652240,7,Destroyer,pan_america,0,1,,PVSD107_Acre,Acre,Acre,,阿克里,,Acre,Acre,1
 4184749392,5,Destroyer,pan_america,0,1,,PVSD105_Serrano,Serrano,Serrano,,塞拉诺,,Serrano,Serrano,1
 4181603664,8,Destroyer,pan_america,0,1,,PVSD108_Carvajal,Carvajal,Carvajal,,卡瓦哈尔,,Carvajal,Carvajal,1
+3740219216,9,Battleship,france,1,0,,PFSB529_Artois,Artois,Artois,,阿图瓦,,Artois,Artois,1
+3340678480,10,Cruiser,pan_america,0,1,,PVSC910_Asuncion,Asunción,Asunción,,亚松森,,Asunción,Asunción,1
+3644798160,10,Battleship,pan_asia,0,1,,PZSB620_Huangdi,Huángdì,Huángdì,,黄帝,,Huángdì,Huángdì,1
+3750672208,9,Cruiser,france,1,0,,PFSC519_De_Grasse_1956,De Grasse '56,De Grasse '56,,德·格拉斯56,,De Grasse '56,De Grasse '56,1
+3729700048,9,Cruiser,pan_asia,1,0,,PZSC539_Chidi,Chìdì,Chìdì,,赤帝,,Chìdì,Chìdì,1
