@@ -4,6 +4,7 @@ import asyncio
 import os
 
 async def sync_ship_data():
+    # 同步wg接口中最新的船只数据
     csv_path = r'F:\Kokomi_PJ_API\init\data\ship_name_wg.csv'
     api_url = 'https://vortex.worldofwarships.com/api/encyclopedia/en/vehicles/'
     print(f"正在获取直营服最新接口数据...")
@@ -46,7 +47,7 @@ async def sync_ship_data():
             final_rows.append(row)
             processed_api_ids.add(sid)
         else:
-            print(f"[删除]ID:{sid} ({row['en_short']})")
+            print(f"[删除] ID:{sid} ({row['en_short']})")
             deleted_count += 1
     for sid, ship_api in api_data.items():
         if sid not in processed_api_ids:

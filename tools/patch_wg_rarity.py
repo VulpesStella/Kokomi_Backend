@@ -2,6 +2,7 @@ import csv
 import json
 
 def patch_rarity():
+    # 读取wg解包文件中的稀有度数据
     csv_path = r'F:\Kokomi_PJ_API\init\data\ship_name_wg.csv'
     json_path = r'E:\a_wws_unpack\as_unpack\GameParams-0.json'
     with open(csv_path, 'r', encoding='utf-8-sig') as f:

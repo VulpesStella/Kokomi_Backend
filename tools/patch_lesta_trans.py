@@ -5,6 +5,7 @@ import os
 import asyncio
 
 async def patch_translation():
+    # 下载汉化并汉化为汉化的船只中文名称
     csv_path = r'F:\Kokomi_PJ_API\init\data\ship_name_lesta.csv'
     temp_mo_path = r"F:\Kokomi_PJ_API\temp\temp_global.mo"
     mo_url = "https://raw.githubusercontent.com/DDFantasyV/MK_RU_Data/main/Live/latest/global.mo"
