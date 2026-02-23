@@ -11,8 +11,13 @@ from pymysql import Connection
 from pymysql.cursors import Cursor
 from datetime import datetime, timezone
 
-from settings import BATCH_SIZE, DATA_DIR, TEMP_DIR, REGION
 from logger import logger
+from settings import (
+    BATCH_SIZE, 
+    DATA_DIR, 
+    TEMP_DIR, 
+    REGION
+)
 
 
 TOP_N_LIMIT = 50
@@ -67,11 +72,7 @@ def decompress(gzip_bytes: bytes):
     
 def read_ship_tier():
     result = {}
-    if REGION == 'ru':
-        realm = 'lesta'
-    else:
-        realm = 'wg'
-    file_path = DATA_DIR / f'json/ship_name_{realm}.json'
+    file_path = DATA_DIR / f'json/ship_name.json'
     with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
         for ship_id, ship_data in data.items():

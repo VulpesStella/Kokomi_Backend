@@ -642,11 +642,7 @@ class ExternalAPI:
     @ExceptionLogger.handle_program_exception_async
     async def get_user_cb(account_id: int):
         base_url = EnvConfig.endpoints.OFFICIAL_API
-        config = EnvConfig.config
-        if EnvConfig.REGION == 'ru':
-            api_token = config.LESTA_API_TOKEN
-        else:
-            api_token = config.WG_API_TOKEN
+        api_token = EnvConfig.endpoints.API_TOKEN
         urls = [
             f'{base_url}/wows/clans/seasonstats/?application_id={api_token}&account_id={account_id}',
             f'{base_url}/wows/account/achievements/?application_id={api_token}&account_id={account_id}'

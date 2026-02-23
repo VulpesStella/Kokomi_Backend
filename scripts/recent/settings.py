@@ -37,8 +37,6 @@ REDIS_CONFIG = {
     "password": os.getenv("REDIS_PASSWORD"),
     "decode_responses": True
 }
-WG_API_TOKEN = os.getenv("WG_API_TOKEN")
-LESTA_API_TOKEN = os.getenv("LESTA_API_TOKEN")
 
 file_path = DATA_DIR / 'json/init_marker.json'
 with open(file_path, "r", encoding="utf-8") as f:
@@ -51,3 +49,4 @@ with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     VORTEX_API: list = data['vortex_api']
     OFFICIAL_API: str = data['official_api']
+    API_TOKEN = os.getenv("api_token")

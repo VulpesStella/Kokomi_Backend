@@ -27,14 +27,12 @@ class RuntimeConfig:
     RABBITMQ_USERNAME: int
     RABBITMQ_PASSWORD: str
 
-    WG_API_TOKEN: str
-    LESTA_API_TOKEN: str
-
 @dataclass(frozen=True)
 class EndpointsConfig:
     VORTEX_API: list
     CLAN_API: str
     OFFICIAL_API: str | None
+    API_TOKEN: str | None
 
 class EnvConfig:
     config = None
@@ -67,8 +65,6 @@ class EnvConfig:
             REDIS_HOST = os.getenv("REDIS_HOST"),
             REDIS_PORT = os.getenv("REDIS_PORT"),
             REDIS_PASSWORD = os.getenv("REDIS_PASSWORD"),
-            WG_API_TOKEN = os.getenv("WG_API_TOKEN"),
-            LESTA_API_TOKEN = os.getenv("LESTA_API_TOKEN"),
             RABBITMQ_HOST = os.getenv("RABBITMQ_HOST"),
             RABBITMQ_USERNAME = os.getenv("RABBITMQ_USERNAME"),
             RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
@@ -85,6 +81,7 @@ class EnvConfig:
             cls.endpoints = EndpointsConfig(
                 VORTEX_API=data['vortex_api'],
                 CLAN_API=data['clan_api'],
-                OFFICIAL_API=data['official_api']
+                OFFICIAL_API=data['official_api'],
+                API_TOKEN=data['api_token']
             )
         return env_file

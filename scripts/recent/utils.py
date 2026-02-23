@@ -11,7 +11,14 @@ from pymysql.cursors import Cursor
 from datetime import datetime, timezone
 
 from logger import logger
-from settings import BATCH_SIZE, SQLITE_PATH, REGION, TIMEZOEN, WG_API_TOKEN, LESTA_API_TOKEN, OFFICIAL_API
+from settings import (
+    BATCH_SIZE, 
+    SQLITE_PATH, 
+    REGION, 
+    TIMEZOEN, 
+    API_TOKEN, 
+    OFFICIAL_API
+)
 
 
 CreateSQL = """
@@ -291,14 +298,10 @@ async def update_user_private(
     account_id: int,
     auth_value: str
 ):
-    if REGION == 'ru':
-        token = LESTA_API_TOKEN
-    else:
-        token = WG_API_TOKEN
     api_url = OFFICIAL_API
     urls = [
-        f'{api_url}/wows/account/info/?application_id={token}&account_id={account_id}&access_token={auth_value}&extra=private.port',
-        f'{api_url}/wows/account/achievements/?application_id={token}&account_id={account_id}'
+        f'{api_url}/wows/account/info/?application_id={API_TOKEN}&account_id={account_id}&access_token={auth_value}&extra=private.port',
+        f'{api_url}/wows/account/achievements/?application_id={API_TOKEN}&account_id={account_id}'
     ]
     tasks = [fetch_data(async_client, url) for url in urls]
     responses = await asyncio.gather(*tasks)
@@ -428,14 +431,10 @@ async def update_user_token(
     account_id: int,
     auth_value: str
 ):
-    if REGION == 'ru':
-        token = LESTA_API_TOKEN
-    else:
-        token = WG_API_TOKEN
     api_url = OFFICIAL_API
     url = f'{api_url}/wot/auth/prolongate/'
     responses = [
-        await post_data(async_client, url, {'application_id': token,'access_token': auth_value,'expires_at':int(time.time())+14*24*60*60-30})
+        await post_data(async_client, url, {'application_id': API_TOKEN,'access_token': auth_value,'expires_at':int(time.time())+14*24*60*60-30})
     ]
     error = verify_responses(redis_client, responses)
     if error != None:

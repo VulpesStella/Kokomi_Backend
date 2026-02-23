@@ -11,7 +11,12 @@ from pymysql.cursors import Cursor
 from datetime import datetime, timezone
 
 from logger import logger
-from settings import BATCH_SIZE, DATA_DIR, VORTEX_API, REGION
+from settings import (
+    BATCH_SIZE, 
+    DATA_DIR, 
+    VORTEX_API, 
+    REGION
+)
 
 
 TIME_DIFFERENCES = [
