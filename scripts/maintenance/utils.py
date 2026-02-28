@@ -102,7 +102,7 @@ def get_user_update_ids(mysql_connection: Connection, redis_client: Redis):
         """
         cursor.execute(sql)
         data = cursor.fetchone()
-        max_id = data[0] if data else 0
+        max_id = data[0] if data[0] else 0
         recent = set()
         recents = set()
         sql = """
@@ -179,7 +179,7 @@ def get_clan_update_ids(mysql_connection: Connection, redis_client: Redis):
         """
         cursor.execute(sql)
         data = cursor.fetchone()
-        max_id = data[0] if data else 0
+        max_id = data[0] if data[0] else 0
         logger.info(f'Max id in table clan_users: {max_id}')
         now_ts = int(time.time())
         temp_update_list = []
@@ -195,11 +195,13 @@ def get_clan_update_ids(mysql_connection: Connection, redis_client: Redis):
             cursor.execute(sql, [offset+1, offset+BATCH_SIZE])
             rows = cursor.fetchall()
             for row in rows:
-                if row[2] and row[1] == 0:
+                if row[2] is None:
+                    temp_update_list.append(row[0])
                     continue
-                if row[2] and (now_ts - row[2] < CLAN_UPDATE_INTERVAL):
+                if row[1] == 0:
                     continue
-                temp_update_list.append(row[0])
+                if now_ts - row[2] > CLAN_UPDATE_INTERVAL:
+                    temp_update_list.append(row[0])
         pipe = redis_client.pipeline()
         keys = [f"clan_refresh:{cid}" for cid in temp_update_list]
         for key in keys:
@@ -215,6 +217,150 @@ def get_clan_update_ids(mysql_connection: Connection, redis_client: Redis):
     finally:
         cursor.close()
     return update_list
+
+def maintenance_database(mysql_connection: Connection):
+    # 从数据库中批量读取并判断那些用户需要更新
+    fixed_count = 0
+    mysql_connection.begin()
+    cursor: Cursor = mysql_connection.cursor()
+    try:
+        # 效验user表的完整型
+        sql = """
+            SELECT 
+                MAX(id) 
+            FROM user_base;
+        """
+        cursor.execute(sql)
+        data = cursor.fetchone()
+        max_id = data[0] if data[0] else 0
+        verify_list = []
+        for offset in range(0, max_id, BATCH_SIZE):
+            sql = """
+                SELECT 
+                    account_id, 
+                    verify 
+                FROM user_base 
+                WHERE id BETWEEN %s AND %s;
+            """
+            cursor.execute(sql, [offset+1, offset+BATCH_SIZE])
+            rows = cursor.fetchall()
+            for row in rows:
+                if row[1] == 0:
+                    verify_list.append(row[0])
+        for account_id in verify_list:
+            sql = """
+                SELECT 
+                    account_id 
+                FROM user_base
+                WHERE account_id = %s;
+            """
+            result = cursor.fetchone()
+            if result is None:
+                sql = """
+                    INSERT INTO user_stats (
+                        account_id
+                    ) VALUES (
+                        %s
+                    );
+                """
+                cursor.execute(sql, [account_id])
+                fixed_count += 1
+            sql = """
+                SELECT 
+                    account_id 
+                FROM user_clan
+                WHERE account_id = %s;
+            """
+            result = cursor.fetchone()
+            if result is None:
+                sql = """
+                    INSERT INTO user_clan (
+                        account_id
+                    ) VALUES (
+                        %s
+                    );
+                """
+                cursor.execute(sql, [account_id])
+                fixed_count += 1
+            sql = """
+                SELECT 
+                    account_id 
+                FROM user_cache
+                WHERE account_id = %s;
+            """
+            result = cursor.fetchone()
+            if result is None:
+                sql = """
+                    INSERT INTO user_cache (
+                        account_id
+                    ) VALUES (
+                        %s
+                    );
+                """
+                cursor.execute(sql, [account_id])
+                fixed_count += 1
+            sql = """
+                UPDATE user_base 
+                SET 
+                    verify = 1 
+                WHERE account_id = %s;
+            """
+            cursor.execute(sql, [account_id])
+        # 效验clan表的完整型
+        sql = """
+            SELECT 
+                MAX(id) 
+            FROM clan_base;
+        """
+        cursor.execute(sql)
+        data = cursor.fetchone()
+        max_id = data[0] if data[0] else 0
+        verify_list = []
+        for offset in range(0, max_id, BATCH_SIZE):
+            sql = """
+                SELECT 
+                    clan_id, 
+                    verify, 
+                FROM clan_base 
+                WHERE id BETWEEN %s AND %s;
+            """
+            cursor.execute(sql, [offset+1, offset+BATCH_SIZE])
+            rows = cursor.fetchall()
+            for row in rows:
+                if row[1] == 0:
+                    verify_list.append(row[0])
+        for clan_id in verify_list:
+            sql = """
+                SELECT 
+                    clan_id 
+                FROM clan_users
+                WHERE clan_id = %s;
+            """
+            result = cursor.fetchone()
+            if result is None:
+                sql = """
+                    INSERT INTO clan_users (
+                        clan_id
+                    ) VALUES (
+                        %s
+                    );
+                """
+                cursor.execute(sql, [clan_id])
+                fixed_count += 1
+            sql = """
+                UPDATE clan_base 
+                SET 
+                    verify = 1 
+                WHERE clan_id = %s;
+            """
+            cursor.execute(sql, [clan_id])
+        mysql_connection.commit()
+    except Exception:
+        mysql_connection.rollback()
+        logger.error((f"{traceback.format_exc()}"))
+    finally:
+        cursor.close()
+    return fixed_count
 
 def get_version(redis_client: Redis):
     base_url = random.choice(VORTEX_API)

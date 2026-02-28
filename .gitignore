@@ -1,8 +1,9 @@
 __pycache__/
 .venv/
 *.pyc
-.env.dev
-.env.prod
+env.dev
+env.prod
+redis.conf
 dashboard/KokomiPJ_Dashboard/KokomiPJ_Dashboard/.vs/
 dashboard/KokomiPJ_Dashboard/KokomiPJ_Dashboard/bin/
 dashboard/KokomiPJ_Dashboard/KokomiPJ_Dashboard/obj/

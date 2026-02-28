@@ -41,7 +41,7 @@ USER_CSV_HEADER = [
     'ranking', 'account_id', 'battles', 'rating', 'rating_amend', 
     'win_rate', 'solo_rate', 'avg_damage', 'avg_frags', 'avg_exp', 
     'max_exp', 'max_damage_dealt', 'rating_level', 'win_rate_level', 
-    'solo_rate_level', 'avg_damage_level', 'avg_frags_level '
+    'solo_rate_level', 'avg_damage_level', 'avg_frags_level'
 ]
 UserCreateSQL = """
 CREATE TABLE users (

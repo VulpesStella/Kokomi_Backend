@@ -46,10 +46,10 @@ class EnvConfig:
         env_file = 'env.prod'
         if os.getenv('PLATFORM') is None:
             from dotenv import load_dotenv
-            load_result = load_dotenv('.env.dev')
+            load_result = load_dotenv('env.dev')
             if load_result is False:
                 return None
-            env_file = '.env.dev'
+            env_file = 'env.dev'
         # 加载config
         cls.config = RuntimeConfig(
             PLATFORM = os.getenv('PLATFORM'),
@@ -58,7 +58,7 @@ class EnvConfig:
             BIND_HOST = os.getenv('BIND_HOST').split('_'),
             MYSQL_HOST = os.getenv("MYSQL_HOST"),
             MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306)),
-            MYSQL_USERNAME = os.getenv("MYSQL_USERNAME"),
+            MYSQL_USERNAME = os.getenv("MYSQL_USER"),
             MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD"),
             MYSQL_DATABASE = os.getenv("MYSQL_DATABASE"),
             SQLITE_PATH = os.getenv("SQLITE_PATH"),
@@ -66,8 +66,8 @@ class EnvConfig:
             REDIS_PORT = os.getenv("REDIS_PORT"),
             REDIS_PASSWORD = os.getenv("REDIS_PASSWORD"),
             RABBITMQ_HOST = os.getenv("RABBITMQ_HOST"),
-            RABBITMQ_USERNAME = os.getenv("RABBITMQ_USERNAME"),
-            RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
+            RABBITMQ_USERNAME = os.getenv("RABBITMQ_DEFAULT_USER"),
+            RABBITMQ_PASSWORD = os.getenv("RABBITMQ_DEFAULT_PASS")
         )
         cls.DATA_DIR = Path(os.getenv("DATA_DIR"))
         cls.LOG_DIR = Path(os.getenv("LOG_DIR"))

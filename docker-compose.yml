@@ -1,16 +1,57 @@
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql8
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    env_file:
+      - env.prod
+    command: >
+      --transaction-isolation=READ-COMMITTED
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7
+    container_name: redis7
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    env_file:
+      - env.prod
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - redis_data:/data # 数据持久化
+      - ./redis.conf:/usr/local/etc/redis/redis.conf # 配置文件挂载
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq4
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    env_file:
+      - env.prod
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
   api:
     # 主API服务器
-    build: .
+    image: myapp:latest
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
     container_name: backend-api
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level debug
     env_file:
-      - .env.prod
+      - env.prod
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     restart: on-failure:1
     logging:
       driver: "json-file"
@@ -20,13 +61,13 @@ services:
 
   celery:
     # 负责消费MQ中的任务，更新用户的基本信息
-    build: .
+    image: myapp:latest
     volumes:
       - ./logs:/app/logs
     container_name: backend-celery
     command: celery --app tasks.main:celery_app worker -Q refresh_queue --loglevel=info --concurrency=4
     env_file:
-      - .env.prod
+      - env.prod
     restart: on-failure:1
     logging:
       driver: "json-file"
@@ -36,10 +77,10 @@ services:
 
   maintenance:
     # 维护进程，负责
-    # 1.更新在线用户
-    # 2.更新游戏版本
-    # 3.维护用户活跃信息
-    build: .
+    # 1.更新游戏版本
+    # 2.维护用户/工会活跃信息
+    # 3.统计服务器数据
+    image: myapp:latest
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
@@ -47,7 +88,7 @@ services:
     container_name: backend-maintenance
     command: python scripts/maintenance/main.py
     env_file:
-      - .env.prod
+      - env.prod
     restart: on-failure:1
     logging:
       driver: "json-file"
@@ -56,15 +97,15 @@ services:
         max-file: "5"
 
   cache:
-    # 更新用户的船只缓存数据，主要负责排行榜数据
-    build: .
+    # 更新用户的船只缓存数据，主要负责更新排行榜数据
+    image: myapp:latest
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data
     container_name: backend-cache
     command: python scripts/cache/main.py
     env_file:
-      - .env.prod
+      - env.prod
     restart: on-failure:1
     logging:
       driver: "json-file"
@@ -72,35 +113,41 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  recent: # Recent功能
-    build: .
-    volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-    container_name: backend-recent
-    command: python scripts/recent/main.py
-    env_file:
-      - .env.prod
-    restart: on-failure:1
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
+  # recent: # Recent功能
+  #   image: myapp:latest
+  #   volumes:
+  #     - ./data:/app/data
+  #     - ./logs:/app/logs
+  #   container_name: backend-recent
+  #   command: python scripts/recent/main.py
+  #   env_file:
+  #     - .env.prod
+  #   restart: on-failure:1
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "5"
 
-  ranking: # Ranking功能
-    build: .
-    volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-      - ./temp:/app/temp
-    container_name: leaderboard
-    command: python scripts/leaderboard/main.py
-    env_file:
-      - .env.prod
-    restart: on-failure:1
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
+  # ranking: # Ranking功能
+  #   image: myapp:latest
+  #   volumes:
+  #     - ./data:/app/data
+  #     - ./logs:/app/logs
+  #     - ./temp:/app/temp
+  #   container_name: leaderboard
+  #   command: python scripts/leaderboard/main.py
+  #   env_file:
+  #     - .env.prod
+  #   restart: on-failure:1
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "5"
+
+# 命名卷
+volumes:
+  mysql_data:
+  redis_data:
+  rabbitmq_data:

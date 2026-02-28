@@ -12,17 +12,17 @@ def handle_network_exception_async(func):
             result = await func(*args, **kwargs)
             return result
         except httpx.ConnectTimeout:
-            return JSONResponse.get_error_response(5001,'HttpxConnectTimeout')
+            return JSONResponse.get_error_response(3101,'HttpxConnectTimeout')
         except httpx.ReadTimeout:
-            return JSONResponse.get_error_response(5002,'HttpxReadTimeout')
+            return JSONResponse.get_error_response(3102,'HttpxReadTimeout')
         except httpx.TimeoutException:
-            return JSONResponse.get_error_response(5003,'HttpxTimeoutError')
+            return JSONResponse.get_error_response(3103,'HttpxTimeoutError')
         except httpx.ConnectError:
-            return JSONResponse.get_error_response(5004,'HttpxConnectError')
+            return JSONResponse.get_error_response(3104,'HttpxConnectError')
         except httpx.ReadError:
-            return JSONResponse.get_error_response(5005,'HttpxReadError')
+            return JSONResponse.get_error_response(3105,'HttpxReadError')
         except httpx.HTTPStatusError:
-            return JSONResponse.get_error_response(5006, 'HttpxHTTPStatusError')
+            return JSONResponse.get_error_response(3106, 'HttpxHTTPStatusError')
         except Exception as e:
             error_id = str(uuid.uuid4())
             write_error_info(
@@ -32,7 +32,7 @@ def handle_network_exception_async(func):
                 error_args = str(args) + str(kwargs),
                 error_info = traceback.format_exc()
             )
-            return JSONResponse.get_error_response(5000,'NetworkError',error_id)
+            return JSONResponse.get_error_response(3100,'NetworkError',error_id)
     return wrapper
 
 async def record_request():

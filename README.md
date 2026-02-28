@@ -44,16 +44,16 @@ git reset --hard  # 旧版
 
 ```bash
 # 复制模板文件
-cp .env.example .env.prod
+cp env.example env.prod
 # 使用 vim 编辑配置
-vim .env.prod
+vim env.prod
 ```
 
 ### 环境配置
 
-> 项目中生成环境使用到的模块：`fastapi` `uvicorn` `httpx` `aiomysql` `redis` `celery` `jinja2` `python-dotenv` `dbutils` `requests` `cryptography`
+> 项目中生成环境使用到的模块：`fastapi` `uvicorn` `httpx` `aiomysql` `redis` `celery` `jinja2` `python-dotenv` `dbutils` `requests`
 
-> 项目中测试环境使用到的模块：`polib` `pandas` `numpy` `msgpack`
+> 项目中测试环境使用到的模块：`polib` `pandas` `numpy` `msgpack` `tqdm`
 
 ```bash
 # 更新系统包索引并安装必要组件
@@ -71,9 +71,22 @@ pip3 install --no-cache-dir -r requirements-dev.txt
 
 ### 项目初始化
 
+> 如果本地部署有 mysql 实例为防止端口冲突，
+
+**请务必按照以下顺序部署，后续**
+
 ```bash
+# 初始化mysql数据库
+docker-compose up -d mysql
 # 执行项目和数据库初始化脚本
-python3 init/setup.py -p <api_password>
+# Region可选: asia, eu, na, ru, cn
+python3 init/setup.py -r <region> -e <env_file>
+# 初始化redis数据库
+docker-compose up -d redis
+# 初始化RabbitMQ
+docker-compose up -d rabbitmq
+# 构建项目镜像
+docker build -t myapp:latest .
 ```
 
 > [!IMPORTANT] > **关于 init_marker.json**：

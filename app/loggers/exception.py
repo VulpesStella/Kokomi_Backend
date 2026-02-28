@@ -24,7 +24,7 @@ class ExceptionLogger:
                     error_args = str(args) + str(kwargs),
                     error_info = traceback.format_exc()
                 )
-                return JSONResponse.get_error_response(4000,'ProgramError',error_id)
+                return JSONResponse.get_error_response(3000,'ProgramError',error_id)
         return wrapper
     
     @staticmethod
@@ -43,7 +43,7 @@ class ExceptionLogger:
                     error_args = str(args) + str(kwargs),
                     error_info = f'ERROR_{e.args[0]}\n' + str(e.args[1]) + f'\n{traceback.format_exc()}'
                 )
-                return JSONResponse.get_error_response(4101,'MySQLProgrammingError',error_id)
+                return JSONResponse.get_error_response(3002,'MySQLProgrammingError',error_id)
             except aiomysql.OperationalError as e:
                 error_id = str(uuid.uuid4())
                 write_error_info(
@@ -53,7 +53,7 @@ class ExceptionLogger:
                     error_args = str(args) + str(kwargs),
                     error_info = f'ERROR_{e.args[0]}\n' + str(e.args[1]) + f'\n{traceback.format_exc()}'
                 )
-                return JSONResponse.get_error_response(4102,'MySQLOperationalError',error_id)
+                return JSONResponse.get_error_response(3003,'MySQLOperationalError',error_id)
             except aiomysql.IntegrityError as e:
                 error_id = str(uuid.uuid4())
                 write_error_info(
@@ -63,7 +63,7 @@ class ExceptionLogger:
                     error_args = str(args) + str(kwargs),
                     error_info = f'ERROR_{e.args[0]}\n' + str(e.args[1]) + f'\n{traceback.format_exc()}'
                 )
-                return JSONResponse.get_error_response(4103,'MySQLIntegrityError',error_id)
+                return JSONResponse.get_error_response(3004,'MySQLIntegrityError',error_id)
             except aiomysql.DatabaseError as e:
                 error_id = str(uuid.uuid4())
                 write_error_info(
@@ -73,7 +73,7 @@ class ExceptionLogger:
                     error_args = str(args) + str(kwargs),
                     error_info = f'ERROR_{e.args[0]}\n' + str(e.args[1]) + f'\n{traceback.format_exc()}'
                 )
-                return JSONResponse.get_error_response(4100,'MySQLDatabaseError',error_id)
+                return JSONResponse.get_error_response(3001,'MySQLDatabaseError',error_id)
             except Exception as e:
                 error_id = str(uuid.uuid4())
                 write_error_info(
@@ -82,7 +82,7 @@ class ExceptionLogger:
                     error_name = str(type(e).__name__),
                     error_info = traceback.format_exc()
                 )
-                return JSONResponse.get_error_response(4000,'ProgramError',error_id)
+                return JSONResponse.get_error_response(3000,'ProgramError',error_id)
         return wrapper
     
     @staticmethod
@@ -101,7 +101,7 @@ class ExceptionLogger:
                     error_args = str(args) + str(kwargs),
                     error_info = f'\n{traceback.format_exc()}'
                 )
-                return JSONResponse.get_error_response(4200,'RedisError',error_id)
+                return JSONResponse.get_error_response(3005,'RedisError',error_id)
             except Exception as e:
                 error_id = str(uuid.uuid4())
                 write_error_info(
@@ -111,6 +111,6 @@ class ExceptionLogger:
                     error_args = str(args) + str(kwargs),
                     error_info = traceback.format_exc()
                 )
-                return JSONResponse.get_error_response(4000,'ProgramError',error_id)
+                return JSONResponse.get_error_response(3000,'ProgramError',error_id)
         return wrapper
     

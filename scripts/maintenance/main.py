@@ -16,6 +16,7 @@ from settings import (
     RABBITMQ_CONFIG, REGION, DATA_DIR
 )
 from utils import (
+    maintenance_database,
     get_user_update_ids,
     get_clan_update_ids,
     get_version,
@@ -36,6 +37,8 @@ async def main():
         redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.1))
         mysql_connection = pymysql.connect(**MYSQL_CONFIG)
         try:
+            fixed_count = maintenance_database(mysql_connection)
+            logger.info(f'Fixed Row Counts: {fixed_count}')
             update_ids = get_user_update_ids(mysql_connection, redis_client)
             logger.info(f'User Update Numbers: {len(update_ids)}')
             for update_id in update_ids:
@@ -65,9 +68,9 @@ async def main():
                         json.dump(version_data, f, ensure_ascii=False)
                     logger.info(f"Game Version: {version_data['version']}")
                     version_refresh_time = now_ts
-            if now_ts - stats_refresh_time > 6*3600:
-                process_region_stats(mysql_connection)
-                stats_refresh_time = now_ts
+            # if now_ts - stats_refresh_time > 6*3600:
+            #     process_region_stats(mysql_connection)
+            #     stats_refresh_time = now_ts
         finally:
             redis_client.close()
             mysql_connection.close()

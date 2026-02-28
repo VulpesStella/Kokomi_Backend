@@ -194,6 +194,51 @@ class PlatyerModel:
             await MysqlConnection.release_connection(conn)
 
     @ExceptionLogger.handle_database_exception_async
+    async def get_user_name_batch(account_ids: list):
+        '''
+        从数据库中获取用户的基本数据，如果玩家或者工会的缓存数据不存在则返回none
+
+        用户数据为空或者隐藏战绩也返回none
+
+        参数：
+            account_id: 用户id
+            region_id: 服务器id
+        '''
+        try:
+            conn: Connection = await MysqlConnection.get_connection()
+            await conn.begin()
+            cur: Cursor = await conn.cursor()
+
+            placeholders = ",".join(["%s"] * len(account_ids))
+            # 从数据库中读取缓存数据
+            sql = f"""
+                SELECT 
+                    b.account_id, 
+                    b.username, 
+                    c.clan_id 
+                FROM user_base as b 
+                LEFT JOIN user_clan as c 
+                  ON b.account_id = c.account_id 
+                WHERE b.account_id IN ({placeholders});
+            """
+            await cur.execute(
+                sql,account_ids
+            )
+            data = {}
+            rows = await cur.fetchall()
+            for row in rows:
+                data[row[0]] = [row[1], row[2]]
+
+            await conn.commit()
+            return JSONResponse.get_success_response(data)
+        except Exception as e:
+            await conn.rollback()
+            raise e
+        finally:
+            await cur.close()
+            await MysqlConnection.release_connection(conn)
+
+    @ExceptionLogger.handle_database_exception_async
     async def refresh_base(data: UserBasicData):
         '''
         根据api请求获取到的用户和用户所在工会数据刷新数据库数据

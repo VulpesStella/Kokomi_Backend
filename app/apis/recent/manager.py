@@ -21,7 +21,7 @@ class RecentManagerAPI:
         lbt = result['data']['last_battle_time']
         now_timestamp = TimeUtils.timestamp()
         if lbt is None or now_timestamp - lbt > 360*24*60*60:
-            return JSONResponse.API_2016_AccountNotEligible
+            return JSONResponse.API_2011_AccountNotEligible
         else:
             result = await RecentModel.recent_enable(account_id)
             return result
@@ -45,7 +45,7 @@ class RecentManagerAPI:
         lbt = result['data']['last_battle_time']
         now_timestamp = TimeUtils.timestamp()
         if lbt is None or now_timestamp - lbt > 90*24*60*60:
-            return JSONResponse.API_2016_AccountNotEligible
+            return JSONResponse.API_2011_AccountNotEligible
         else:
             result = await RecentModel.daily_enable(account_id)
             return result

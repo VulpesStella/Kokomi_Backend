@@ -15,7 +15,7 @@ class TokenAPI:
         if result['code'] != 1000:
             return result
         if result['data'] == False:
-            return JSONResponse.API_2025_InvalidAccessToken
+            return JSONResponse.API_2005_InvalidAccessToken
         redis_key = f"token:ac:{account_id}"
         result = await RedisClient.set(redis_key,access_token)
         return result

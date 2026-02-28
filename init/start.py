@@ -6,12 +6,12 @@ import traceback
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv('.env.dev')
+load_dotenv('env.dev')
 DATA_DIR = Path(os.getenv("DATA_DIR"))
 MYSQL_CONFIG = {
     "host": "127.0.0.1",
     "port": 3306,
-    "user": os.getenv("MYSQL_USERNAME"),
+    "user": os.getenv("MYSQL_USER"),
     "password": os.getenv("MYSQL_PASSWORD"),
     "database": os.getenv("MYSQL_DATABASE"),
     "autocommit": False
@@ -19,9 +19,9 @@ MYSQL_CONFIG = {
 REALM_MAP = {
     'asia': 'sg', 
     'eu': 'eu', 
-    'na': 'us',
+    'na': 'us', 
     'ru': 'ru', 
-    'cn': 'cn360'
+    'cn': 'cn360' 
 }
 LEAGUE_LIST = [
     [0,1], [1,1], [1,2], [1,3],
@@ -57,7 +57,7 @@ def get_clan_rank_data(region: str, clan_api: str):
     for i in range(13):
         league=LEAGUE_LIST[i][0]
         division=LEAGUE_LIST[i][1]
-        url = f'{clan_api}/api/ladder/structure/'
+        url = f'{clan_api}/api/ladder/structure/' 
         params = {
             'realm': realm,
             'league': league,

@@ -1,9 +1,3 @@
-SET GLOBAL TRANSACTION ISOLATION LEVEL READ COMMITTED;
-
-CREATE DATABASE IF NOT EXISTS wows_test;
-
-USE wows_test;
-
 CREATE TABLE user_base (
     -- 相关id
     id               INT          AUTO_INCREMENT,
@@ -12,6 +6,7 @@ CREATE TABLE user_base (
     username         VARCHAR(25)  NOT NULL,    -- 最大25个字符，编码：utf-8
     register_time    TIMESTAMP    DEFAULT NULL,
     insignias        VARCHAR(55)  DEFAULT NULL,
+    verify           TINYINT      DEFAULT 0,
     -- 记录数据创建的时间和更新时间
     touch_at         TIMESTAMP    DEFAULT NULL,
     created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -29,6 +24,7 @@ CREATE TABLE clan_base (
     -- 工会基础信息数据: tag league
     tag              VARCHAR(10)  NOT NULL,     -- 最大5个字符，编码：utf-8
     league           TINYINT      DEFAULT 5,    -- 当前段位 0紫金 1白金 2黄金 3白银 4青铜 5无
+    verify           TINYINT      DEFAULT 0,
     -- 记录数据创建的时间和更新时间
     touch_at         TIMESTAMP    DEFAULT NULL,
     created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -6,7 +6,7 @@ import threading
 from fastapi import FastAPI, Request, Security
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
-from fastapi.middleware.gzip import GZipMiddleware
+# from fastapi.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
 from starlette.responses import StreamingResponse
 
@@ -76,7 +76,7 @@ async def lifespan(app: FastAPI):
         api_logger.info(f"Env config loaded: {env_file}")
     else:
         api_logger.error("Env config load failed")
-    api_logger.info(f"Current region: {EnvConfig.REGION}")
+    api_logger.info(f"Current region: {EnvConfig.REGION.upper()}")
     # 启动定时任务
     task = asyncio.create_task(schedule())
     # 启动API日志写入线程
@@ -104,10 +104,11 @@ templates = Jinja2Templates(directory="app/templates")
 # 加载APP
 app = FastAPI(lifespan=lifespan)
 
-app.add_middleware(
-    GZipMiddleware,
-    minimum_size=1000  # 大于 1KB 才压缩
-)
+# # 消息压缩
+# app.add_middleware(
+#     GZipMiddleware,
+#     minimum_size=1000  # 大于 1KB 才压缩
+# )
 
 # ------------------------------------------------------
 # 请求中间件
@@ -118,12 +119,12 @@ app.add_middleware(
 # ------------------------------------------------------
 @app.middleware("http")
 async def request_rate_limiter(request: Request, call_next):
-    client_ip = request.client.host if request.client else None
-    if client_ip not in EnvConfig.config.BIND_HOST:
-        return JSONResponse(
-            status_code=403,
-            content={"detail": "Forbidden"}
-        )
+    # client_ip = request.client.host if request.client else None
+    # if client_ip not in EnvConfig.config.BIND_HOST:
+    #     return JSONResponse(
+    #         status_code=403,
+    #         content={"detail": "Forbidden"}
+    #     )
     start = TimeUtils.timestamp_ms()
     now_time = TimeUtils.now_iso()
     await ServiceMetrics.requests_incr('api', now_time[0:10])

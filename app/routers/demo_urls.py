@@ -33,12 +33,12 @@ async def getMySQLOverview(item: Literal['user', 'clan', 'trx', 'process']):
 @router.get("/accounts/{account_id}/name/", summary="获取用户数据库中的基本信息")
 async def getUserBasic(account_id: int = Path(...)):
     if GameUtils.check_aid(account_id) == False:
-        return JSONResponse.API_2007_IllegalAccoutID
+        return JSONResponse.API_2001_IllegalAccoutID
     result = await UserAPI.get_user_db_info(account_id)
     return result
 
 @router.get("/accounts/{account_id}/brief/", summary="获取用户基本信息")
 async def getBriefByUID(uid: int = Query(...)):
     if GameUtils.check_aid(uid) == False:
-        return JSONResponse.API_2007_IllegalAccoutID
+        return JSONResponse.API_2001_IllegalAccoutID
     return await UserAPI.get_base(uid)

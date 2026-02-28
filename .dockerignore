@@ -1,0 +1,12 @@
+.venv/
+.git/
+__pycache__/
+dashboard/
+docs/
+temp/
+tests/
+init/
+tools/
+*.pyc
+env.example
+requirements-dev.txt

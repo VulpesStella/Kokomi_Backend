@@ -8,9 +8,9 @@ from app.models import PlatyerModel
 from app.health import ServiceMetrics
 from app.core import EnvConfig
 from app.schemas import UserBasicData, ClanBaseData
+from app.response import JSONResponse
 
 from .client import HttpClient
-from .response import JSONResponse
 from .processing import (
     processing_user_basic, 
     processing_season,
@@ -88,10 +88,7 @@ class ExternalAPI:
                     'account_id':temp_data['spa_id'],
                     'name':temp_data['name']
                 })
-        if search_data == []:
-            return JSONResponse.API_3010_UserNameNotFound
-        else:
-            return JSONResponse.get_success_response(search_data)
+        return JSONResponse.get_success_response(search_data)
     
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
@@ -143,10 +140,7 @@ class ExternalAPI:
                         'clan_id':temp_data['id'],
                         'tag':temp_data['tag']
                     })
-        if search_data == []:
-            return JSONResponse.API_3011_ClanNameNotFound
-        else:
-            return JSONResponse.get_success_response(search_data)
+        return JSONResponse.get_success_response(search_data)
 
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
@@ -164,7 +158,7 @@ class ExternalAPI:
         if response['data']:
             user_basic = response['data'][str(account_id)]
         if user_basic == None:
-            return JSONResponse.API_3001_UserNotExist
+            return JSONResponse.API_2011_UserNotExist
         if 'hidden_profile' not in user_basic:
             return JSONResponse.get_success_response(False)
         url = f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else '')
@@ -235,7 +229,7 @@ class ExternalAPI:
         if response['data']:
             user_basic = response['data'][str(account_id)]
         if user_basic == None:
-            return JSONResponse.API_3001_UserNotExist
+            return JSONResponse.API_2011_UserNotExist
         if 'hidden_profile' not in user_basic:
             return JSONResponse.get_success_response(True)
         else:
@@ -315,7 +309,7 @@ class ExternalAPI:
         if response['data']:
             user_basic = response['data'][str(account_id)]
         if user_basic == None:
-            return JSONResponse.API_3001_UserNotExist
+            return JSONResponse.API_2011_UserNotExist
         data = {
             'account_id': account_id,
             'username': None,
@@ -435,7 +429,7 @@ class ExternalAPI:
             user_basic = responses[0]['data'][str(account_id)]
         user_clan = responses[1]['data']
         if user_basic == None:
-            return JSONResponse.API_3001_UserNotExist
+            return JSONResponse.API_2011_UserNotExist
         data = {
             'account_id': account_id,
             'username': user_basic['name'],
@@ -455,7 +449,7 @@ class ExternalAPI:
             'statistics' not in user_basic or 
             'basic' not in user_basic['statistics']
         ):
-            return JSONResponse.API_3003_UserDataisNone
+            return JSONResponse.API_2013_UserDataisNone
         data['insignias'] = GameUtils.get_insignias(user_basic['dog_tag'])
         data['register_time'] = user_basic['statistics']['basic']['created_at']
         return JSONResponse.get_success_response(data)
@@ -561,14 +555,14 @@ class ExternalAPI:
             user_basic = responses[0]['data'][str(account_id)]
         user_clan = responses[1]['data']
         if user_basic == None:
-            return JSONResponse.API_3001_UserNotExist
+            return JSONResponse.API_2011_UserNotExist
         if 'hidden_profile' in user_basic:
-            return JSONResponse.API_3005_UserHiddenProfite
+            return JSONResponse.API_2015_UserHiddenProfite
         if (
             'statistics' not in user_basic or 
             'basic' not in user_basic['statistics']
         ):
-            return JSONResponse.API_3003_UserDataisNone
+            return JSONResponse.API_2013_UserDataisNone
         data = {
             'basic': {},
             'clan': {},
@@ -624,11 +618,11 @@ class ExternalAPI:
         data = []
         for response in responses:
             if response['data'] is None or response['data'][str(account_id)] == None:
-                return JSONResponse.API_3001_UserNotExist
+                return JSONResponse.API_2011_UserNotExist
             if 'hidden_profile' in response['data'][str(account_id)]:
-                return JSONResponse.API_3005_UserHiddenProfite
+                return JSONResponse.API_2015_UserHiddenProfite
             if 'statistics' not in response['data'][str(account_id)]:
-                return JSONResponse.API_3003_UserDataisNone
+                return JSONResponse.API_2013_UserDataisNone
             data.append(response['data'][str(account_id)]['statistics'])
         result, record = processing_pvp_data(data,fields,include_old)
         return JSONResponse.get_success_response(
@@ -660,12 +654,10 @@ class ExternalAPI:
             await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
             return error_return
         for response in responses:
-            if response['data'] is None:
-                return JSONResponse.API_3012_FailedToFetchDataFromAPI
             if response['data']['meta']['hidden'] != None:
-                return JSONResponse.API_3005_UserHiddenProfite
+                return JSONResponse.API_2015_UserHiddenProfite
         if responses[0]['data']['data'][str(account_id)] is None:
-            return JSONResponse.API_3003_UserDataisNone
+            return JSONResponse.API_2013_UserDataisNone
         season_data = processing_cb_seasons(responses[0]['data']['data'][str(account_id)])
         achievements = processing_cb_achieve(responses[1]['data']['data'][str(account_id)])
         return JSONResponse.get_success_response(

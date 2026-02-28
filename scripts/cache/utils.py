@@ -200,6 +200,7 @@ def update_base(mysql_connection: Connection, account_id: int, user_basic: dict)
         refresh_data['pvp_battles'] = 0 if user_basic['statistics']['pvp'] == {} else user_basic['statistics']['pvp']['battles_count']
         refresh_data['ranked_battles'] = ranked_count
         refresh_data['last_battle_at'] = user_basic['statistics']['basic']['last_battle_time']
+    mysql_connection.begin()
     cursor: Cursor = mysql_connection.cursor()
     try:
         sql = """

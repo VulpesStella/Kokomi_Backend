@@ -2,6 +2,34 @@ from app.constants import GameData
 from app.schemas import ShipFilter
 from .json_utils import JsonUtils
 
+from typing import TypedDict
+
+
+class NameEN(TypedDict):
+    short: str
+    full: str
+
+class NameZH(TypedDict):
+    cn: str | None
+    sg: str
+    tw: str | None
+
+class NameDict(TypedDict):
+    en: NameEN
+    zh: NameZH
+    ja: str
+    ru: str
+
+class ShipInfo(TypedDict):
+    tier: int
+    type: str
+    nation: str
+    premium: bool
+    special: bool
+    rarity: str | None
+    index: str
+    verify: bool
+    name: NameDict
 
 def name_format(in_str: str) -> str:
     in_str_list = in_str.split()
@@ -49,7 +77,7 @@ def data_format(ship_id: int, main_data: dict):
 
 class NameUtils:    
     @staticmethod
-    def search_ship(region: str, ship_name: str, language: str):
+    def search_ship(ship_name: str, language: str):
         '''
         搜索用户输出的名称对应的船只。按照先精确匹配，无果再模糊匹配的原则。
 
@@ -58,12 +86,8 @@ class NameUtils:
             ship_name: 搜索的名称
             language: 搜索的语言
         '''
-        if region == 'ru':
-            server = 'lesta'
-        else:
-            server = 'wg'
         nick_data = JsonUtils.read('ship_name_nick')
-        main_data = JsonUtils.read(f'ship_name_{server}')
+        main_data = JsonUtils.read(f'ship_name')
         ship_name_format: str = name_format(ship_name)
         if ship_name_format.endswith(('old','旧')):
             old = True
@@ -111,7 +135,7 @@ class NameUtils:
         return result
     
     @staticmethod
-    def query_ship(region: str, query_condition: ShipFilter):
+    def query_ship(query_condition: ShipFilter):
         """
         根据输入的查询条件返回对应的船只列表
 
@@ -123,11 +147,7 @@ class NameUtils:
         #     'tier': [1,2,3,4,5,6,7,8,9,10,11],
         #     'nation': ['commonwealth','europe','france','germany','italy','japan','netherlands','pan_america','pan_asia','spain','uk','usa','ussr']
         # }
-        if region == 'ru':
-            server = 'lesta'
-        else:
-            server = 'wg'
-        ship_data = JsonUtils.read(f'ship_name_{server}')
+        ship_data = JsonUtils.read('ship_name')
         result = {}
         for ship_id, ship_info in ship_data.items():
             if query_condition.type and ship_info["type"] not in query_condition.type:
@@ -138,3 +158,11 @@ class NameUtils:
                 continue
             result[ship_id] = ship_info
         return result
+    
+    @staticmethod
+    def get_ship(ship_id: int | str) -> ShipInfo | None:
+        """
+        根据输入的查询条件返回对应的船只列表
+        """
+        ship_data = JsonUtils.read('ship_name')
+        return ship_data.get(str(ship_id))

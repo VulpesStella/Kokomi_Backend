@@ -2,8 +2,8 @@ import time
 import json
 import random
 import requests
+from dbutils.pooled_db import PooledDedicatedDBConnection
 from datetime import datetime, timezone
-from celery.app.base import logger
 
 from .exception import handle_program_exception_sync
 from .middlewares import redis_client, db_pool
@@ -47,7 +47,7 @@ def fetch_data(url: str, params: dict = None):
             return {}
         return f'HTTP_STATUS_{resp.status_code}'
     except Exception as e:
-        logger.warning(f"{type(e).__name__} {url}")
+        print(f"{type(e).__name__} {url}")
         return f'ERROR_{type(e).__name__}'
 
 @handle_program_exception_sync
@@ -217,7 +217,6 @@ def refresh_user(account_id: int):
         conn.close()
     return f'OK'
 
-
 @handle_program_exception_sync
 def refresh_clan(clan_id: int):
     # metrics
@@ -239,7 +238,7 @@ def refresh_clan(clan_id: int):
         users[user_info['id']] = user_info['name']
     # 当前工会内玩家id列表
     user_ids = list(users.keys())
-    conn = db_pool.connection()
+    conn: PooledDedicatedDBConnection = db_pool.connection()
     conn.begin()
     try:
         cursor = conn.cursor()
@@ -263,6 +262,33 @@ def refresh_clan(clan_id: int):
                 WHERE clan_id = %s;
             """
             cursor.execute(sql, [clan_id])
+            sql = """
+                SELECT 
+                    account_id 
+                FROM user_clan 
+                WHERE clan_id = %s;
+            """
+            cursor.execute(sql,[clan_id])
+            # 删除已不再工会内的用户
+            for existing_clan_user in cursor.fetchall():
+                sql = """
+                    UPDATE user_clan 
+                    SET 
+                        clan_id = NULL, 
+                        touch_at = CURRENT_TIMESTAMP 
+                    WHERE account_id = %s;
+                """
+                cursor.execute(sql,[existing_clan_user[0]])
+                sql = """
+                    INSERT INTO clan_action (
+                        clan_id, 
+                        account_id, 
+                        action_type
+                    ) VALUES (
+                        %s, %s, %s
+                    );
+                """
+                cursor.execute(sql, [clan_id, existing_clan_user[0], 2])
         else:
             placeholders = ",".join(["%s"] * len(user_ids))
             sql = f"""
@@ -309,6 +335,13 @@ def refresh_clan(clan_id: int):
                     );
                 """
                 cursor.execute(sql, [account_id])
+                sql = """
+                    UPDATE user_base 
+                    SET 
+                        verify = 1 
+                    WHERE account_id = %s;
+                """
+                cursor.execute(sql, [account_id])
             # 删除已不再工会内的用户
             sql = """
                 SELECT 
@@ -348,7 +381,7 @@ def refresh_clan(clan_id: int):
             """
             cursor.execute(sql, [len(user_ids), json.dumps(user_ids), clan_id])
             # 更新工会所在用户数据
-            if data[1]:
+            if data and data[1]:
                 old_data = json.loads(data[0] if data[0] else '[]')
                 added_ids = list(set(user_ids) - set(old_data))
                 removed_ids = list(set(old_data) - set(user_ids))

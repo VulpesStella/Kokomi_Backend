@@ -11,10 +11,10 @@ DATE_FMT = '%Y-%m-%d %H:%M:%S'
 
 if os.getenv('PLATFORM') is None:
     from dotenv import load_dotenv
-    load_result = load_dotenv('.env.dev')
-    print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: .env.dev")
+    load_result = load_dotenv('env.dev')
+    print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: env.dev")
 else:
-    print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: .env.prod")
+    print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: env.prod")
 
 LOG_LEVEL = os.getenv("LOG_LEVEL")
 LOG_DIR = Path(os.getenv("LOG_DIR"))
@@ -25,7 +25,7 @@ LESTA_API_TOKEN = os.getenv("LESTA_API_TOKEN")
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST"),
     "port": int(os.getenv("MYSQL_PORT", 3306)),
-    "user": os.getenv("MYSQL_USERNAME"),
+    "user": os.getenv("MYSQL_USER"),
     "password": os.getenv("MYSQL_PASSWORD"),
     "database": os.getenv("MYSQL_DATABASE"),
     "autocommit": False
@@ -39,8 +39,8 @@ REDIS_CONFIG = {
 }
 RABBITMQ_CONFIG = {
     "host": os.getenv("RABBITMQ_HOST"),
-    "user": os.getenv("RABBITMQ_USERNAME"),
-    "password": os.getenv("RABBITMQ_PASSWORD")
+    "user": os.getenv("RABBITMQ_DEFAULT_USER"),
+    "password": os.getenv("RABBITMQ_DEFAULT_PASS")
 }
 
 file_path = DATA_DIR / 'json/init_marker.json'

@@ -1,14 +1,13 @@
 import os
 import json
 from pathlib import Path
-from celery.app.base import logger
 
 if os.getenv('PLATFORM') is None:
     from dotenv import load_dotenv
-    load_result = load_dotenv('.env.dev')
-    logger.info("Env config loaded: .env.dev")
+    load_result = load_dotenv('env.dev')
+    print("[INIT] Env config loaded: env.dev")
 else:
-    logger.info("Env config loaded: .env.prod")
+    print("[INIT] Env config loaded: env.prod")
 
 LOG_LEVEL = os.getenv("LOG_LEVEL")
 LOG_DIR = Path(os.getenv("LOG_DIR"))
@@ -16,7 +15,7 @@ DATA_DIR = Path(os.getenv("DATA_DIR"))
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST"),
     "port": int(os.getenv("MYSQL_PORT", 3306)),
-    "user": os.getenv("MYSQL_USERNAME"),
+    "user": os.getenv("MYSQL_USER"),
     "password": os.getenv("MYSQL_PASSWORD"),
     "database": os.getenv("MYSQL_DATABASE")
 }
@@ -29,15 +28,15 @@ REDIS_CONFIG = {
 }
 RABBITMQ_CONFIG = {
     "host": os.getenv("RABBITMQ_HOST"),
-    "user": os.getenv("RABBITMQ_USERNAME"),
-    "password": os.getenv("RABBITMQ_PASSWORD")
+    "user": os.getenv("RABBITMQ_DEFAULT_USER"),
+    "password": os.getenv("RABBITMQ_DEFAULT_PASS")
 }
 
 file_path = DATA_DIR / 'json/init_marker.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     REGION: str = data['region']
-    logger.info("Init config loaded: init_marker.json")
+    print("[INIT] Init config loaded: init_marker.json")
 file_path = DATA_DIR / 'json/endpoints.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
