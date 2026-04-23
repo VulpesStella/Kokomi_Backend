@@ -16,10 +16,12 @@ class PlatformModel:
             cur: Cursor = await conn.cursor()
 
             result = {
-                'user': 0,
-                'clan': 0,
-                'recent': 0,
-                'recents': 0
+                'db_metrics': {
+                    'user': 0,
+                    'clan': 0,
+                        
+                },
+                'user_config': 0
             }
             sql = """
                 SELECT 

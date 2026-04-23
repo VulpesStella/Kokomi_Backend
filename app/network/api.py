@@ -7,7 +7,7 @@ from app.constants import ClanColor
 from app.models import PlatyerModel
 from app.health import ServiceMetrics
 from app.core import EnvConfig
-from app.schemas import UserBasicData, ClanBaseData
+from app.schemas import UserBasicData, ClanBasicData
 from app.response import JSONResponse
 
 from .client import HttpClient
@@ -48,7 +48,6 @@ class ExternalAPI:
         通过输入的用户名称搜索用户账号
 
         参数：
-            region: 用户服务器
             nickname: 用户名称
             limit: 限制返回结果数量(1-10)，为1表示精准匹配结果
         
@@ -97,7 +96,6 @@ class ExternalAPI:
         通过输入的工会名称搜索工会账号
 
         参数：
-            region: 工会服务器
             tga: 工会名称
             limit: 限制返回结果数量(1-10)，为1表示精准匹配结果
         
@@ -145,7 +143,7 @@ class ExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def varify_ac(account_id: int, ac: str = None):
-        """"""
+        """检测传入的用户ac是否有效"""
         base_url = random.choice(EnvConfig.endpoints.VORTEX_API)
         url = f'{base_url}/api/accounts/{account_id}/'
         response = await HttpClient.get_user_data(url)
@@ -174,55 +172,52 @@ class ExternalAPI:
         if 'hidden_profile' in user_basic:
             refresh_user_data = UserBasicData(
                 account_id=account_id, 
+                username=user_basic['name'],
                 is_enabled=1,
-                is_public=0,
-                activity_level=GameUtils.get_activity_level(is_public=0),
-                username=user_basic['name']
+                is_public=0
             )
-            result = await PlatyerModel.refresh_base(refresh_user_data)
+            result = await PlatyerModel.refresh_base(refresh_user_data, None)
             if result['code'] != 1000:
                 return result
-        elif (
-            user_basic == None or
-            'statistics' not in user_basic or 
-            'basic' not in user_basic['statistics'] or 
-            user_basic['statistics']['basic']['leveling_points'] == 0
-        ):
+        elif 'statistics' not in user_basic:
+            refresh_user_data = UserBasicData(
+                account_id=account_id, 
+                is_enabled=0
+            )
+            result = await PlatyerModel.refresh_base(refresh_user_data, None)
+            if result['code'] != 1000:
+                return result
+        elif 'basic' not in user_basic['statistics']:
             result = await PlatyerModel.refresh_base(
                 UserBasicData(
                     account_id=account_id, 
-                    is_enabled=0,
-                    clan=ClanBaseData()
-                )
+                    username=user_basic['name'],
+                    register_time=int(user_basic['created_at'])
+                ), None
             )
             if result['code'] != 1000:
                 return result
         else:
+            rating_count = 0
             if EnvConfig.REGION == 'ru':
-                ranked_count = 0
-                ranked_count += 0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count']
-                ranked_count += 0 if user_basic['statistics']['rating_solo'] == {} else user_basic['statistics']['rating_solo']['battles_count']
-                ranked_count += 0 if user_basic['statistics']['rating_div'] == {} else user_basic['statistics']['rating_div']['battles_count']
-            else:
-                ranked_count = 0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count']
+                rating_count += 0 if user_basic['rating_solo']['pve'] == {} else user_basic['statistics']['rating_solo']['battles_count']
+                rating_count += 0 if user_basic['rating_div']['pve'] == {} else user_basic['statistics']['rating_div']['battles_count']
             refresh_user_data = UserBasicData(
                 account_id=account_id, 
+                username=user_basic['name'],
+                register_time=int(user_basic['created_at']),
+                insignias=GameUtils.get_insignias(user_basic['dog_tag']),
                 is_enabled=1,
                 is_public=1,
-                activity_level=GameUtils.get_activity_level(
-                    is_public=1, 
-                    total_battles=user_basic['statistics']['basic']['leveling_points'],
-                    last_battle_time=user_basic['statistics']['basic']['last_battle_time']
-                ),
-                username=user_basic['name'],
-                register_time=user_basic['statistics']['basic']['created_at'],
-                insignias=GameUtils.get_insignias(user_basic['dog_tag']),
                 total_battles=user_basic['statistics']['basic']['leveling_points'],
+                pve_battles=0 if user_basic['statistics']['pve'] == {} else user_basic['statistics']['pve']['battles_count'],
                 pvp_battles=0 if user_basic['statistics']['pvp'] == {} else user_basic['statistics']['pvp']['battles_count'],
-                ranked_battles=ranked_count,
-                last_battle_at=user_basic['statistics']['basic']['last_battle_time']
+                ranked_battles=0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count'],
+                rating_battles=rating_count,
+                last_battle_at=user_basic['statistics']['basic']['last_battle_time'],
+                karma=user_basic['statistics']['basic']['karma']
             )
-            result = await PlatyerModel.refresh_base(refresh_user_data)
+            result = await PlatyerModel.refresh_base(refresh_user_data, None)
             if result['code'] != 1000:
                 return result
         # 效验用户ac是否有效
@@ -235,7 +230,7 @@ class ExternalAPI:
 
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
-    async def get_user_base(account_id: int, ac1: str = None):
+    async def test_get_user_basic(account_id: int, ac1: str = None):
         """请求获取用户的基本数据，但不更新数据库"""
         base_url = random.choice(EnvConfig.endpoints.VORTEX_API)
         url = f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac1}' if ac1 else '')
@@ -247,60 +242,83 @@ class ExternalAPI:
             await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
             return error_return
         # 刷新数据库数据
-        if response['data']:
-            user_basic = response['data'][str(account_id)]
-        if user_basic == None:
+        result: dict = response['data']
+        if result:
+            result = result.get(str(account_id))
+        if result is None:
             return JSONResponse.API_2011_UserNotExist
-        result = {
+        user_data = {
             'account_id': account_id,
-            'is_enabled': 1,
-            'activity_level': None,
-            'is_public': None,
             'username': None,
             'register_time': None,
-            'total_battles': None,
-            'pvp_battles': None,
-            'ranked_battles': None,
-            'last_battle_at': None,
-            'insignias': None
+            'insignias': None,
+            'is_enabled': 1,
+            'is_public': 1,
+            'total_battles': 0,
+            'pve_battles': 0,
+            'pvp_battles': 0,
+            'ranked_battles': 0,
+            'rating_battles': 0,
+            'karma': 0,
+            'last_battle_at': 0
         }
-        if 'hidden_profile' in user_basic:
-            result['is_public'] = 0
-            result['activity_level'] = GameUtils.get_activity_level(is_public=0)
-            result['username'] = user_basic['name']
-        elif (
-            user_basic == None or
-            'statistics' not in user_basic or 
-            'basic' not in user_basic['statistics'] or 
-            user_basic['statistics']['basic']['leveling_points'] == 0
-        ):
-            result['is_enabled'] = 0
+        if 'hidden_profile' in result:
+            user_data['is_public'] = 0
+            user_data['username'] = result['name']
+        elif 'statistics' not in result:
+            user_data['is_enabled'] = 0
+        elif 'basic' not in result['statistics']:
+            user_data['is_enabled'] = 1
+            user_data['username'] = result['name']
+            user_data['register_time'] = int(result['created_at'])
         else:
+            leveling_points = result['statistics']['basic']['leveling_points']
+            if leveling_points >= 1000000:
+                leveling_points = leveling_points - 1000000
+            user_data['username'] = result['name']
+            user_data['register_time'] = int(result['created_at'])
+            user_data['insignias'] = GameUtils.get_insignias(result['dog_tag'])
+            user_data['total_battles'] = leveling_points
+            user_data['karma'] = result['statistics']['basic']['karma']
+            user_data['last_battle_at'] = result['statistics']['basic']['last_battle_time']
+            user_data['pve_battles'] = 0 if result['statistics']['pve'] == {} else result['statistics']['pve']['battles_count']
+            user_data['pvp_battles'] = 0 if result['statistics']['pvp'] == {} else result['statistics']['pvp']['battles_count']
+            user_data['ranked_battles'] = 0 if result['statistics']['rank_solo'] == {} else result['statistics']['rank_solo']['battles_count']
             if EnvConfig.REGION == 'ru':
-                ranked_count = 0
-                ranked_count += 0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count']
-                ranked_count += 0 if user_basic['statistics']['rating_solo'] == {} else user_basic['statistics']['rating_solo']['battles_count']
-                ranked_count += 0 if user_basic['statistics']['rating_div'] == {} else user_basic['statistics']['rating_div']['battles_count']
-            else:
-                ranked_count = 0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count']
-            result['is_public'] = 1
-            result['activity_level'] = GameUtils.get_activity_level(
-                is_public=1, 
-                total_battles=user_basic['statistics']['basic']['leveling_points'],
-                last_battle_time=user_basic['statistics']['basic']['last_battle_time']
-            )
-            result['username'] = user_basic['name']
-            result['register_time'] = user_basic['statistics']['basic']['created_at']
-            result['total_battles'] = user_basic['statistics']['basic']['leveling_points']
-            result['pvp_battles'] = 0 if user_basic['statistics']['pvp'] == {} else user_basic['statistics']['pvp']['battles_count']
-            result['ranked_battles'] = ranked_count
-            result['last_battle_at'] = user_basic['statistics']['basic']['last_battle_time']
-            result['insignias'] = user_basic['dog_tag']
-        return JSONResponse.get_success_response(result)
-         
+                rating_count = 0
+                rating_count += 0 if result['statistics']['rating_solo'] == {} else result['statistics']['rating_solo']['battles_count']
+                rating_count += 0 if result['statistics']['rating_div'] == {} else result['statistics']['rating_div']['battles_count']
+                user_data['rating_battles'] = rating_count
+        return JSONResponse.get_success_response(user_data)
+    
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
-    async def get_user_brief(account_id: int, ac1: str = None):
+    async def test_get_user_clan(account_id: int):
+        """请求获取用户的基本数据，但不更新数据库"""
+        base_url = random.choice(EnvConfig.endpoints.VORTEX_API)
+        url = f'{base_url}/api/accounts/{account_id}/clans/'
+        response = await HttpClient.get_user_data(url)
+        now_time = TimeUtils.now_iso()
+        await ServiceMetrics.http_incrby(now_time[:10], 1)
+        error_count, error_return = varify_responses(response)
+        if error_count != None:
+            await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
+            return error_return
+        # 刷新数据库数据
+        result = response['data']
+        user_data = {
+            'account_id': account_id,
+            'clan_id': None
+        }
+        if result and result['clan_id'] != None:
+            user_data['clan_id'] = result['clan_id']
+            user_data['clan_tag'] = result['clan']['tag']
+            user_data['league'] = ClanColor.CLAN_COLOR_INDEX.get(result['clan']['color'], 5)
+        return JSONResponse.get_success_response(user_data)
+        
+    @staticmethod
+    @ExceptionLogger.handle_program_exception_async
+    async def get_user_header(account_id: int, ac1: str = None):
         base_url = random.choice(EnvConfig.endpoints.VORTEX_API)
         urls = [
             f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac1}' if ac1 else ''),
@@ -325,79 +343,71 @@ class ExternalAPI:
         if 'hidden_profile' in user_basic:
             refresh_user_data = UserBasicData(
                 account_id=account_id, 
+                username=user_basic['name'],
                 is_enabled=1,
-                is_public=0,
-                activity_level=GameUtils.get_activity_level(is_public=0),
-                username=user_basic['name']
+                is_public=0
             )
             if user_clan and user_clan['clan_id'] != None:
-                refresh_clan_data = ClanBaseData(
+                refresh_clan_data = ClanBasicData(
                     clan_id=user_clan['clan_id'],
                     tag=user_clan['clan']['tag'],
                     league=ClanColor.CLAN_COLOR_INDEX.get(user_clan['clan']['color'], 5)
                 )
             else:
-                refresh_clan_data = ClanBaseData()
-            refresh_user_data.clan = refresh_clan_data
-            result = await PlatyerModel.refresh_base(refresh_user_data)
+                refresh_clan_data = ClanBasicData()
+            result = await PlatyerModel.refresh_base(refresh_user_data, refresh_clan_data)
             if result['code'] != 1000:
                 return result
-        elif (
-            user_basic == None or
-            'statistics' not in user_basic or 
-            'basic' not in user_basic['statistics'] or 
-            user_basic['statistics']['basic']['leveling_points'] == 0
-        ):
+        elif 'statistics' not in user_basic:
+            refresh_user_data = UserBasicData(
+                account_id=account_id, 
+                is_enabled=0
+            )
+            result = await PlatyerModel.refresh_base(refresh_user_data, ClanBasicData())
+            if result['code'] != 1000:
+                return result
+        elif 'basic' not in user_basic['statistics']:
             result = await PlatyerModel.refresh_base(
                 UserBasicData(
                     account_id=account_id, 
-                    is_enabled=0,
-                    clan=ClanBaseData()
-                )
+                    username=user_basic['name'],
+                    register_time=int(user_basic['created_at'])
+                ), ClanBasicData()
             )
             if result['code'] != 1000:
                 return result
         else:
+            rating_count = 0
             if EnvConfig.REGION == 'ru':
-                ranked_count = 0
-                ranked_count += 0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count']
-                ranked_count += 0 if user_basic['statistics']['rating_solo'] == {} else user_basic['statistics']['rating_solo']['battles_count']
-                ranked_count += 0 if user_basic['statistics']['rating_div'] == {} else user_basic['statistics']['rating_div']['battles_count']
-            else:
-                ranked_count = 0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count']
+                rating_count += 0 if user_basic['rating_solo']['pve'] == {} else user_basic['statistics']['rating_solo']['battles_count']
+                rating_count += 0 if user_basic['rating_div']['pve'] == {} else user_basic['statistics']['rating_div']['battles_count']
             refresh_user_data = UserBasicData(
                 account_id=account_id, 
+                username=user_basic['name'],
+                register_time=int(user_basic['created_at']),
+                insignias=GameUtils.get_insignias(user_basic['dog_tag']),
                 is_enabled=1,
                 is_public=1,
-                activity_level=GameUtils.get_activity_level(
-                    is_public=1, 
-                    total_battles=user_basic['statistics']['basic']['leveling_points'],
-                    last_battle_time=user_basic['statistics']['basic']['last_battle_time']
-                ),
-                username=user_basic['name'],
-                register_time=user_basic['statistics']['basic']['created_at'],
-                insignias=GameUtils.get_insignias(user_basic['dog_tag']),
                 total_battles=user_basic['statistics']['basic']['leveling_points'],
+                pve_battles=0 if user_basic['statistics']['pve'] == {} else user_basic['statistics']['pve']['battles_count'],
                 pvp_battles=0 if user_basic['statistics']['pvp'] == {} else user_basic['statistics']['pvp']['battles_count'],
-                ranked_battles=ranked_count,
-                last_battle_at=user_basic['statistics']['basic']['last_battle_time']
+                ranked_battles=0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count'],
+                rating_battles=rating_count,
+                last_battle_at=user_basic['statistics']['basic']['last_battle_time'],
+                karma=user_basic['statistics']['basic']['karma']
             )
             if user_clan and user_clan['clan_id'] != None:
-                refresh_clan_data = ClanBaseData(
+                refresh_clan_data = ClanBasicData(
                     clan_id=user_clan['clan_id'],
                     tag=user_clan['clan']['tag'],
                     league=ClanColor.CLAN_COLOR_INDEX.get(user_clan['clan']['color'], 5)
                 )
             else:
-                refresh_clan_data = ClanBaseData()
-            refresh_user_data.clan = refresh_clan_data
-            result = await PlatyerModel.refresh_base(refresh_user_data)
+                refresh_clan_data = ClanBasicData()
+            result = await PlatyerModel.refresh_base(refresh_user_data, refresh_clan_data)
             if result['code'] != 1000:
                 return result
         # 处理数据成需要的返回格式
-        if responses[0]['data']:
-            user_basic = responses[0]['data'][str(account_id)]
-        user_clan = responses[1]['data']
         if user_basic == None:
             return JSONResponse.API_2011_UserNotExist
         data = {
@@ -451,79 +461,71 @@ class ExternalAPI:
         if 'hidden_profile' in user_basic:
             refresh_user_data = UserBasicData(
                 account_id=account_id, 
+                username=user_basic['name'],
                 is_enabled=1,
-                is_public=0,
-                activity_level=GameUtils.get_activity_level(is_public=0),
-                username=user_basic['name']
+                is_public=0
             )
             if user_clan and user_clan['clan_id'] != None:
-                refresh_clan_data = ClanBaseData(
+                refresh_clan_data = ClanBasicData(
                     clan_id=user_clan['clan_id'],
                     tag=user_clan['clan']['tag'],
                     league=ClanColor.CLAN_COLOR_INDEX.get(user_clan['clan']['color'], 5)
                 )
             else:
-                refresh_clan_data = ClanBaseData()
-            refresh_user_data.clan = refresh_clan_data
-            result = await PlatyerModel.refresh_base(refresh_user_data)
+                refresh_clan_data = ClanBasicData()
+            result = await PlatyerModel.refresh_base(refresh_user_data, refresh_clan_data)
             if result['code'] != 1000:
                 return result
-        elif (
-            user_basic == None or
-            'statistics' not in user_basic or 
-            'basic' not in user_basic['statistics'] or 
-            user_basic['statistics']['basic']['leveling_points'] == 0
-        ):
+        elif 'statistics' not in user_basic:
+            refresh_user_data = UserBasicData(
+                account_id=account_id, 
+                is_enabled=0
+            )
+            result = await PlatyerModel.refresh_base(refresh_user_data, ClanBasicData())
+            if result['code'] != 1000:
+                return result
+        elif 'basic' not in user_basic['statistics']:
             result = await PlatyerModel.refresh_base(
                 UserBasicData(
                     account_id=account_id, 
-                    is_enabled=0,
-                    clan=ClanBaseData()
-                )
+                    username=user_basic['name'],
+                    register_time=int(user_basic['created_at'])
+                ), ClanBasicData()
             )
             if result['code'] != 1000:
                 return result
         else:
+            rating_count = 0
             if EnvConfig.REGION == 'ru':
-                ranked_count = 0
-                ranked_count += 0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count']
-                ranked_count += 0 if user_basic['statistics']['rating_solo'] == {} else user_basic['statistics']['rating_solo']['battles_count']
-                ranked_count += 0 if user_basic['statistics']['rating_div'] == {} else user_basic['statistics']['rating_div']['battles_count']
-            else:
-                ranked_count = 0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count']
+                rating_count += 0 if user_basic['rating_solo']['pve'] == {} else user_basic['statistics']['rating_solo']['battles_count']
+                rating_count += 0 if user_basic['rating_div']['pve'] == {} else user_basic['statistics']['rating_div']['battles_count']
             refresh_user_data = UserBasicData(
                 account_id=account_id, 
+                username=user_basic['name'],
+                register_time=int(user_basic['created_at']),
+                insignias=GameUtils.get_insignias(user_basic['dog_tag']),
                 is_enabled=1,
                 is_public=1,
-                activity_level=GameUtils.get_activity_level(
-                    is_public=1, 
-                    total_battles=user_basic['statistics']['basic']['leveling_points'],
-                    last_battle_time=user_basic['statistics']['basic']['last_battle_time']
-                ),
-                username=user_basic['name'],
-                register_time=user_basic['statistics']['basic']['created_at'],
-                insignias=GameUtils.get_insignias(user_basic['dog_tag']),
                 total_battles=user_basic['statistics']['basic']['leveling_points'],
+                pve_battles=0 if user_basic['statistics']['pve'] == {} else user_basic['statistics']['pve']['battles_count'],
                 pvp_battles=0 if user_basic['statistics']['pvp'] == {} else user_basic['statistics']['pvp']['battles_count'],
-                ranked_battles=ranked_count,
-                last_battle_at=user_basic['statistics']['basic']['last_battle_time']
+                ranked_battles=0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count'],
+                rating_battles=rating_count,
+                last_battle_at=user_basic['statistics']['basic']['last_battle_time'],
+                karma=user_basic['statistics']['basic']['karma']
             )
             if user_clan and user_clan['clan_id'] != None:
-                refresh_clan_data = ClanBaseData(
+                refresh_clan_data = ClanBasicData(
                     clan_id=user_clan['clan_id'],
                     tag=user_clan['clan']['tag'],
                     league=ClanColor.CLAN_COLOR_INDEX.get(user_clan['clan']['color'], 5)
                 )
             else:
-                refresh_clan_data = ClanBaseData()
-            refresh_user_data.clan = refresh_clan_data
-            result = await PlatyerModel.refresh_base(refresh_user_data)
+                refresh_clan_data = ClanBasicData()
+            result = await PlatyerModel.refresh_base(refresh_user_data, refresh_clan_data)
             if result['code'] != 1000:
                 return result
         # 处理数据成需要的返回格式
-        if responses[0]['data']:
-            user_basic = responses[0]['data'][str(account_id)]
-        user_clan = responses[1]['data']
         if user_basic == None:
             return JSONResponse.API_2011_UserNotExist
         if 'hidden_profile' in user_basic:
@@ -606,7 +608,9 @@ class ExternalAPI:
     @ExceptionLogger.handle_program_exception_async
     async def get_user_cb(account_id: int):
         base_url = EnvConfig.endpoints.OFFICIAL_API
-        api_token = EnvConfig.endpoints.API_TOKEN
+        api_token = EnvConfig.API_TOKEN
+        if not base_url or not api_token:
+            return JSONResponse.API_2007_RegionNotSupported
         urls = [
             f'{base_url}/wows/clans/seasonstats/?application_id={api_token}&account_id={account_id}',
             f'{base_url}/wows/account/achievements/?application_id={api_token}&account_id={account_id}'

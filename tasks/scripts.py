@@ -95,7 +95,6 @@ def refresh_user(account_id: int):
     elif 'statistics' not in result:
         user_data['is_enabled'] = 0
     elif 'basic' not in result['statistics']:
-        user_data['is_enabled'] = 1
         user_data['username'] = result['name']
         user_data['register_time'] = int(result['created_at'])
     else:
@@ -178,6 +177,7 @@ def refresh_user(account_id: int):
                     UPDATE T_user_stats 
                     SET 
                         is_enabled = 0, 
+                        activity_level = 0, 
                         updated_at = CURRENT_TIMESTAMP 
                     WHERE account_id = %s;
                 """
@@ -189,6 +189,7 @@ def refresh_user(account_id: int):
                     SET 
                         is_enabled = 1, 
                         is_public = 0, 
+                        activity_level = 0, 
                         updated_at = CURRENT_TIMESTAMP 
                     WHERE account_id = %s;
                 """

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}概览 - KokomiAPI Dashboard{% endblock %}
+{% block page_title %}概览{% endblock %}
+
+{% block content %}
+<!-- 指标卡片行 -->
+<div class="cards-row overview-cards">
+    {% for card in cards %}
+    <div class="metric-card" style="border-top: 3px solid {{ card.color }};">
+        <div class="card-header">
+            <span class="card-icon">{{ card.icon }}</span>
+            <span class="card-title">{{ card.title }}</span>
+        </div>
+        <div class="card-value">{{ card.value }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 全宽柱状图 -->
+<div class="chart-panel-full overview-chart">
+    <div id="overview-bar-chart" class="chart-container"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+    var chartData = JSON.parse('{{ overview_chart_json | safe }}');
+    var chart = echarts.init(document.getElementById('overview-bar-chart'));
+    var option = {
+        title: {
+            text: chartData.title,
+            left: 'center',
+            textStyle: { fontSize: 14, color: '#333' }
+        },
+        tooltip: { 
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' }
+        },
+        grid: { 
+            left: '3%', 
+            right: '4%', 
+            bottom: '10%', 
+            containLabel: true 
+        },
+        xAxis: {
+            type: 'category',
+            data: chartData.labels,
+            axisLabel: { 
+                rotate: 30, 
+                fontSize: 11,
+                interval: 0
+            }
+        },
+        yAxis: { 
+            type: 'value',
+            name: chartData.yAxisName || '数值'
+        },
+        series: [{
+            data: chartData.values,
+            type: 'bar',
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: '#83bff6' },
+                    { offset: 1, color: '#188df0' }
+                ]),
+                borderRadius: [4, 4, 0, 0]
+            },
+            barMaxWidth: 50
+        }]
+    };
+    chart.setOption(option);
+    window.addEventListener('resize', function() { chart.resize(); });
+})();
+</script>
+{% endblock %}

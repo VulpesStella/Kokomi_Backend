@@ -293,7 +293,6 @@ def refresh_user(mysql_connection: Connection, account_id: int, result: dict):
     elif 'statistics' not in result:
         user_data['is_enabled'] = 0
     elif 'basic' not in result['statistics']:
-        user_data['is_enabled'] = 1
         user_data['username'] = result['name']
         user_data['register_time'] = int(result['created_at'])
     else:
@@ -375,6 +374,7 @@ def refresh_user(mysql_connection: Connection, account_id: int, result: dict):
                     UPDATE T_user_stats 
                     SET 
                         is_enabled = 0, 
+                        activity_level = 0, 
                         updated_at = CURRENT_TIMESTAMP 
                     WHERE account_id = %s;
                 """
@@ -386,6 +386,7 @@ def refresh_user(mysql_connection: Connection, account_id: int, result: dict):
                     SET 
                         is_enabled = 1, 
                         is_public = 0, 
+                        activity_level = 0, 
                         updated_at = CURRENT_TIMESTAMP 
                     WHERE account_id = %s;
                 """
@@ -508,7 +509,7 @@ def refresh_leaderboard(
                     account_id, 
                     rating
                 FROM T_ship_pvp_leaderboard
-                WHERE ship_id = %s
+                WHERE ship_id = %s;
             """
             cursor.execute(sql, [update_id])
             rows = cursor.fetchall()
@@ -517,7 +518,8 @@ def refresh_leaderboard(
                 pipe = redis_client.pipeline()
                 pipe.delete(key)
                 for acc, rating in rows:
-                    pipe.zadd(key, {str(acc): float(rating)})
+                    if rating >= 0:
+                        pipe.zadd(key, {str(acc): float(rating)})
                 pipe.execute()
                 row_count = len(rows)
             else:

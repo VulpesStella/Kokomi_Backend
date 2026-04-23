@@ -22,7 +22,7 @@ class TokenAPI:
     @ExceptionLogger.handle_program_exception_async
     async def set_auth(account_id: int, access_token: str, expires_at: int):
         redis_key = f"token:auth:{account_id}"
-        vaildity = expires_at-TimeUtils.timestamp() - 60
+        vaildity = expires_at - TimeUtils.timestamp() - 60
         result = await RedisClient.set(redis_key,access_token,vaildity)
         return result
     

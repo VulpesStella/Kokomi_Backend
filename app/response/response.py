@@ -41,7 +41,8 @@ class JSONResponse:
     API_2013_UserDataisNone = {'status': 'ok','code': 2013,'message': 'UserDataisNone'}
     API_2014_ClanDataisNone = {'status': 'ok','code': 2014,'message': 'ClanDataisNone'}
     API_2015_UserHiddenProfite = {'status': 'ok','code': 2015,'message': 'UserHiddenProfite'}
-
+    API_2016_UserNotInDB = {'status': 'ok', 'code': 2016, 'message': 'UserNotInDB'}
+    API_2017_ClanNotInDB = {'status': 'ok', 'code': 2017, 'message': 'ClanNotInDB'}
     # API_20_ = {'status': 'ok','code': 20,'message': ''}
 
 

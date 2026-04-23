@@ -1,6 +1,7 @@
 __pycache__/
 .venv/
 .idea/
+.vscode/
 .VSCodeCounter/
 *.pyc
 env.dev

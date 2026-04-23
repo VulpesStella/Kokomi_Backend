@@ -25,7 +25,7 @@ SELECT
     uc.clan_id,
     c.tag AS clan_tag,
     c.league,
-    uc.updated_at
+    c.updated_at
 FROM T_user_base u
 LEFT JOIN T_user_clan uc
     ON u.account_id = uc.account_id

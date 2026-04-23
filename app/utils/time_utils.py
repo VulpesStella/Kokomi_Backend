@@ -36,6 +36,23 @@ class TimeUtils:
         if timestamp is None:
             return None
         return datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime(strftime)
+    
+    def calu_time_diff(timestamp):
+        """
+        计算当前时间与输入时间戳的差值
+        """
+        current = time.time()
+        if timestamp < current:
+            return '-1'
+        diff = timestamp - current
+        days = int(diff // 86400)
+        hours = int((diff % 86400) // 3600)
+        minutes = int((diff % 3600) // 60)
+        seconds = int(diff % 60)
+        if days != 0:
+            return f"{days}d {hours}h {minutes}m {seconds}s"
+        else:
+            return f"{hours}h {minutes}m {seconds}s"
 
     def async_timing(func):
         """

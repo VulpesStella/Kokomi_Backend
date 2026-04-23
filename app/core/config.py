@@ -16,8 +16,6 @@ class RuntimeConfig:
     MYSQL_USERNAME: str
     MYSQL_PASSWORD: str
     MYSQL_DATABASE: str
-
-    SQLITE_PATH: str
     
     REDIS_HOST: str
     REDIS_PORT: int
@@ -32,24 +30,23 @@ class EndpointsConfig:
     VORTEX_API: list
     CLAN_API: str
     OFFICIAL_API: str | None
-    API_TOKEN: str | None
 
 @dataclass(frozen=True)
 class ConstantsConfig:
-    TIME_DIFFERENCES: list
-    FIELD_COLOR_INDEX: list
-    OLD_SHIP_ID_LIST: list
-    USER_REFRESH_INTERVAL: dict[str, list]
-    BATTLES_LIMIT: dict[str, int]
+    USER_INIT_TABLE_LIST: list
+    CLAN_INIT_TABLE_LIST: list
+    RANKING_BATTLES_LIMIT: list
 
 class EnvConfig:
     config = None
     endpoints = None
     constants = None
-    REGION = None
-    UID_RULE = None
+    REGION: str = None
+    UID_RULE: list = None
+    API_TOKEN: str = None
     DATA_DIR = Path('/app/data')
     LOG_DIR = Path('/app/logs')
+    SQLITE_DIR = Path('/app/data/db')
 
     @classmethod
     def init(cls) -> str | None:
@@ -71,7 +68,6 @@ class EnvConfig:
             MYSQL_USERNAME = os.getenv("MYSQL_USER"),
             MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD"),
             MYSQL_DATABASE = os.getenv("MYSQL_DATABASE"),
-            SQLITE_PATH = os.getenv("SQLITE_PATH"),
             REDIS_HOST = os.getenv("REDIS_HOST"),
             REDIS_PORT = os.getenv("REDIS_PORT"),
             REDIS_PASSWORD = os.getenv("REDIS_PASSWORD"),
@@ -81,28 +77,26 @@ class EnvConfig:
         )
         cls.DATA_DIR = Path(os.getenv("DATA_DIR"))
         cls.LOG_DIR = Path(os.getenv("LOG_DIR"))
+        cls.SQLITE_DIR = Path(os.getenv("SQLITE_DIR"))
         file_path = cls.DATA_DIR / 'json/init_marker.json'
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
             cls.REGION = data['region']
-        file_path = cls.DATA_DIR / 'json/endpoints.json'
+        file_path = cls.DATA_DIR / 'const/endpoints.json'
         with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+            data = json.load(f)[cls.REGION]
             cls.endpoints = EndpointsConfig(
                 VORTEX_API=data['vortex_api'],
                 CLAN_API=data['clan_api'],
-                OFFICIAL_API=data['official_api'],
-                API_TOKEN=data['api_token']
+                OFFICIAL_API=data['official_api']
             )
             cls.UID_RULE=data['uid_rule']
-        file_path = cls.DATA_DIR / 'json/constants.json'
+        file_path = cls.DATA_DIR / 'const/constants.json'
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
             cls.constants = ConstantsConfig(
-                TIME_DIFFERENCES=data['TIME_DIFFERENCES'],
-                FIELD_COLOR_INDEX=data['FIELD_COLOR_INDEX'],
-                OLD_SHIP_ID_LIST=data['OLD_SHIP_ID_LIST'],
-                USER_REFRESH_INTERVAL=data['USER_REFRESH_INTERVAL'],
-                BATTLES_LIMIT=data['BATTLES_LIMIT']
+                USER_INIT_TABLE_LIST=data['USER_INIT_TABLE_LIST'],
+                CLAN_INIT_TABLE_LIST=data['CLAN_INIT_TABLE_LIST'],
+                RANKING_BATTLES_LIMIT=data['RANKING_BATTLES_LIMIT']
             )
         return env_file

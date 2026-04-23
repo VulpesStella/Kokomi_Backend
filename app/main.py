@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import random
 import asyncio
-import datetime
 import threading
 from fastapi import FastAPI, Request, Security
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
 # from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from starlette.responses import StreamingResponse
 
@@ -23,7 +21,7 @@ from app.middlewares import (
     RedisConnection,
     get_role,
 )
-
+from app.dashboard import dashboard_router
 from app.routers import (
     platform_router, 
     demo_router, 
@@ -101,10 +99,12 @@ async def lifespan(app: FastAPI):
         task.cancel()  
 
 
-# 初始化模板
-templates = Jinja2Templates(directory="app/templates")
+# # 初始化模板
+# templates = Jinja2Templates(directory="app/templates")
 # 加载APP
 app = FastAPI(lifespan=lifespan)
+# 挂载静态文件
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # # 消息压缩
 # app.add_middleware(
@@ -156,67 +156,17 @@ async def root():
     """
     return {'status':'ok','messgae':'Hello! Welcome to KokomiPlatform Interface.'}
 
-@app.get("/status/", summary="API指标", tags=['Default'])
-async def testRootPermission():
-    return await StatusAPI.api_stats()
-
 @app.get("/permission/", summary="测试当前token是否可用", tags=['Default'])
 async def testRootPermission(role: bool = Security(get_role)):
     return API_JSONResponse.get_success_response(role)
 
-@app.get("/dashboard/", response_class=HTMLResponse, summary="Dashboard", tags=['Default'])
-async def dashboard(request: Request):
-    today = datetime.date.today()
+@app.get("/dashboard")
+async def redirect():
+    """重定向到看板首页"""
+    return RedirectResponse(url="/dashboard/overview")
 
-    days = [
-        (today - datetime.timedelta(days=i)).isoformat()
-        for i in range(14, -1, -1)
-    ]
-    data = {
-
-        "api_metrics": {
-            "Today Requests": 84211,
-            "Today Errors": 12,
-            "Avg Latency (ms)": 34,
-            "API Calls": 125411,
-            "API Failures": 212,
-            "Celery Tasks": 45221
-        },
-
-        "database": {
-            "MySQL Users": 15231,
-            "MySQL Clans": 421,
-            "MySQL Recent": 892123,
-            "MySQL Recents": 32122,
-            "SQLite Files": 54,
-            "SQLite Size (MB)": 312
-        },
-
-        "charts":[
-            {
-                "id":"request_chart",
-                "title":"Request Trend",
-                "x":days,
-                "y":[random.randint(5000, 20000) for _ in days]
-            },
-            {
-                "id":"error_chart",
-                "title":"Error Trend",
-                "x":days,
-                "y":[random.randint(0, 30) for _ in days]
-            }
-        ]
-
-    }
-
-    return templates.TemplateResponse(
-        "dashboard.html",
-        {
-            "request": request,
-            "node_region": "Asia",
-            **data
-        }
-    )
+# 注册看板路由
+app.include_router(dashboard_router, prefix="/dashboard", tags=['Dashboard'])
 
 # ------------------------------------------------------
 # 在主路由中注册子路由

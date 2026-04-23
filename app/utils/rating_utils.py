@@ -76,17 +76,3 @@ class RatingUtils:
             if rating < data[i]:
                 return i + 1, round(data[i]-rating, 2)
         return 8, round(rating - 67, 2)
-        
-    def get_content_class(
-        index: int, 
-        value: int | float
-    ) -> int:
-        '''index [wr, dmg, frag, pr, sr]'''
-        index_list = EnvConfig.constants.FIELD_COLOR_INDEX
-        if value == -1:
-            return 0
-        data = index_list[index]
-        for i in range(len(data)):
-            if value < data[i]:
-                return i + 1
-        return 8

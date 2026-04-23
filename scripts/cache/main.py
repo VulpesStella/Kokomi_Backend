@@ -46,7 +46,8 @@ async def main():
                 raise ValueError()
             redis_key = f"leaderboard:refresh_time"
             refresh_time = redis_client.get(redis_key)
-            if refresh_data['refresh'] != None and str(refresh_data['refresh']) != refresh_time:
+            refresh_time = 0 if refresh_time is None else int(refresh_time)
+            if int(time.time()) - refresh_time >= 24*60*60:
                 refresh_result = refresh_leaderboard(
                     mysql_connection=mysql_connection,
                     redis_client=redis_client,

@@ -66,7 +66,7 @@ CREATE TABLE T_ship_base (
     index_code       VARCHAR(50)  DEFAULT NULL,
     -- 记录数据创建的时间和更新时间
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id), -- 主键
@@ -93,7 +93,7 @@ CREATE TABLE T_ship_name (
     verify           BOOLEAN      DEFAULT FALSE,
     -- 记录数据创建的时间和更新时间
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id), -- 主键
@@ -158,7 +158,7 @@ CREATE TABLE T_ship_stats_by_recent_archive (
     scouting_damage  BIGINT       NOT NULL DEFAULT 0,
     potential_damage BIGINT       NOT NULL DEFAULT 0,
 
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id),
@@ -252,7 +252,7 @@ CREATE TABLE T_ship_pvp_record (
     
     -- 记录数据创建的时间和更新时间
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id), -- 主键
@@ -276,7 +276,8 @@ CREATE TABLE T_ship_pvp_leaderboard (
     max_exp          INT          NOT NULL,
     max_damage       INT          NOT NULL,
 
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
     -- 主键
     UNIQUE INDEX idx_sid_and_aid (ship_id, account_id)
 ) 
@@ -378,7 +379,8 @@ CREATE TABLE T_clan_stats (
     team_data        JSON         DEFAULT NULL,
     last_battle_at   TIMESTAMP    DEFAULT NULL,
     created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    DEFAULT NULL,
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id), -- 主键
 
@@ -536,7 +538,8 @@ CREATE TABLE T_user_config (
     last_query_at    TIMESTAMP    DEFAULT NULL,   -- 用户上次查询的时间
     -- 记录数据创建的时间和更新时间
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    DEFAULT NULL,
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id), -- 主键
 

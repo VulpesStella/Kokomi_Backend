@@ -67,8 +67,6 @@ class HttpClient:
         requset_code = res.status_code
         requset_result = res.json()
         if requset_code == 200:
-            if requset_result['status'] == 'error':
-                return JSONResponse.API_1000_Success
             return JSONResponse.get_success_response(requset_result)
         else:
             api_logger.warning(f"Code{requset_code} {url}")

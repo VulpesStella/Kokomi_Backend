@@ -2,7 +2,7 @@ from .req_params import PVPField
 from .req_body import (
     ShipFilter, AuthResponse, ACResponse
 )
-from .data_user import ClanBaseData, UserBasicData
+from .data_user import ClanBasicData, UserBasicData
 from .typed_dict import ShipDataDict, ServerDataDict, ShipInfoDict
 
 __all__ = [
@@ -10,7 +10,7 @@ __all__ = [
     'PVPField',
     'AuthResponse',
     'ACResponse',
-    'ClanBaseData', 
+    'ClanBasicData', 
     'UserBasicData',
     'ShipDataDict',
     'ServerDataDict',
