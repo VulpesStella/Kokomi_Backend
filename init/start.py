@@ -78,10 +78,10 @@ def main():
     with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
         REGION: str = data['region']
-    file_path = DATA_DIR / 'json/endpoints.json'
+    file_path = DATA_DIR / 'const/endpoints.json'
     with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
-        CLAN_API: str = data['clan_api']
+        CLAN_API: str = data[REGION]['clan_api']
     total_list = get_clan_rank_data(REGION, CLAN_API)
     print(f'Regional clan: {len(total_list)}')
     conn = pymysql.connect(**MYSQL_CONFIG)
@@ -93,14 +93,14 @@ def main():
             sql = """
                 SELECT 
                     clan_id 
-                FROM clan_base 
+                FROM T_clan_base 
                 WHERE clan_id = %s;
             """
             cursor.execute(sql, [clan_data[0]])
             clan = cursor.fetchone()
             if clan is None:
                 sql = """
-                    INSERT INTO clan_base (
+                    INSERT INTO T_clan_base (
                         clan_id, 
                         tag, 
                         league, 
@@ -111,7 +111,7 @@ def main():
                 """
                 cursor.execute(sql, [clan_data[0],clan_data[1],clan_data[2]])
                 sql = """
-                    INSERT INTO clan_users (
+                    INSERT INTO T_clan_users (
                         clan_id
                     ) VALUES (
                         %s
@@ -119,6 +119,24 @@ def main():
                 """
                 cursor.execute(sql, [clan_data[0]])
                 add_clan += 1
+                sql = """
+                    UPDATE T_clan_base 
+                    SET 
+                        verify = 1 
+                    WHERE clan_id = %s;
+                """
+                cursor.execute(sql, [clan_data[0]])
+            else:
+                
+                sql = """
+                    UPDATE T_clan_base 
+                    SET 
+                        tag = %s, 
+                        league = %s, 
+                        touch_at = CURRENT_TIMESTAMP 
+                    WHERE clan_id = %s;
+                """
+                cursor.execute(sql, [clan_data[1],clan_data[2],clan_data[0]])
         conn.commit()
     except Exception:
         conn.rollback()

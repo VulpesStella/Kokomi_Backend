@@ -1,17 +1,7 @@
-# import pika
 from celery import Celery
-# from celery.app.base import logger
 
 from .settings import RABBITMQ_CONFIG
 
-
-# params = pika.URLParameters(
-#     "amqp://{RABBITMQ_USERNAME}:{RABBITMQ_PASSWORD}@{RABBITMQ_HOST}/"
-# )
-# connection = pika.BlockingConnection(params)
-# channel = connection.channel()
-# logger.info("RabbitMQ connected OK")
-# connection.close()
 
 # 创建 Celery 应用
 celery_app = Celery(
@@ -28,5 +18,4 @@ celery_app.conf.update(
         "tasks.add.refresh": {"queue": "refresh_queue"}
     }
 )
-
 celery_app.conf.result_expires = 86400  # 设置任务结果过期时间为 24 小时（86400 秒）

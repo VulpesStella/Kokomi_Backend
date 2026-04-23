@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 from pathlib import Path
 from datetime import datetime
@@ -6,8 +7,8 @@ from datetime import datetime
 
 CLIENT_NAME = 'Maintenanse'
 REFRESH_INTERVAL = 60
-BATCH_SIZE = 10000
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
+USE_TQDM = sys.stdout.isatty()
 
 if os.getenv('PLATFORM') is None:
     from dotenv import load_dotenv
@@ -18,10 +19,7 @@ else:
 
 LOG_LEVEL = os.getenv("LOG_LEVEL")
 LOG_DIR = Path(os.getenv("LOG_DIR"))
-TEMP_DIR = Path(os.getenv("TEMP_DIR"))
 DATA_DIR = Path(os.getenv("DATA_DIR"))
-WG_API_TOKEN = os.getenv("WG_API_TOKEN")
-LESTA_API_TOKEN = os.getenv("LESTA_API_TOKEN")
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST"),
     "port": int(os.getenv("MYSQL_PORT", 3306)),
@@ -47,8 +45,13 @@ file_path = DATA_DIR / 'json/init_marker.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     REGION: str = data['region']
-    print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Init config loaded: init_marker.json")
-file_path = DATA_DIR / 'json/endpoints.json'
+file_path = DATA_DIR / 'const/endpoints.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
-    VORTEX_API: list = data['vortex_api']
+    VORTEX_API: list = data[REGION]['vortex_api']
+file_path = DATA_DIR / 'const/constants.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    USER_INIT_TABLE_LIST: list = data['USER_INIT_TABLE_LIST']
+    CLAN_INIT_TABLE_LIST: list = data['CLAN_INIT_TABLE_LIST']
+print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Configuration data loading complete")

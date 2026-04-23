@@ -26,11 +26,16 @@ class TimeUtils:
         """
         获取指定时区的当前时间（ISO 8601 格式，默认当前时区）
         """
-        return datetime.now().isoformat(timespec="seconds")
+        return datetime.now(timezone.utc).isoformat(timespec="seconds")
     
     @staticmethod
     def fromtimestamp(timestamp: int, strftime: str = "%Y-%m-%d %H:%M:%S"):
-        return datetime.fromtimestamp(timestamp).strftime(strftime)
+        """
+        获取指定时间戳的UTC时间（默认 %Y-%m-%d %H:%M:%S 格式）
+        """
+        if timestamp is None:
+            return None
+        return datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime(strftime)
 
     def async_timing(func):
         """

@@ -1,5 +1,6 @@
 .venv/
 .git/
+.idea/
 __pycache__/
 dashboard/
 docs/

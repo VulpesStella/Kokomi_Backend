@@ -1,5 +1,4 @@
 from app.loggers import ExceptionLogger
-from app.utils import TimeUtils
 from app.health import ServiceMetrics
 from app.response import JSONResponse
 

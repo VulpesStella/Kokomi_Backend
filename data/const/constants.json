@@ -1,0 +1,144 @@
+{
+  "SHIP_TYPE_MAP": {
+    "AirCarrier": 1,
+    "Battleship": 2,
+    "Cruiser": 3,
+    "Destroyer": 4,
+    "Submarine": 5
+  },
+  "SHIP_NATION_MAP": {
+    "usa": 1,
+    "japan": 2,
+    "germany": 3,
+    "uk": 4,
+    "ussr": 5,
+    "france": 6,
+    "italy": 7,
+    "pan_asia": 8,
+    "europe": 9,
+    "netherlands": 10,
+    "commonwealth": 11,
+    "pan_america": 12,
+    "spain": 13
+  },
+  "SHIP_RARITY_MAP": {
+    "Common": 1,
+    "Uncommon": 2,
+    "Rare": 3,
+    "Epic": 4,
+    "Legendary": 5
+  },
+  "USER_INIT_TABLE_LIST": [
+    "T_user_stats",
+    "T_user_clan",
+    "T_user_pvp",
+    "T_user_pvp_record",
+    "T_user_config"
+  ],
+  "CLAN_INIT_TABLE_LIST": ["T_clan_users", "T_clan_stats"],
+  "RANKING_BATTLES_LIMIT": {
+    "6": 40,
+    "7": 40,
+    "8": 40,
+    "9": 50,
+    "10": 60,
+    "11": 60
+  },
+  "CLAN_REALM_MAP": {
+    "asia": "sg",
+    "eu": "eu",
+    "na": "us",
+    "ru": "ru",
+    "cn": "cn360"
+  },
+  "CLAN_LEAGUE_LIST": [
+    [0, 1],
+    [1, 1],
+    [1, 2],
+    [1, 3],
+    [2, 1],
+    [2, 2],
+    [2, 3],
+    [3, 1],
+    [3, 2],
+    [3, 3],
+    [4, 1],
+    [4, 2],
+    [4, 3]
+  ],
+  "CLAN_BATTLE_WINDOWS": [
+    [
+      [
+        [0, 30],
+        [4, 30],
+        ["asia", "eu", "na"]
+      ]
+    ],
+    [],
+    [
+      [
+        [11, 30],
+        [15, 30],
+        ["asia", "eu", "na", "cn"]
+      ],
+      [
+        [18, 0],
+        [22, 0],
+        ["asia", "eu", "na"]
+      ]
+    ],
+    [
+      [
+        [0, 30],
+        [4, 30],
+        ["asia", "eu", "na"]
+      ],
+      [
+        [11, 30],
+        [15, 30],
+        ["asia", "eu", "na", "cn"]
+      ],
+      [
+        [18, 0],
+        [22, 0],
+        ["asia", "eu", "na"]
+      ]
+    ],
+    [
+      [
+        [0, 30],
+        [4, 30],
+        ["asia", "eu", "na"]
+      ]
+    ],
+    [
+      [
+        [11, 30],
+        [15, 30],
+        ["asia", "eu", "na", "cn"]
+      ],
+      [
+        [18, 0],
+        [22, 0],
+        ["asia", "eu", "na"]
+      ]
+    ],
+    [
+      [
+        [0, 30],
+        [4, 30],
+        ["asia", "eu", "na"]
+      ],
+      [
+        [11, 30],
+        [15, 30],
+        ["asia", "eu", "na", "cn"]
+      ],
+      [
+        [18, 0],
+        [22, 0],
+        ["asia", "eu", "na"]
+      ]
+    ]
+  ]
+}

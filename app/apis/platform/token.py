@@ -1,6 +1,5 @@
 from app.loggers import ExceptionLogger
 from app.middlewares import RedisClient
-from app.schemas import ACResponse, AuthResponse
 from app.utils import TimeUtils
 from app.network import ExternalAPI
 from app.response import JSONResponse

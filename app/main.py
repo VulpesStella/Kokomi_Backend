@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import random
 import asyncio
+import datetime
 import threading
 from fastapi import FastAPI, Request, Security
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 # from fastapi.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
@@ -162,6 +164,59 @@ async def testRootPermission():
 async def testRootPermission(role: bool = Security(get_role)):
     return API_JSONResponse.get_success_response(role)
 
+@app.get("/dashboard/", response_class=HTMLResponse, summary="Dashboard", tags=['Default'])
+async def dashboard(request: Request):
+    today = datetime.date.today()
+
+    days = [
+        (today - datetime.timedelta(days=i)).isoformat()
+        for i in range(14, -1, -1)
+    ]
+    data = {
+
+        "api_metrics": {
+            "Today Requests": 84211,
+            "Today Errors": 12,
+            "Avg Latency (ms)": 34,
+            "API Calls": 125411,
+            "API Failures": 212,
+            "Celery Tasks": 45221
+        },
+
+        "database": {
+            "MySQL Users": 15231,
+            "MySQL Clans": 421,
+            "MySQL Recent": 892123,
+            "MySQL Recents": 32122,
+            "SQLite Files": 54,
+            "SQLite Size (MB)": 312
+        },
+
+        "charts":[
+            {
+                "id":"request_chart",
+                "title":"Request Trend",
+                "x":days,
+                "y":[random.randint(5000, 20000) for _ in days]
+            },
+            {
+                "id":"error_chart",
+                "title":"Error Trend",
+                "x":days,
+                "y":[random.randint(0, 30) for _ in days]
+            }
+        ]
+
+    }
+
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "node_region": "Asia",
+            **data
+        }
+    )
 
 # ------------------------------------------------------
 # 在主路由中注册子路由

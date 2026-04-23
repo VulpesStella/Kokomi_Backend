@@ -1,13 +1,14 @@
 import os
+import sys
 import json
 from pathlib import Path
 from datetime import datetime
 
 
 CLIENT_NAME = 'UserCache'
-REFRESH_INTERVAL = 3600
-BATCH_SIZE = 1000
+REFRESH_INTERVAL = 600
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
+USE_TQDM = sys.stdout.isatty()
 
 if os.getenv('PLATFORM') is None:
     from dotenv import load_dotenv
@@ -39,8 +40,12 @@ file_path = DATA_DIR / 'json/init_marker.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     REGION: str = data['region']
-    print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Init config loaded: init_marker.json")
-file_path = DATA_DIR / 'json/endpoints.json'
+file_path = DATA_DIR / 'const/endpoints.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
-    VORTEX_API: list = data['vortex_api']
+    VORTEX_API: list = data[REGION]['vortex_api']
+file_path = DATA_DIR / 'const/constants.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    RANKING_BATTLES_LIMIT: dict = data['RANKING_BATTLES_LIMIT']
+print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Configuration data loading complete")

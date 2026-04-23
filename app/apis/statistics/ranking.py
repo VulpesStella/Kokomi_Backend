@@ -6,13 +6,6 @@ from app.response import JSONResponse
 from app.models import PlatyerModel, ClanModel
 from app.utils import NameUtils
 
-
-BATTLES_LIMIT = {
-    6: 40, 7: 40,
-    8: 40, 9: 50,
-    10: 60, 11: 60
-}
-
 class RankingAPI:
     @ExceptionLogger.handle_program_exception_async
     async def get_region_top(ship_id: int):
@@ -38,7 +31,7 @@ class RankingAPI:
         result = {
             'basic': {
                 'region': EnvConfig.REGION,
-                'limit': BATTLES_LIMIT.get(ship_tier),
+                'limit': EnvConfig.constants.BATTLES_LIMIT.get(str(ship_tier)),
                 'mtime': int(csv_path.stat().st_mtime)
             },
             'info': ship_info,

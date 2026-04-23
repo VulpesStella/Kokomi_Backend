@@ -40,6 +40,6 @@ def handle_program_exception_sync(func):
                 error_args = str(args) + str(kwargs),
                 error_info = traceback.format_exc()
             )
-            return 'program error'
+            return 'Program Error'
     return wrapper
     

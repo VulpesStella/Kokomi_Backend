@@ -8,136 +8,19 @@ from app.response import JSONResponse
 
 class PlatformModel:
     '''数据库管理相关的操作'''
-    async def get_innodb_trx():
-        '''检测数据库是否有未提交的事务'''
-        try:
-            conn: Connection = await MysqlConnection.get_connection()
-            await conn.begin()
-            cur: Cursor = await conn.cursor()
-
-            data = []
-            sql = """
-                SELECT 
-                    trx_id, 
-                    trx_mysql_thread_id, 
-                    trx_started, 
-                    trx_state, 
-                    trx_query 
-                FROM INFORMATION_SCHEMA.INNODB_TRX 
-                WHERE trx_state = 'RUNNING';
-            """
-            await cur.execute(sql)
-            rows = await cur.fetchall()
-            for row in rows:
-                data.append({
-                    'id': row[0],
-                    'thread_id': row[1],
-                    'strated': row[2],
-                    'state': row[3],
-                    'query': row[4]
-                })
-            
-            await conn.commit()
-            return JSONResponse.get_success_response(data)
-        except Exception as e:
-            await conn.rollback()
-            raise e
-        finally:
-            await cur.close()
-            await MysqlConnection.release_connection(conn)
-
-    async def kill_trx(thread_id: str):
-        '''删除未提交事务的thread_id'''
-        try:
-            conn: Connection = await MysqlConnection.get_connection()
-            await conn.begin()
-            cur: Cursor = await conn.cursor()
-
-            await cur.execute(
-                "KILL %s;"
-                [thread_id]
-            )
-
-            await conn.commit()
-            return JSONResponse.API_1000_Success
-        except Exception as e:
-            await conn.rollback()
-            raise e
-        finally:
-            await cur.close()
-            await MysqlConnection.release_connection(conn)
-
-    async def get_innodb_processlist():
-        '''获取数据库的连接数'''
-        try:
-            conn: Connection = await MysqlConnection.get_connection()
-            await conn.begin()
-            cur: Cursor = await conn.cursor()
-
-            data = []
-            sql = """
-                SELECT 
-                    * 
-                FROM performance_schema.processlist;
-            """
-            await cur.execute(sql)
-            rows = await cur.fetchall()
-            for row in rows:
-                data.append({
-                    'id': row[0],
-                    'user': row[1],
-                    'host': row[2],
-                    'db': row[3],
-                    'command': row[4],
-                    'time': row[5],
-                    'state': row[6],
-                    'info': row[7]
-                })
-            
-            await conn.commit()
-            return JSONResponse.get_success_response(data)
-        except Exception as e:
-            await conn.rollback()
-            raise e
-        finally:
-            await cur.close()
-            await MysqlConnection.release_connection(conn)
-
-    async def database_size():
-        '''计算数据库占用'''
-        try:
-            conn: Connection = await MysqlConnection.get_connection()
-            await conn.begin()
-            cur: Cursor = await conn.cursor()
-
-            sql = """
-                SELECT 
-                    ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS size_mb
-                FROM information_schema.tables
-                WHERE table_schema = DATABASE();
-            """
-            await cur.execute(sql)
-            data = await cur.fetchone()
-            if data:
-                mysql_size = data[0]
-
-            await conn.commit()
-            return JSONResponse.get_success_response(mysql_size)
-        except Exception as e:
-            await conn.rollback()
-            raise e
-        finally:
-            await cur.close()
-            await MysqlConnection.release_connection(conn)
-    
     @ExceptionLogger.handle_database_exception_async
-    async def get_basic_user_overview():
+    async def get_overview():
         try:
             conn: Connection = await MysqlConnection.get_connection()
             await conn.begin()
             cur: Cursor = await conn.cursor()
 
-            data = 0
+            result = {
+                'user': 0,
+                'clan': 0,
+                'recent': 0,
+                'recents': 0
+            }
             sql = """
                 SELECT 
                     COUNT(*) 
@@ -145,26 +28,7 @@ class PlatformModel:
             """
             await cur.execute(sql)
             row = await cur.fetchone()
-            data = row[0]
-            
-            await conn.commit()
-            return JSONResponse.get_success_response(data)
-        except Exception as e:
-            await conn.rollback()
-            raise e
-        finally:
-            await cur.close()
-            await MysqlConnection.release_connection(conn)
-
-    
-    @ExceptionLogger.handle_database_exception_async
-    async def get_basic_clan_overview():
-        try:
-            conn: Connection = await MysqlConnection.get_connection()
-            await conn.begin()
-            cur: Cursor = await conn.cursor()
-
-            data = 0
+            result['user'] = row[0]
             sql = """
                 SELECT 
                     COUNT(*) 
@@ -172,10 +36,24 @@ class PlatformModel:
             """
             await cur.execute(sql)
             row = await cur.fetchone()
-            data = row[0]
+            result['clan'] = row[0]
+            sql = """
+                SELECT 
+                    account_id,  
+                    enable_recent, 
+                    enable_daily
+                FROM recent;
+            """
+            await cur.execute(sql)
+            rows = cur.fetchall()
+            for row in rows:
+                if row[1] == 1:
+                    result['recent'] += 1
+                if row[2] == 1:
+                    result['recents'] += 1
             
             await conn.commit()
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.get_success_response(result)
         except Exception as e:
             await conn.rollback()
             raise e

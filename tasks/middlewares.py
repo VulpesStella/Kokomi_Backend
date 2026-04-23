@@ -28,7 +28,7 @@ try:
         user=MYSQL_CONFIG['user'],
         password=MYSQL_CONFIG['password'],
         charset="utf8mb4",
-        autocommit=False,
+        autocommit=False,      # 必须使用手动事务
         database=MYSQL_CONFIG['database']
     )
     print('[INIT] MySQL connection pool initialized')

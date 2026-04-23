@@ -1,5 +1,7 @@
 __pycache__/
 .venv/
+.idea/
+.VSCodeCounter/
 *.pyc
 env.dev
 env.prod

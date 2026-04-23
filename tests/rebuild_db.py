@@ -1,5 +1,6 @@
 import os
 import pymysql
+from pymysql.constants import CLIENT
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -13,23 +14,41 @@ DB_CONFIG = {
     'autocommit': False
 }
 DATABASE = os.getenv("MYSQL_DATABASE")
+ROOT_DIR = Path(__file__).resolve().parent.parent
 
-if __name__ == '__main__':
-    conn = pymysql.connect(**DB_CONFIG)
-    conn.begin()
+def rebuild_db():
+    conn = pymysql.connect(
+        **DB_CONFIG,
+        client_flag=CLIENT.MULTI_STATEMENTS
+    )
     cursor = conn.cursor()
-    ROOT_DIR = Path(__file__).resolve().parent.parent
     cursor.execute(f"DROP DATABASE IF EXISTS `{DATABASE}`;")
     cursor.execute(f"CREATE DATABASE `{DATABASE}`;")
     cursor.execute(f"USE `{DATABASE}`;")
-    sql_file = ROOT_DIR / "init/mysql/01-schema.sql"
-    with conn.cursor() as cursor:
+    sql_files = [
+        ROOT_DIR / "init/mysql/01-schemas.sql",
+        ROOT_DIR / "init/mysql/02-functions.sql",
+        ROOT_DIR / "init/mysql/03-views.sql",
+        ROOT_DIR / "init/mysql/04-datas.sql"
+    ]
+    for sql_file in sql_files:
         with sql_file.open("r", encoding="utf-8") as f:
             sql = f.read()
-            for statement in sql.split(";"):
-                stmt = statement.strip()
-                if stmt:
-                    cursor.execute(stmt)
+            cursor.execute(sql)
     conn.commit()
     conn.close()
-    print('Success')
+    print(f'Success: {DATABASE}')
+
+if __name__ == '__main__':
+    """用于在本地开发环境中，删除并重建数据库。
+
+    注意：严禁在开发环境下使用！！！
+
+    使用示例：
+    python tests/rebuild_db.py
+    """
+    # 仅允许在 Windows 环境执行
+    if os.name != 'nt':
+        print("❌ This script can only be run on Windows environment.")
+        exit(1)
+    rebuild_db()

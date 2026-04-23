@@ -1,25 +1,77 @@
 # Kokomi_API Project
 
-本项目主要用于实现对游戏 API 的高效请求与数据处理
+本项目主要用于实现对不同类型游戏 API 接口返回数据处理和封装，返回标准化后的数据
 
 ## 核心架构设计
 
 由于游戏 API 存在较高的跨地域请求延迟，本项目采用了分布式地区部署方案
 
-- 完整服务由 5 台 独立服务器组成，分别部署于游戏对应的 `亚服` `欧服` `美服` `俄服` `国服`
-- 每台服务器仅负责请求并处理所属地区的数据，避免跨区请求以保证效率
-- 各节点对原始 API 进行处理或者储存，返回经过逻辑处理后的标准化数据
-- 各节点不对外暴露，仅允许 Root 用户和主服务器进行远程访问
-- 各节点不暴露原始数据库或底层接口，仅作为处理后的数据中转站
+- 完整服务由 1 台主节点和 5 台子节点组成，子节点汇总必要数据发送给主节点
+- 子节点的物理地址分别位于`亚洲` `欧洲` `北美` `独联体` `中国`，以对应游戏的 5 个区服
+- 各子节点仅负责请求并处理所属地区的数据，避免跨区请求以保证效率
+- 各子节点对原始 API 数据进行处理或者储存，返回经过处理后的标准化数据
+- 各子节点均不对外暴露，仅允许主节点 IP 和 Root 用户进行远程访问
 
-> 后文旨在防止我自己忘记部署步骤 :)
+## Dev 环境部署
 
-## 环境要求
+> **⚠️ 仅适用于部署本地开发环境**
 
-| 组件       | 最低要求      | 推荐版本         |
-| ---------- | ------------- | ---------------- |
-| **System** | Ubuntu 20.04+ | **Ubuntu 24.04** |
-| **Python** | 3.10+         | **3.12**         |
+### 部署前提
+
+1. 确保 Python >= 3.10
+2. 克隆项目代码，并获取到项目的协作权限
+3. 部署在本地的 MySQL + Redis + RabbitMQ
+
+### 虚拟环境配置
+
+本项目采用虚拟环境管理配置，请不要直接安装包到本地环境中
+
+```bash
+# 生产环境下的必要模块：
+#     API本体：fastapi uvicorn jinja2
+#     ENV加载：python-dotenv
+#     网络请求：httpx requests
+#     数据库：aiomysql dbutils
+#     中间件：redis celery
+# 
+# 开发环境下的额外模块
+#     汉化支持：polib
+#     数据处理：pandas numpy msgpack
+#     控制台进度条：tqdm
+
+# 创建虚拟环境
+python -m venv .venv
+# 激活虚拟环境
+.venv/Scripts/activate    # windows
+# 在虚拟环境中安装所需依赖
+pip install -r requirements-dev.txt
+
+# 复制 env.example 并重命名为 env.dev
+# 完成 env.dev 文件中的所有配置项
+```
+
+### 项目初始化
+
+```bash
+# 执行项目和数据库初始化脚本
+# 参数1 region: asia, eu, na, ru, cn
+# 参数2 env_file: env.dev, env.prod (此处默认使用env.dev)
+python init/setup.py -r <region> -e env.dev
+```
+
+### 运行代码
+
+```bash
+# 加载测试用户集，通过读取当前赛季工会战排名，获取到数百个工会ID
+python init/start.py
+# 运行一次
+# 运行Celery（Windows环境不支持并发模式，开发环境只使用单线程模式）
+celery --app tasks.main:celery_app worker -Q refresh_queue -P solo --loglevel=info --concurrency=1
+```
+
+## Prod 环境部署
+
+> **⚠️ 仅支持通过 Docker 部署本项目**
 
 ### 拉取代码
 
@@ -62,7 +114,6 @@ sudo apt install -y python3-pip python3.12-venv
 # 创建虚拟环境
 python3 -m venv .venv
 # 激活虚拟环境
-.venv/Scripts/activate    # windows
 source .venv/bin/activate # linux
 # 安装依赖
 pip3 install --upgrade pip3
@@ -145,4 +196,7 @@ docker-compose logs -f
 docker-compose ps
 # 重构容器
 docker-compose up -d --build
+```
+```
+
 ```

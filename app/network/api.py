@@ -226,8 +226,6 @@ class ExternalAPI:
             if result['code'] != 1000:
                 return result
         # 效验用户ac是否有效
-        if response['data']:
-            user_basic = response['data'][str(account_id)]
         if user_basic == None:
             return JSONResponse.API_2011_UserNotExist
         if 'hidden_profile' not in user_basic:
@@ -238,7 +236,7 @@ class ExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_user_base(account_id: int, ac1: str = None):
-        """"""
+        """请求获取用户的基本数据，但不更新数据库"""
         base_url = random.choice(EnvConfig.endpoints.VORTEX_API)
         url = f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac1}' if ac1 else '')
         response = await HttpClient.get_user_data(url)
@@ -251,32 +249,32 @@ class ExternalAPI:
         # 刷新数据库数据
         if response['data']:
             user_basic = response['data'][str(account_id)]
+        if user_basic == None:
+            return JSONResponse.API_2011_UserNotExist
+        result = {
+            'account_id': account_id,
+            'is_enabled': 1,
+            'activity_level': None,
+            'is_public': None,
+            'username': None,
+            'register_time': None,
+            'total_battles': None,
+            'pvp_battles': None,
+            'ranked_battles': None,
+            'last_battle_at': None,
+            'insignias': None
+        }
         if 'hidden_profile' in user_basic:
-            refresh_user_data = UserBasicData(
-                account_id=account_id, 
-                is_enabled=1,
-                is_public=0,
-                activity_level=GameUtils.get_activity_level(is_public=0),
-                username=user_basic['name']
-            )
-            result = await PlatyerModel.refresh_base(refresh_user_data)
-            if result['code'] != 1000:
-                return result
+            result['is_public'] = 0
+            result['activity_level'] = GameUtils.get_activity_level(is_public=0)
+            result['username'] = user_basic['name']
         elif (
             user_basic == None or
             'statistics' not in user_basic or 
             'basic' not in user_basic['statistics'] or 
             user_basic['statistics']['basic']['leveling_points'] == 0
         ):
-            result = await PlatyerModel.refresh_base(
-                UserBasicData(
-                    account_id=account_id, 
-                    is_enabled=0,
-                    clan=ClanBaseData()
-                )
-            )
-            if result['code'] != 1000:
-                return result
+            result['is_enabled'] = 0
         else:
             if EnvConfig.REGION == 'ru':
                 ranked_count = 0
@@ -285,48 +283,20 @@ class ExternalAPI:
                 ranked_count += 0 if user_basic['statistics']['rating_div'] == {} else user_basic['statistics']['rating_div']['battles_count']
             else:
                 ranked_count = 0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count']
-            refresh_user_data = UserBasicData(
-                account_id=account_id, 
-                is_enabled=1,
-                is_public=1,
-                activity_level=GameUtils.get_activity_level(
-                    is_public=1, 
-                    total_battles=user_basic['statistics']['basic']['leveling_points'],
-                    last_battle_time=user_basic['statistics']['basic']['last_battle_time']
-                ),
-                username=user_basic['name'],
-                register_time=user_basic['statistics']['basic']['created_at'],
-                insignias=GameUtils.get_insignias(user_basic['dog_tag']),
+            result['is_public'] = 1
+            result['activity_level'] = GameUtils.get_activity_level(
+                is_public=1, 
                 total_battles=user_basic['statistics']['basic']['leveling_points'],
-                pvp_battles=0 if user_basic['statistics']['pvp'] == {} else user_basic['statistics']['pvp']['battles_count'],
-                ranked_battles=ranked_count,
-                last_battle_at=user_basic['statistics']['basic']['last_battle_time']
+                last_battle_time=user_basic['statistics']['basic']['last_battle_time']
             )
-            result = await PlatyerModel.refresh_base(refresh_user_data)
-            if result['code'] != 1000:
-                return result
-        # 处理数据成需要的返回格式
-        if response['data']:
-            user_basic = response['data'][str(account_id)]
-        if user_basic == None:
-            return JSONResponse.API_2011_UserNotExist
-        data = {
-            'account_id': account_id,
-            'username': None,
-            'register_time': None,
-            'last_battle_time': None,
-            'leveling_points': 0
-        }
-        data['username'] = user_basic['name']
-        if (
-            'statistics' in user_basic and
-            'basic' in user_basic['statistics'] and
-            user_basic['statistics']['basic'] != {}
-        ):
-            data['register_time'] = user_basic['statistics']['basic']['created_at']
-            data['last_battle_time'] = user_basic['statistics']['basic']['last_battle_time']
-            data['leveling_points'] = user_basic['statistics']['basic']['leveling_points']
-        return JSONResponse.get_success_response(data)
+            result['username'] = user_basic['name']
+            result['register_time'] = user_basic['statistics']['basic']['created_at']
+            result['total_battles'] = user_basic['statistics']['basic']['leveling_points']
+            result['pvp_battles'] = 0 if user_basic['statistics']['pvp'] == {} else user_basic['statistics']['pvp']['battles_count']
+            result['ranked_battles'] = ranked_count
+            result['last_battle_at'] = user_basic['statistics']['basic']['last_battle_time']
+            result['insignias'] = user_basic['dog_tag']
+        return JSONResponse.get_success_response(result)
          
     @staticmethod
     @ExceptionLogger.handle_program_exception_async

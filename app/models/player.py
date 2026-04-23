@@ -5,7 +5,7 @@ from app.database import MysqlConnection
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
 from app.schemas import UserBasicData
-from app.utils import GameUtils
+from app.utils import GameUtils, TimeUtils
 
 
 class PlatyerModel:
@@ -94,15 +94,9 @@ class PlatyerModel:
             await MysqlConnection.release_connection(conn)
 
     @ExceptionLogger.handle_database_exception_async
-    async def get_user_brief(account_id: int):
+    async def read_base(account_id: int):
         '''
-        从数据库中获取用户的基本数据，如果玩家或者工会的缓存数据不存在则返回none
-
-        用户数据为空或者隐藏战绩也返回none
-
-        参数：
-            account_id: 用户id
-            region_id: 服务器id
+        从数据库中获取用户的基本数据
         '''
         try:
             conn: Connection = await MysqlConnection.get_connection()
@@ -110,82 +104,213 @@ class PlatyerModel:
             cur: Cursor = await conn.cursor()
 
             data = {
-                'account_id': account_id,
-                'username': None,
-                'register_time': None,
-                'insignias': None,
-                'clan_id': None,
-                'clan_tag': None,
-                'clan_league': None
+                'uid': account_id,
+                'base': None,
+                'stats': None,
+                'cache': None,
+                'clan': None,
+                'private': None
+            }
+            # 读user_base库
+            sql = """
+                SELECT
+                    username,
+                    UNIX_TIMESTAMP(register_time),
+                    insignias,
+                    UNIX_TIMESTAMP(touch_at)
+                FROM user_base
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            row = await cur.fetchone()
+            if not row:
+                await conn.commit()
+                return JSONResponse.get_success_response(data)
+            data['base'] = {
+                'username': row[0],
+                'register_time': TimeUtils.fromtimestamp(row[1]),
+                'dog_tag': GameUtils.get_dog_tag(row[2]),
+                'last_touch_time': TimeUtils.fromtimestamp(row[3])
+            }
+            # 读user_stats库
+            sql = """
+                SELECT
+                    is_enabled,
+                    activity_level,
+                    is_public,
+                    total_battles,
+                    pvp_battles,
+                    ranked_battles,
+                    UNIX_TIMESTAMP(last_battle_at),
+                    UNIX_TIMESTAMP(touch_at)
+                FROM user_stats
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            row = await cur.fetchone()
+            if row:
+                data['stats'] = {
+                    'is_enabled': row[0],
+                    'activity_level': row[1],
+                    'is_public': row[2],
+                    'total_battles': row[3],
+                    'pvp_battles': row[4],
+                    'ranked_battles': row[5],
+                    'last_battle_time': TimeUtils.fromtimestamp(row[6]),
+                    'last_touch_time': TimeUtils.fromtimestamp(row[7])
+                }
+            # 读user_cache库
+            sql = """
+                SELECT
+                    pvp_count,
+                    win_rate,
+                    avg_damage,
+                    avg_frags,
+                    max_damage,
+                    max_damage_id,
+                    max_exp,
+                    max_exp_id
+                FROM user_cache
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            row = await cur.fetchone()
+            if row:
+                data['cache'] = {
+                    'pvp_count': row[0],
+                    'win_rate': row[1],
+                    'avg_damage': row[2],
+                    'avg_frags': row[3],
+                    'max_damage': row[4],
+                    'max_damage_ship_id': row[5],
+                    'max_exp': row[6],
+                    'max_exp_ship_id': row[7]
+                }
+            # 读user_clan库
+            sql = """
+                SELECT
+                    clan_id,
+                    UNIX_TIMESTAMP(touch_at)
+                FROM user_clan
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            row = await cur.fetchone()
+            if row:
+                data['clan'] = {
+                    'clan_id': row[0],
+                    'last_touch_time': TimeUtils.fromtimestamp(row[1])
+                }
+            # 读user_private库
+            sql = """
+                SELECT
+                    update_date,
+                    battles,
+                    life_time,
+                    distance,
+                    gold,
+                    free_xp,
+                    credits,
+                    slots,
+                    port,
+                    achieve
+                FROM user_private
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            row = await cur.fetchone()
+            if row:
+                data['private'] = {
+                    'update_date': row[0],
+                    'battles': row[1],
+                    'life_time': row[2],
+                    'distance': row[3],
+                    'gold': row[4],
+                    'free_xp': row[5],
+                    'credits': row[6],
+                    'slots': row[7],
+                    'port': row[8],
+                    'achieve': row[9]
+                }
+
+            await conn.commit()
+            return JSONResponse.get_success_response(data)
+        except Exception as e:
+            await conn.rollback()
+            raise e
+        finally:
+            await cur.close()
+            await MysqlConnection.release_connection(conn)
+
+    @ExceptionLogger.handle_database_exception_async
+    async def get_user_name(account_id: int):
+        '''
+        从数据库中获取用户的基本数据，如果玩家或者工会的缓存数据不存在则返回none
+        '''
+        try:
+            conn: Connection = await MysqlConnection.get_connection()
+            await conn.begin()
+            cur: Cursor = await conn.cursor()
+
+            result = {
+                'base': None,
+                'clan': None
             }
             # 从数据库中读取缓存数据
             sql = """
                 SELECT 
                     b.username, 
-                    UNIX_TIMESTAMP(b.register_time) AS register_time, 
-                    b.insignias, 
-                    UNIX_TIMESTAMP(b.touch_at) AS name_touch_time, 
-                    i.is_enabled, 
-                    i.is_public, 
-                    UNIX_TIMESTAMP(i.touch_at) AS info_touch_time 
+                    UNIX_TIMESTAMP(b.register_time), 
+                    b.insignias,
+                    c.clan_id 
                 FROM user_base as b 
-                LEFT JOIN user_stats as i 
-                  ON b.account_id = i.account_id 
+                LEFT JOIN user_clan as c 
+                  ON b.account_id = c.account_id 
                 WHERE b.account_id = %s;
             """
             await cur.execute(
-                sql,[account_id]
+                sql, account_id
             )
-            result = await cur.fetchone()
-            # 用户在数据库中不存在或者没有缓存数据
-            if (
-                result is None or 
-                result[3] is None or 
-                result[4] == 0 or 
-                result[5] == 0 or 
-                result[6] is None
-            ):
-                data = None
+            row = await cur.fetchone()
+            if row is None:
+                result = None
+            elif row[3] is None:
+                result['base'] = {
+                    'id': account_id,
+                    'username': row[0],
+                    'register_time': row[1],
+                    'insignias': row[2]
+                }
             else:
-                data['username'] = result[0]
-                data['register_time'] = result[1]
-                data['insignias'] = result[2]
+                clan_id = row[3]
+                result['base'] = {
+                    'id': account_id,
+                    'username': row[0],
+                    'register_time': row[1],
+                    'insignias': row[2]
+                }
                 sql = """
                     SELECT 
-                        clan_id, 
-                        UNIX_TIMESTAMP(touch_at) 
-                    FROM user_clan 
-                    WHERE account_id = %s;
+                        tag, 
+                        league 
+                    FROM clan_base 
+                    WHERE clan_id = %s;
                 """
                 await cur.execute(
-                    sql,[account_id]
+                    sql, clan_id
                 )
-                result = await cur.fetchone()
-                # 所在工会缓存数据不存在
-                if result[1] is None:
-                    data = None
-                elif result[0] != None:
-                    data['clan_id'] = result[0]
-                    sql = """
-                        SELECT 
-                            tag, 
-                            league 
-                        FROM clan_base 
-                        WHERE clan_id = %s;
-                    """
-                    await cur.execute(
-                        sql,[result[0]]
-                    )
-                    result = await cur.fetchone()
-                    # 判断工会数据是否在数据库中
-                    if result != None:
-                        data['clan_tag'] = result[0]
-                        data['clan_league'] = result[1]
-                    else:
-                        data = None
+                row = await cur.fetchone()
+                if row:
+                    result['clan'] = {
+                        'id': clan_id,
+                        'tag': row[0],
+                        'league': row[1]
+                    }
+                else:
+                    result = None
 
             await conn.commit()
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.get_success_response(result)
         except Exception as e:
             await conn.rollback()
             raise e

@@ -34,95 +34,24 @@ class GameUtils:
         }
 
     @staticmethod
-    def check_aid(account_id: int) -> bool:
+    def check_uid(account_id: int) -> bool:
         "检查account_id是否合法"
-        account_id_len = len(str(account_id))
-        if account_id_len > 10:
-            return False
-        # 由于不知道后续会使用什么字段
-        # 目前的检查逻辑是判断aid不在其他的字段内
-        region = EnvConfig.REGION
-
-        # 俄服 1-9 [~5字段]
-        if region == 'ru' and account_id_len < 9:
-            return True
-        elif (
-            region == 'ru' and 
-            account_id_len == 9 and 
-            int(account_id/100000000) not in [5,6,7,8,9]
-        ):
-            return True
-        # 欧服 9 [5~字段] 
-        if (
-            region == 'eu' and
-            account_id_len == 9 and
-            int(account_id/100000000) not in [1,2,3,4]
-        ):
-            return True
-        # 亚服 10 [2-3字段]
-        if (
-            region == 'asia' and 
-            account_id_len == 10 and
-            int(account_id/1000000000) not in [1,7]
-        ):
-            return True
-        # 美服 10 [1字段]
-        if (
-            region == 'na' and
-            account_id_len == 10 and
-            int(account_id/1000000000) not in [2,3,7]
-        ):
-            return True
-        # 国服 10 [7字段]
-        if (
-            region == 'cn' and
-            account_id_len == 10 and
-            int(account_id/1000000000) not in [1,2,3]
-        ):
+        uid_rule = EnvConfig.UID_RULE
+        if uid_rule[0] <= account_id <= uid_rule[1]:
             return True
         return False
     
     @staticmethod
-    def check_cid(clan_id: int) -> bool:
-        "检查clan_id和region_id是否合法"
-        clan_id_len = len(str(clan_id))
-        region = EnvConfig.REGION
-        # 亚服 10 [2字端]
-        if (
-            region == 'asia' and 
-            clan_id_len == 10 and
-            int(clan_id/1000000000) == 2
-        ):
-            return True
-        # 欧服 9 [5字段]
-        if (
-            region == 'eu' and 
-            clan_id_len == 9 and
-            int(clan_id/100000000) == 5
-        ):
-            return True
-        # 美服 10 [1字段]
-        if (
-            region == 'na' and 
-            clan_id_len == 10 and
-            int(clan_id/1000000000) == 1
-        ):
-            return True
-        # 俄服 6 [4字段]
-        if (
-            region == 'ru' and 
-            clan_id_len == 6 and
-            int(clan_id/100000) == 4
-        ):
-            return True
-        # 国服 10 [7字段]
-        if (
-            region == 'cn' and 
-            clan_id_len == 10 and
-            int(clan_id/1000000000) == 7
-        ):
-            return True
-        return False
+    def get_refresh_time(activity_level: int, lbt: int, enable_recent: bool, enable_daily: bool):
+        if enable_daily:
+            if lbt < 60*60:
+                return 5*60
+            else:
+                return EnvConfig.constants.USER_REFRESH_INTERVAL[str(activity_level)][2]
+        elif enable_recent:
+            return EnvConfig.constants.USER_REFRESH_INTERVAL[str(activity_level)][1]
+        else:
+            return EnvConfig.constants.USER_REFRESH_INTERVAL[str(activity_level)][0]
     
     @staticmethod
     def get_activity_level(is_public: bool, total_battles: int = 0, last_battle_time: int = 0):
@@ -145,15 +74,7 @@ class GameUtils:
         if total_battles == 0 or last_battle_time == 0:
             return 1
         current_timestamp = TimeUtils.timestamp()
-        time_differences = [
-            (1 * 24 * 60 * 60, 2),
-            (3 * 24 * 60 * 60, 3),
-            (7 * 24 * 60 * 60, 4),
-            (30 * 24 * 60 * 60, 5),
-            (90 * 24 * 60 * 60, 6),
-            (180 * 24 * 60 * 60, 7),
-            (360 * 24 * 60 * 60, 8),
-        ]
+        time_differences = EnvConfig.constants.TIME_DIFFERENCES
         time_since_last_battle = current_timestamp - last_battle_time
         for time_limit, return_value in time_differences:
             if time_since_last_battle <= time_limit:

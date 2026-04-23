@@ -34,10 +34,20 @@ class EndpointsConfig:
     OFFICIAL_API: str | None
     API_TOKEN: str | None
 
+@dataclass(frozen=True)
+class ConstantsConfig:
+    TIME_DIFFERENCES: list
+    FIELD_COLOR_INDEX: list
+    OLD_SHIP_ID_LIST: list
+    USER_REFRESH_INTERVAL: dict[str, list]
+    BATTLES_LIMIT: dict[str, int]
+
 class EnvConfig:
     config = None
     endpoints = None
+    constants = None
     REGION = None
+    UID_RULE = None
     DATA_DIR = Path('/app/data')
     LOG_DIR = Path('/app/logs')
 
@@ -83,5 +93,16 @@ class EnvConfig:
                 CLAN_API=data['clan_api'],
                 OFFICIAL_API=data['official_api'],
                 API_TOKEN=data['api_token']
+            )
+            cls.UID_RULE=data['uid_rule']
+        file_path = cls.DATA_DIR / 'json/constants.json'
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            cls.constants = ConstantsConfig(
+                TIME_DIFFERENCES=data['TIME_DIFFERENCES'],
+                FIELD_COLOR_INDEX=data['FIELD_COLOR_INDEX'],
+                OLD_SHIP_ID_LIST=data['OLD_SHIP_ID_LIST'],
+                USER_REFRESH_INTERVAL=data['USER_REFRESH_INTERVAL'],
+                BATTLES_LIMIT=data['BATTLES_LIMIT']
             )
         return env_file

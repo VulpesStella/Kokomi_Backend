@@ -1,4 +1,5 @@
 from app.schemas import ServerDataDict, ShipDataDict
+from app.core import EnvConfig
 
 
 class RatingUtils:
@@ -80,12 +81,8 @@ class RatingUtils:
         index: int, 
         value: int | float
     ) -> int:
-        index_list = [
-            [40, 45, 50, 52.5, 55, 60, 67],
-            [0.8, 0.95, 1.0, 1.1, 1.2, 1.4, 1.7],
-            [0.2, 0.3, 0.6, 1.0, 1.3, 1.5, 2],
-            [750, 1100, 1350, 1550, 1750, 2100, 2450]
-        ]
+        '''index [wr, dmg, frag, pr, sr]'''
+        index_list = EnvConfig.constants.FIELD_COLOR_INDEX
         if value == -1:
             return 0
         data = index_list[index]
