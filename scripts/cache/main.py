@@ -51,8 +51,7 @@ async def main():
                 refresh_result = refresh_leaderboard(
                     mysql_connection=mysql_connection,
                     redis_client=redis_client,
-                    ship_ids=list(ship_tier.keys()),
-                    refresh_time=refresh_data['refresh']
+                    ship_ids=list(ship_tier.keys())
                 )
                 logger.info(f'Leaderboard Refresh: {refresh_result}')
             update_ids = get_update_ids(mysql_connection)

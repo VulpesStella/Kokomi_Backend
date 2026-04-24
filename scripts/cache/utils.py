@@ -1,4 +1,5 @@
 import json
+import time
 import random
 import asyncio
 import traceback
@@ -438,8 +439,7 @@ def refresh_user(mysql_connection: Connection, account_id: int, result: dict):
 def refresh_leaderboard(
     mysql_connection: Connection, 
     redis_client: Redis,
-    ship_ids: list,
-    refresh_time: int
+    ship_ids: list
 ):
     redis_client.set(f'leaderboard:maintenance', 1, ex=3600)
     len_ship_ids = len(ship_ids)
@@ -537,7 +537,7 @@ def refresh_leaderboard(
         finally:
             cursor.close()
     redis_client.delete(f'leaderboard:maintenance')
-    redis_client.set(f'leaderboard:refresh_time', refresh_time)
+    redis_client.set(f'leaderboard:refresh_time', int(time.time()))
     return 'Success'
     
 async def update_user_cache(
