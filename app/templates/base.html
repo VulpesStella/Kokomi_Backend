@@ -19,7 +19,32 @@
 
         <!-- 节点标识 -->
         <div class="sidebar-node">
-          <span class="node-name">{{ node_name }}</span>
+            <div class="sidebar-node-header" onclick="toggleNodeInfo()">
+                <span class="node-name">{{ node_name }}</span>
+                <svg class="info-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
+            </div>
+            <div class="info-card" id="infoCard">
+                <div class="info-card-content">
+                    <div class="info-row">
+                        <span class="info-key">Region:</span>
+                        <span class="info-value">{{ node_info.Region }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-key">Timezone:</span>
+                        <span class="info-value">{{ node_info.Timezone }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-key">Location:</span>
+                        <span class="info-value">{{ node_info.Location }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-key">Init Time:</span>
+                        <span class="info-value">{{ node_info['Init Time'] }}</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 导航菜单 -->
@@ -29,15 +54,16 @@
             class="nav-item {% if active_page == 'overview' %}active{% endif %}"
           >
             <span class="nav-icon">📋</span>
-            <span class="nav-label">概览</span>
+            <span class="nav-label">Overview</span>
           </a>
           <a
-            href="/dashboard/api-stats"
-            class="nav-item {% if active_page == 'api_stats' %}active{% endif %}"
+            href="/dashboard/game-api"
+            class="nav-item {% if active_page == 'game-api' %}active{% endif %}"
           >
-            <span class="nav-icon">🔌</span>
-            <span class="nav-label">API 统计</span>
+            <span class="nav-icon">🎮</span>
+            <span class="nav-label">Game API</span>
           </a>
+          {#
           <div class="nav-section-title">更多</div>
           <a href="#" class="nav-item disabled">
             <span class="nav-icon">🌐</span>
@@ -49,6 +75,7 @@
             <span class="nav-label">Celery 任务</span>
             <span class="nav-badge">不久</span>
           </a>
+          #}
         </nav>
 
         <!-- 底部 GitHub 链接 -->
@@ -76,7 +103,7 @@
         <header class="content-header">
           <h2>{% block page_title %}{% endblock %}</h2>
           <div class="header-info">
-            <span>🕐 更新于: <span id="update-time">加载中...</span></span>
+            <span>🕐 Updated at: <span id="update-time">Loading...</span> UTC</span>
           </div>
         </header>
         <div class="content-body">{% block content %}{% endblock %}</div>
@@ -84,8 +111,19 @@
     </div>
 
     <script>
-      document.getElementById("update-time").textContent =
-        new Date().toLocaleString("zh-CN");
+      document.getElementById("update-time").textContent = new Date().toLocaleString(
+        "zh-CN",
+        {
+          timeZone: "UTC",
+          hour12: false,
+        }
+      );
+      function toggleNodeInfo() {
+        const card = document.getElementById('infoCard');
+        const arrow = document.querySelector('.info-arrow');
+        card.classList.toggle('show');
+        arrow.classList.toggle('open');
+      }
     </script>
     {% block extra_scripts %}{% endblock %}
   </body>

@@ -71,10 +71,21 @@ INSERT INTO D_metric_name
     (name)
 VALUES
     ('damage'),
-    ('frags');
+    ('frags'),
+    ('exp'),
+    ('win_rate'),
+    ('survived_rate'),
+    ('scouting_dmg'),
+    ('potential_dmg');
 
 INSERT INTO T_metric_level_thresholds 
     (metric_id, threshold)
 VALUES
     (1, 0.8), (1, 0.95), (1, 1.0), (1, 1.1), (1, 1.2), (1, 1.4), (1, 1.7),
     (2, 0.2), (2, 0.3), (2, 0.6), (2, 1.0), (2, 1.3), (2, 1.5), (2, 2.0);
+
+INSERT INTO T_tracking_meta 
+    (tracking_key, tracking_type) 
+VALUES
+    ('ship_users', 'archive_time'),
+    ('ship_battles', 'archive_time');

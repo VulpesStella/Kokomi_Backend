@@ -4,7 +4,7 @@ from app.core import api_logger, EnvConfig
 from app.middlewares import RedisClient
 
 async def server_check():
-    for server_name in ['SchedulerUser', 'SchedulerClan']:
+    for server_name in ['UserCache', 'Maintenanse', 'ClanSeason', 'ServerStats']:
         redis_key = f"status:{server_name}"
         result = await RedisClient.exists(redis_key)
         if result['data'] != 1:
@@ -15,11 +15,11 @@ async def server_check():
             api_logger.info(f"{server_name} Server running.")
 
 async def rabbitmq_check():
-    config = EnvConfig.config
-    url = f'http://{config.RABBITMQ_HOST}:15672/api'
+    config = EnvConfig.get_config()
+    url = f'http://{config.RABBITMQ.host}:15672/api'
     client = httpx.Client(
         base_url=url,
-        auth=(config.RABBITMQ_USERNAME, config.RABBITMQ_PASSWORD),
+        auth=(config.RABBITMQ.username, config.RABBITMQ.password),
         timeout=2
     )
     resp = client.get('/queues/%2F/refresh_queue')

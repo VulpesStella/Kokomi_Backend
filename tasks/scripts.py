@@ -1,3 +1,4 @@
+import os
 import json
 import random
 import requests
@@ -12,6 +13,9 @@ from .settings import (
     CLAN_API, 
     USER_INIT_TABLE_LIST
 )
+
+
+os.environ['NO_PROXY'] = '127.0.0.1,localhost'
 
 def now_utc_date() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")[0:10]

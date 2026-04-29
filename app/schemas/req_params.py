@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class ShipType(str, Enum):
     AIRCARRIER = "AirCarrier"
     BATTLESHIP = "Battleship"
@@ -34,6 +35,11 @@ class ShipNation(str, Enum):
     UK = "uk"
     USA = "usa"
     USSR = "ussr"
+
+class RecentLevel(str, Enum):
+    off = "off"
+    standard = "standard"
+    plus = "plus"
 
 class PVPField(str, Enum):
     PVP = 'pvp'

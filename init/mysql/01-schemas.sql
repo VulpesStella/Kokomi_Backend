@@ -50,6 +50,36 @@ CREATE TABLE D_ship_rarity (
     PRIMARY KEY (id) -- 主键
 );
 
+CREATE TABLE T_game_version (
+    -- 相关id
+    id               INT          AUTO_INCREMENT,
+    is_latest        BOOLEAN      DEFAULT FALSE,
+    short_name       VARCHAR(10)  NOT NULL,
+    full_name        VARCHAR(100) NOT NULL,
+    -- 记录数据创建的时间和更新时间
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id), -- 主键
+
+    INDEX idx_name (short_name) -- 索引
+);
+
+CREATE TABLE T_tracking_meta (
+    id              INT           AUTO_INCREMENT,
+
+    tracking_key    VARCHAR(50)   NOT NULL,         -- 跟踪键
+    tracking_type   VARCHAR(20)   NOT NULL,         -- 类型：refresh_time / update_time / archive_time
+    tracking_value  TIMESTAMP     DEFAULT NULL,     -- 时间戳值
+
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id), -- 主键
+
+    UNIQUE KEY uk_key_type (tracking_key, tracking_type) -- 索引
+);
+
 CREATE TABLE T_ship_base (
     -- 相关id
     id               INT          AUTO_INCREMENT,
@@ -66,8 +96,7 @@ CREATE TABLE T_ship_base (
     index_code       VARCHAR(50)  DEFAULT NULL,
     -- 记录数据创建的时间和更新时间
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id), -- 主键
 
@@ -93,8 +122,7 @@ CREATE TABLE T_ship_name (
     verify           BOOLEAN      DEFAULT FALSE,
     -- 记录数据创建的时间和更新时间
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id), -- 主键
 
@@ -144,86 +172,25 @@ CREATE TABLE T_ship_stats_by_users (
     UNIQUE INDEX idx_sid (ship_id) -- 索引
 );
 
-CREATE TABLE T_ship_stats_by_recent_archive (
+CREATE TABLE T_ship_stats_distribution (
     id               BIGINT       AUTO_INCREMENT,
     ship_id          BIGINT       NOT NULL,
-    game_version     VARCHAR(10)  NOT NULL,     -- 版本号
+    metric_id        TINYINT      NOT NULL,
 
-    battles          INT          NOT NULL DEFAULT 0,
-    wins             INT          NOT NULL DEFAULT 0,
-    damage           BIGINT       NOT NULL DEFAULT 0,
-    frags            INT          NOT NULL DEFAULT 0,
-    exp              BIGINT       NOT NULL DEFAULT 0,
-    survived         INT          NOT NULL DEFAULT 0,
-    scouting_damage  BIGINT       NOT NULL DEFAULT 0,
-    potential_damage BIGINT       NOT NULL DEFAULT 0,
+    sample_count     INT          NOT NULL DEFAULT 0,
+    p5               FLOAT        NOT NULL DEFAULT 0.0,
+    p10              FLOAT        NOT NULL DEFAULT 0.0,
+    p25              FLOAT        NOT NULL DEFAULT 0.0,
+    p50              FLOAT        NOT NULL DEFAULT 0.0,
+    p75              FLOAT        NOT NULL DEFAULT 0.0,
+    p90              FLOAT        NOT NULL DEFAULT 0.0,
+    p95              FLOAT        NOT NULL DEFAULT 0.0,
 
-    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id),
-
-    UNIQUE KEY uk_ship_version (ship_id, game_version),
-
-    INDEX idx_version (game_version),
-    INDEX idx_ship (ship_id)
-);
-
-CREATE TABLE T_ship_stats_by_battles_archive (
-    id               BIGINT       AUTO_INCREMENT,
-    ship_id          BIGINT       NOT NULL,
-    stat_date        DATE         NOT NULL,     -- YYYY-MM-DD
-    game_version     VARCHAR(10)  NOT NULL,     -- 版本号
-
-    battles          BIGINT       NOT NULL,
-    win_rate         FLOAT        NOT NULL,
-    avg_damage       FLOAT        NOT NULL,
-    avg_frags        FLOAT        NOT NULL,
-    avg_exp          FLOAT        NOT NULL,
-    survived_rate    FLOAT        NOT NULL,
-    avg_scouting_damage INT       NOT NULL,
-    avg_potential_damage INT      NOT NULL,
-
-    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id), -- 主键
 
-    UNIQUE KEY uk_ship_date_ver (ship_id, stat_date),
-
-    INDEX idx_ship_ver_date (ship_id, game_version),
-
-    INDEX idx_date (stat_date),
-
-    INDEX idx_version (game_version)
-);
-
-CREATE TABLE T_ship_stats_by_users_archive (
-    id               BIGINT       AUTO_INCREMENT,
-    ship_id          BIGINT       NOT NULL,
-    stat_date        DATE         NOT NULL,     -- YYYY-MM-DD
-    game_version     VARCHAR(10)  NOT NULL,     -- 版本号
-
-    users            INT          NOT NULL,
-    battles          BIGINT       NOT NULL,
-    win_rate         FLOAT        NOT NULL,
-    avg_damage       FLOAT        NOT NULL,
-    avg_frags        FLOAT        NOT NULL,
-    avg_exp          FLOAT        NOT NULL,
-    survived_rate    FLOAT        NOT NULL,
-    avg_scouting_damage INT       NOT NULL,
-    avg_potential_damage INT      NOT NULL,
-
-    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id), -- 主键
-
-    UNIQUE KEY uk_ship_date_ver (ship_id, stat_date, game_version),
-
-    INDEX idx_ship_ver_date (ship_id, game_version, stat_date),
-
-    INDEX idx_date (stat_date),
-
-    INDEX idx_version (game_version)
+    UNIQUE INDEX idx_sid(ship_id, metric_id) -- 索引
 );
 
 CREATE TABLE T_ship_pvp_record (
@@ -252,8 +219,7 @@ CREATE TABLE T_ship_pvp_record (
     
     -- 记录数据创建的时间和更新时间
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id), -- 主键
 
@@ -264,15 +230,15 @@ CREATE TABLE T_ship_pvp_leaderboard (
     account_id       BIGINT       NOT NULL,    -- 1-11位的非连续数字
     ship_id          BIGINT       NOT NULL,    -- 1-11位的非连续数字
     battles          INT          NOT NULL,
-    rating           DOUBLE       NOT NULL,
-    win_rate         DOUBLE       NOT NULL,
-    solo_rate        DOUBLE       NOT NULL,
+    rating           FLOAT        NOT NULL,
+    win_rate         FLOAT        NOT NULL,
+    solo_rate        FLOAT        NOT NULL,
     avg_damage       INT          NOT NULL,
     avg_damage_level TINYINT      NOT NULL,
-    avg_frags        DOUBLE       NOT NULL,
+    avg_frags        FLOAT        NOT NULL,
     avg_frags_level  TINYINT      NOT NULL,
     avg_exp          INT          NOT NULL,
-    hit_ratio        DOUBLE       NOT NULL,
+    hit_ratio        FLOAT        NOT NULL,
     max_exp          INT          NOT NULL,
     max_damage       INT          NOT NULL,
 
@@ -282,12 +248,12 @@ CREATE TABLE T_ship_pvp_leaderboard (
     UNIQUE INDEX idx_sid_and_aid (ship_id, account_id)
 ) 
 PARTITION BY HASH (ship_id)
-PARTITIONS 16; -- 使用 Hash 分区将船均匀分布在例如64个分区中
+PARTITIONS 16; -- 使用 Hash 分区将船均匀分布在例如16个分区中
 
 CREATE TABLE T_metric_level_thresholds (
     id               INT          AUTO_INCREMENT,
     metric_id        INT          NOT NULL,
-    threshold        DOUBLE       NOT NULL,
+    threshold        FLOAT        NOT NULL,
 
     PRIMARY KEY (id), -- 主键
 
@@ -379,8 +345,7 @@ CREATE TABLE T_clan_stats (
     team_data        JSON         DEFAULT NULL,
     last_battle_at   TIMESTAMP    DEFAULT NULL,
     created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT NULL,
 
     PRIMARY KEY (id), -- 主键
 
@@ -439,7 +404,7 @@ CREATE TABLE T_clan_action (
     INDEX idx_cid (clan_id),
 
     INDEX idx_aid (account_id)
-);  
+);
 
 CREATE TABLE T_user_clan (
     id               INT          AUTO_INCREMENT,
@@ -462,10 +427,10 @@ CREATE TABLE T_user_pvp (
     account_id       BIGINT       NOT NULL,     -- 1-11位的非连续数字
     -- 记录用户缓存的数据和更新时间
     battles          INT          DEFAULT 0, -- 总战斗场次
-    win_rate         DOUBLE       DEFAULT 0, -- 胜率
-    avg_damage       DOUBLE       DEFAULT 0, -- 场均
-    avg_frags        DOUBLE       DEFAULT 0, -- 击杀
-    avg_exp          DOUBLE       DEFAULT 0, -- 裸经验
+    win_rate         FLOAT       DEFAULT 0, -- 胜率
+    avg_damage       FLOAT        DEFAULT 0, -- 场均
+    avg_frags        FLOAT        DEFAULT 0, -- 击杀
+    avg_exp          FLOAT        DEFAULT 0, -- 裸经验
     ship_cache       JSON         DEFAULT NULL, -- 缓存数据
     -- 记录数据创建的时间和更新时间
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
@@ -503,30 +468,6 @@ CREATE TABLE T_user_pvp_record (
     UNIQUE INDEX idx_aid (account_id) -- 索引
 );
 
-CREATE TABLE T_user_private (
-    -- 相关id
-    id               INT          AUTO_INCREMENT,
-    account_id       BIGINT       NOT NULL,     -- 1-11位的非连续数字
-    -- 记录用户缓存的数据和更新时间
-    update_date      VARCHAR(10)  DEFAULT NULL,
-    battles          INT          DEFAULT 0,
-    life_time        BIGINT       DEFAULT 0,
-    distance         INT          DEFAULT 0,
-    gold             INT          DEFAULT 0,
-    free_xp          BIGINT       DEFAULT 0,
-    credits          BIGINT       DEFAULT 0,
-    slots            INT          DEFAULT 0,
-    port             JSON         DEFAULT NULL,
-    achieve          JSON         DEFAULT NULL,
-    -- 记录数据创建的时间和更新时间
-    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    DEFAULT NULL,
-
-    PRIMARY KEY (id), -- 主键
-
-    UNIQUE INDEX idx_aid (account_id) -- 索引
-);
-
 CREATE TABLE T_user_config (
     -- 相关id
     id               INT          AUTO_INCREMENT,
@@ -538,10 +479,106 @@ CREATE TABLE T_user_config (
     last_query_at    TIMESTAMP    DEFAULT NULL,   -- 用户上次查询的时间
     -- 记录数据创建的时间和更新时间
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id), -- 主键
 
     UNIQUE INDEX idx_rid_aid (account_id) -- 索引
+);
+
+CREATE TABLE ARCH_user_base (
+    id               BIGINT       AUTO_INCREMENT,
+    stat_date        DATE         NOT NULL,     -- YYYY-MM-DD
+    row_count        INT          NOT NULL,     -- 数据条目
+
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id), -- 主键
+
+    UNIQUE KEY uk_date (stat_date)
+);
+
+CREATE TABLE ARCH_clan_base (
+    id               BIGINT       AUTO_INCREMENT,
+    stat_date        DATE         NOT NULL,     -- YYYY-MM-DD
+    row_count        INT          NOT NULL,     -- 数据条目
+
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id), -- 主键
+
+    UNIQUE KEY uk_date (stat_date)
+);
+
+CREATE TABLE ARCH_ship_stats_by_recent (
+    id               BIGINT       AUTO_INCREMENT,
+    ship_id          BIGINT       NOT NULL,
+    game_version     VARCHAR(10)  NOT NULL,     -- 版本号
+
+    battles          INT          NOT NULL DEFAULT 0,
+    wins             INT          NOT NULL DEFAULT 0,
+    damage           BIGINT       NOT NULL DEFAULT 0,
+    frags            INT          NOT NULL DEFAULT 0,
+    exp              BIGINT       NOT NULL DEFAULT 0,
+    survived         INT          NOT NULL DEFAULT 0,
+    scouting_damage  BIGINT       NOT NULL DEFAULT 0,
+    potential_damage BIGINT       NOT NULL DEFAULT 0,
+
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+
+    UNIQUE KEY uk_ship_version (ship_id, game_version),
+
+    INDEX idx_version (game_version),
+    INDEX idx_ship (ship_id)
+);
+
+CREATE TABLE ARCH_ship_stats_by_battles (
+    id               BIGINT       AUTO_INCREMENT,
+    ship_id          BIGINT       NOT NULL,
+    stat_date        DATE         NOT NULL,     -- YYYY-MM-DD
+    game_version     VARCHAR(10)  NOT NULL,     -- 版本号
+
+    battles          BIGINT       NOT NULL,
+    win_rate         FLOAT        NOT NULL,
+    avg_damage       FLOAT        NOT NULL,
+    avg_frags        FLOAT        NOT NULL,
+    avg_exp          FLOAT        NOT NULL,
+    survived_rate    FLOAT        NOT NULL,
+    avg_scouting_damage INT       NOT NULL,
+    avg_potential_damage INT      NOT NULL,
+
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id), -- 主键
+
+    UNIQUE KEY uk_ship_date_ver (ship_id, stat_date, game_version),
+
+    INDEX idx_ver_date_desc (game_version, stat_date DESC)
+);
+
+CREATE TABLE ARCH_ship_stats_by_users (
+    id               BIGINT       AUTO_INCREMENT,
+    ship_id          BIGINT       NOT NULL,
+    stat_date        DATE         NOT NULL,     -- YYYY-MM-DD
+    game_version     VARCHAR(10)  NOT NULL,     -- 版本号
+
+    users            INT          NOT NULL,
+    battles          BIGINT       NOT NULL,
+    win_rate         FLOAT        NOT NULL,
+    avg_damage       FLOAT        NOT NULL,
+    avg_frags        FLOAT        NOT NULL,
+    avg_exp          FLOAT        NOT NULL,
+    survived_rate    FLOAT        NOT NULL,
+    avg_scouting_damage INT       NOT NULL,
+    avg_potential_damage INT      NOT NULL,
+
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id), -- 主键
+
+    UNIQUE KEY uk_ship_date_ver (ship_id, stat_date, game_version),
+
+    INDEX idx_ver_date_desc (game_version, stat_date DESC)
 );

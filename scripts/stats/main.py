@@ -3,13 +3,17 @@
 
 import os
 import time
+import redis
 import pymysql
-import asyncio
+import traceback
 
 from logger import logger
 from settings import (
-    CLIENT_NAME, REFRESH_INTERVAL, 
-    MYSQL_CONFIG, REGION
+    CLIENT_NAME, 
+    REFRESH_INTERVAL, 
+    REGION,
+    MYSQL_CONFIG,
+    REDIS_CONFIG
 )
 from utils import (
     read_version,
@@ -17,10 +21,13 @@ from utils import (
     process_region_stats
 )
 
-async def main():
+def main():
     while True:
         start = time.monotonic()
         mysql_connection = pymysql.connect(**MYSQL_CONFIG)
+        redis_client = redis.Redis(**REDIS_CONFIG)
+        # 设置当前服务状态，用于外部监控系统判断服务是否正常运行
+        redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.5))
         try:
             game_version = read_version()
             logger.info('Analyzing SQLite3 Files...')
@@ -28,28 +35,44 @@ async def main():
             logger.info(db_result)
             process_region_stats(mysql_connection, game_version)
         except Exception:
-            pass
+            logger.error(traceback.format_exc())
+            # 严重错误导致的循环中断，删除用于标记服务状态的key
+            try:
+                redis_client.delete(f'status:{CLIENT_NAME}')
+            except Exception as e:
+                logger.error(f'Failed to delete status key: {e}')
         finally:
+            # 大部分情况下每次循环运行时间远小于刷新间隔，大部分时间都处于sleep状态
+            # 为了减少资源占用，每次循环结束后释放数据库和redis连接，等待下一次循环时再重新建立连接
             mysql_connection.close()
+            redis_client.close()
+        
+        # 计算本次循环的实际运行时间，并根据刷新间隔决定是否需要sleep
         elapsed = time.monotonic() - start
         logger.info(f'This loop took {round(elapsed,2)} seconds')
         sleep_time = max(0, round(REFRESH_INTERVAL - elapsed, 2))
-        if sleep_time != 0:
+        if sleep_time >= 1:
             logger.info(f'The process sleeps for {sleep_time} seconds')
             time.sleep(sleep_time)
         logger.info('-'*70)
 
-def handler(_signum, _frame):
+def handler(*_):
+    """信号处理器，退出"""
     logger.info('The process is closing')
     exit(0)
 
-if __name__ == "__main__":
-    logger.info(f'Start running service {CLIENT_NAME}')
-    logger.info(f'Current region: {REGION.upper()}')
-    if os.name != "nt":
+if __name__ == '__main__':
+    logger.info('Start running service: %s', CLIENT_NAME)
+    logger.info('Service refresh interval: %s seconds', REFRESH_INTERVAL)
+    logger.info('Current node region: %s', REGION.upper())
+
+    if os.name != 'nt':
+        # 在非Windows系统上注册SIGTERM信号处理器，在接收到SIGTERM信号时关闭服务
         import signal
         signal.signal(signal.SIGTERM, handler)
+
     try:
-        asyncio.run(main())
+        main()
     except KeyboardInterrupt:
-        logger.info('The process is closing')
+        # 在Windows系统上，无法捕获SIGTERM信号，但可以通过捕获KeyboardInterrupt异常来实现类似的功能
+        handler()

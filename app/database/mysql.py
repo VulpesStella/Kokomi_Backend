@@ -1,93 +1,222 @@
 from typing import Optional
-
+import asyncio
 import aiomysql
 from aiomysql.pool import Pool
-from aiomysql.connection import Connection
 from aiomysql.cursors import Cursor
+from aiomysql.connection import Connection
+from contextlib import asynccontextmanager
+from dataclasses import asdict
 
 from app.core import EnvConfig, api_logger
 
 
-class MysqlConnection:
-    '''管理MySQL连接'''
-    __pool: Optional[Pool] = None
-    
-    async def __init_connection(self) -> None:
-        "初始化MySQL连接"
-        try:
-            config = EnvConfig.config
-            self.__pool = await aiomysql.create_pool(
-                host=config.MYSQL_HOST, 
-                port=config.MYSQL_PORT, 
-                user=config.MYSQL_USERNAME, 
-                password=config.MYSQL_PASSWORD, 
-                db=config.MYSQL_DATABASE,
-                pool_recycle=3600, # 设置连接的回收时间
-                autocommit=False   # 禁用隐式事务
-                # 由于禁用了隐式事务，必须确保事务被正确提交或者回滚！
-                # 如果未调用，事务将保持未提交状态，可能会导致死锁或连接超时问题
-            )
-            api_logger.info(f'MySQL connection pool initialized')
-        except Exception as e:
-            api_logger.error(f'Failed to initialize the MySQL connection')
-            api_logger.error(e)
-            raise e
+class MySQLManager:
+    """MySQL连接与事务管理器"""
+    _pool: Optional[Pool] = None
 
     @classmethod
-    async def test_mysql(self) -> bool:
-        "测试MySQL连接"
+    async def init_pool(cls) -> None:
+        """初始化MySQL连接池"""
+        if cls._pool is not None:
+            return
+        config = EnvConfig.get_config()
+        cls._pool = await aiomysql.create_pool(
+            # 必须关闭自动提交，使用 transaction 确保数据完整
+            autocommit=False,
+            pool_recycle=3600,
+            minsize=1,
+            maxsize=10,
+            **asdict(config.MYSQL)
+        )
+        api_logger.info("MySQL pool initialized successfully")
+
+    @classmethod
+    async def close_pool(cls, timeout: float = 5.0) -> None:
+        """关闭连接池，带超时保护防止异常死锁。"""
+        if not cls._pool:
+            return
         try:
-            if self.__pool == None:
-                await self.__init_connection(self)
-            mysql_pool = self.__pool
-            async with mysql_pool.acquire() as conn:
-                conn: Connection
+            # 等待一小段时间，让正在进行的操作尽量完成
+            await asyncio.sleep(1)
+            cls._pool.close()
+            await asyncio.wait_for(cls._pool.wait_closed(), timeout=timeout)
+            api_logger.info("MySQL pool closed")
+        except (asyncio.TimeoutError, Exception) as e:
+            api_logger.warning(f"Graceful close failed ({e}), forcing...")
+            cls._force_close_all()
+        finally:
+            cls._pool = None
+
+    @classmethod
+    async def test_connection(cls) -> bool:
+        if cls._pool is None:
+            await cls.init_pool()
+        try:
+            async with MySQLManager.read_only_cursor() as cur:
+                await cur.execute("SELECT VERSION();")
+                ver = await cur.fetchone()
+                api_logger.info(f"MySQL version: {ver[0]}")
+                await cur.execute("SELECT @@GLOBAL.transaction_isolation;")
+                iso = await cur.fetchone()
+                api_logger.info(f"Transaction isolation: {iso[0]}")
+            return True
+        except Exception as e:
+            api_logger.error(f"Connection test failed: {e}")
+            return False
+        
+    @classmethod
+    def _force_close_all(cls) -> None:
+        """直接 abort 所有连接的底层 transport，确保关闭不阻塞"""
+        pool = cls._pool
+        if not pool:
+            return
+        # 获取池中所有连接（包括空闲和正在使用的）
+        all_conns: list[Connection] = list(getattr(pool, '_free_conns', [])) + list(getattr(pool, '_used_conns', []))
+        for conn in all_conns:
+            try:
+                # 直接从底层 abort 传输层
+                if hasattr(conn, '_writer') and conn._writer:
+                    transport = conn._writer.transport
+                    if transport and not transport.is_closing():
+                        transport.abort()
+                conn.close()
+            except Exception:
+                pass
+        api_logger.info("All connections force-aborted")
+
+    @classmethod
+    async def _acquire_healthy_conn(cls, max_retries=2) -> Connection:
+        """获取健康连接，自动丢弃死连接"""
+        if cls._pool is None:
+            raise RuntimeError("Pool not initialized")
+        for attempt in range(max_retries):
+            conn: Connection = await cls._pool.acquire()
+            try:
+                await asyncio.wait_for(conn.ping(), timeout=2.0)
+                return conn
+            except Exception:
+                api_logger.warning(f"Dead connection discarded (attempt {attempt+1})")
+                await cls._discard_conn(conn)
+                if attempt == max_retries - 1:
+                    raise Exception("No healthy connection available")
+
+    @classmethod
+    async def _discard_conn(cls, conn: Connection) -> None:
+        """强制丢弃异常连接"""
+        try:
+            if hasattr(conn, '_writer') and conn._writer:
+                transport = conn._writer.transport
+                if transport and not transport.is_closing():
+                    transport.abort()
+            conn.close()
+        except Exception:
+            pass
+
+    @classmethod
+    async def _release_conn_only(cls, conn: Connection) -> None:
+        """释放连接，失败则丢弃"""
+        try:
+            if cls._pool:
+                await cls._pool.release(conn)
+        except Exception as e:
+            api_logger.warning(f"MySQL connection release failed, discarding: {e}")
+            await cls._discard_conn(conn)
+
+    @classmethod
+    @asynccontextmanager
+    async def auto_transaction_cursor(cls):
+        """### 自动管理事务（返回游标）
+
+        正常退出时自动提交事务+释放连接回连接池, 异常退出时自动回滚事务+丢弃连接
+
+        Usage:
+        ```
+        async with MySQLManager.auto_transaction_cursor() as cur:
+            sql = "..."
+            await cur.execute(sql)
+        ```
+        """
+        conn = await cls._acquire_healthy_conn()
+        try:
+            async with conn.cursor() as cur:
+                cur: Cursor
+                yield cur
+        except Exception:
+            try:
+                await conn.rollback()
+            except Exception:
+                pass
+            await cls._discard_conn(conn)
+            # api_logger.warning("Auto transaction rolled back due to exception, connection discarded!")
+            raise
+        else:
+            await conn.commit()
+            await cls._release_conn_only(conn)
+
+    @classmethod
+    @asynccontextmanager
+    async def read_only_cursor(cls):
+        """### 只读查询（返回游标）
+
+        不使用事务，仅允许查询操作，退出直接释放连接
+
+        Usage:
+        ```
+        async with MySQLManager.read_only_cursor() as cur:
+            sql = "..."
+            await cur.execute(sql)
+        ```
+        """
+        conn = await cls._acquire_healthy_conn()
+        try:
+            async with conn.cursor() as cur:
+                cur: Cursor
+                yield cur
+        finally:
+            await cls._release_conn_only(conn)
+
+    @classmethod
+    @asynccontextmanager
+    async def manual_transaction_conn(cls):
+        """### 手动管理事务（返回连接）
+        
+        正常退出时自动检测事务状态，若未提交/回滚则自动回滚并警告，异常退出时自动回滚并丢弃连接
+
+        注意：事务结束必须 commit/rollback，若忘记则退出时自动回滚
+
+        ```
+        async with MySQLManager.manual_transaction_conn() as conn:
+            async with conn.cursor() as cur:
+                cur: Cursor
+                sql = "..."
+                await cur.execute(sql)
+                await conn.commit()  # 手动提交
+        ```
+        """
+        conn = await cls._acquire_healthy_conn()
+        try:
+            yield conn
+        except Exception:
+            # 异常 → 回滚并丢弃连接
+            try:
+                await conn.rollback()
+            except Exception:
+                pass
+            await cls._discard_conn(conn)
+            # api_logger.warning("Manual transaction rolled back due to exception, connection discarded!")
+            raise
+        else:
+            # 正常退出 → 检测事务状态
+            try:
                 async with conn.cursor() as cur:
                     cur: Cursor
-                    await cur.execute("SELECT VERSION();")
-                    result = await cur.fetchone()
-                    if result != None:
-                        api_logger.info(f'MYSQL Version: {result[0]}')
-                    else:
-                        api_logger.warning('Failed to test the MySQL connection')
-                    await cur.execute("SELECT @@GLOBAL.transaction_isolation;")
-                    result = await cur.fetchone()
-                    if result != None:
-                        if result[0] == 'READ-COMMITTED':
-                            api_logger.info(f'MYSQL transaction isolation: {result[0]}')
-                        else:
-                            api_logger.warning(f'MYSQL transaction isolation: {result[0]} (NOT READ-COMMITTED)')
-                    else:
-                        api_logger.warning('Failed to test the MySQL connection')
-        except Exception as e:
-            api_logger.warning(f'Failed to test the MySQL connection')
-            api_logger.error(e)
-
-    @classmethod
-    async def get_connection(self):
-        "获取一条连接，记得使用完要使用release释放"
-        if not self.__pool:
-            await self.__init_connection(self)
-        return await self.__pool.acquire()
-
-    @classmethod
-    async def release_connection(self, conn):
-        "释放连接"
-        if self.__pool:
-            await self.__pool.release(conn)
-
-    @classmethod
-    async def close_mysql(self) -> None:
-        "关闭MySQL连接"
-        try:
-            if self.__pool:
-                self.__pool.close()
-                await self.__pool.wait_closed()
-                api_logger.info('The MySQL connection is closed')
-            else:
-                api_logger.warning('The MySQL connection is empty and cannot be closed')
-        except Exception as e:
-            api_logger.error(f'Failed to close the MySQL connection')
-            api_logger.error(e)
-        
-        
+                    await cur.execute("SELECT @@in_transaction")
+                    row = await cur.fetchone()
+                    if row and row[0] == 1:
+                        api_logger.warning("Manual transaction was not committed/rolled back, auto-rolling back!")
+                        await conn.rollback()
+            except Exception as e:
+                api_logger.error(f"Failed to check/rollback transaction on exit: {e}")
+            finally:
+                # 正常释放连接
+                await cls._release_conn_only(conn)

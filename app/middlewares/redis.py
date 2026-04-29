@@ -10,96 +10,97 @@ from app.core import EnvConfig, api_logger
 
 class RedisConnection:
     '''管理Redis连接'''
-    _pools: dict[int, Redis] = {}
+    _conn: Optional[Redis] = None
+
+    @staticmethod
+    def _build_redis_url() -> str:
+        """构建Redis连接URL"""
+        config = EnvConfig.get_config()
+        return (
+            f"redis://:{config.REDIS.password}"
+            f"@{config.REDIS.host}"
+            f":{config.REDIS.port}"
+            f"/{config.REDIS.db}"
+        )
 
     @classmethod
-    def _init_connection(cls, db: int = 0) -> Redis:
-        """初始化Redis连接"""
+    async def init_conn(cls) -> Redis:
+        """
+        应用启动时调用，初始化Redis连接。
+        如果连接已存在，先关闭再重新初始化，确保状态干净。
+        """
+        # 如果已有连接，先关闭
+        if cls._conn is not None:
+            await cls._conn.close()
+            cls._conn = None
         try:
-            if db not in cls._pools:
-                config = EnvConfig.config
-                cls._pools[db] = redis.from_url(
-                    url=f"redis://:{config.REDIS_PASSWORD}@{config.REDIS_HOST}:{config.REDIS_PORT}/{db}",
-                    encoding="utf-8",
-                    decode_responses=True
-                )
-                api_logger.info(f'Redis connection initialized')
-            return cls._pools[db]
+            redis_url = cls._build_redis_url()
+            cls._conn = redis.from_url(
+                url=redis_url,
+                encoding="utf-8",
+                decode_responses=True
+            )
+            api_logger.info("Redis connection initialized successfully")
         except Exception as e:
-            api_logger.error(f'Failed to initialize Redis connection for DB {db}')
-            api_logger.error(e)
+            api_logger.error(f"Failed to initialize Redis connection: {e}")
             raise
 
     @classmethod
-    async def test_redis(cls, db: int = 0) -> None:
+    async def test_redis(cls) -> None:
         """测试Redis连接"""
         try:
-            redis_pool = cls._init_connection(db)
-            async with redis_pool as redis_instance:
-                # ping测试连接
-                ping_response = await redis_instance.ping()
-                if ping_response:
-                    # 获取redis版本
-                    info = await redis_instance.info("server")
-                    redis_version = info.get("redis_version")
-                    api_logger.info(f"Redis Version: {redis_version}")
-                else:
-                    api_logger.warning(f'Redis ping failed')
-        except Exception as e:
-            api_logger.warning(f'Failed to test Redis connection for DB {db}')
-            api_logger.error(e)
-
-    @classmethod
-    async def close_redis(cls, db: Optional[int] = None) -> None:
-        """关闭Redis连接"""
-        try:
-            if db is not None:
-                # 关闭指定数据库的连接
-                pool = cls._pools.pop(db, None)
-                if pool:
-                    await pool.close()
-                    api_logger.info(f'Redis connection to DB {db} is closed')
-                else:
-                    api_logger.warning(f'Redis connection to DB {db} is empty and cannot be closed')
+            conn = cls.acquire_conn()
+            ping_response = await conn.ping()
+            if ping_response:
+                info = await conn.info("server") # type: dict
+                api_logger.info(f"Redis version: {info.get('redis_version', 'unknown')}")
+                api_logger.info(f"Redis mode: {info.get('redis_mode', 'unknown').upper()}")
             else:
-                # 关闭所有连接
-                for db, pool in cls._pools.items():
-                    await pool.close()
-                    api_logger.info(f'Redis connection to DB {db} is closed')
-                cls._pools.clear()
+                api_logger.warning(f"Redis ping failed: {ping_response}")
         except Exception as e:
-            api_logger.error(f'Failed to close Redis connections')
-            api_logger.error(e)
+            api_logger.warning(f"Test Redis connection failed: {e}")
 
     @classmethod
-    def get_connection(cls, db: int = 0) -> Redis:
-        """获取Redis连接"""
+    async def close_redis(cls) -> None:
+        """关闭Redis连接"""
+        if cls._conn is None:
+            api_logger.info("Redis connection is already closed or not initialized")
+            return
+        
         try:
-            return cls._init_connection(db)
+            await cls._conn.close()
+            api_logger.info("Redis connection closed")
         except Exception as e:
-            api_logger.error(f'Failed to get Redis connection for DB {db}')
-            api_logger.error(e)
-            return None
+            api_logger.error(f"Failed to close Redis connection: {e}")
+        finally:
+            cls._conn = None
+
+    @classmethod
+    def acquire_conn(cls) -> Redis:
+        """获取Redis连接"""
+        if cls._conn is None:
+            raise RuntimeError("Redis connection is not initialized")
+        return cls._conn
         
 class RedisClient:
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
     async def get(key: str) -> dict:
-        redis_client = RedisConnection.get_connection()
-        data = await redis_client.get(key)
+        conn = RedisConnection.acquire_conn()
+        data = await conn.get(key)
         if data:
             data = json.loads(data)
         return JSONResponse.get_success_response(data)
     
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
-    async def get_by_pipe(redis_key: str, keys: list) -> dict:
+    async def get_by_pipe(keys: list) -> dict:
         """用于统计api相关指标"""
-        redis_client = RedisConnection.get_connection()
+        conn = RedisConnection.acquire_conn()
         data = []
-        pipe = redis_client.pipeline()
+        pipe = conn.pipeline()
         for key in keys:
-            pipe.get(redis_key.replace('key', key))
+            pipe.get(key)
         values = await pipe.execute()
         for v in values:
             data.append(int(v) if v else 0)
@@ -108,36 +109,60 @@ class RedisClient:
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
     async def incr(key: str) -> None:
-        redis_client = RedisConnection.get_connection()
-        await redis_client.incr(key)
+        conn = RedisConnection.acquire_conn()
+        await conn.incr(key)
     
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
     async def incrby(key: str, amount: int) -> None:
-        redis_client = RedisConnection.get_connection()
-        await redis_client.incrby(key, amount)
+        conn = RedisConnection.acquire_conn()
+        await conn.incrby(key, amount)
     
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
     async def exists(key: str) -> dict:
-        redis_client = RedisConnection.get_connection()
-        data = await redis_client.exists(key)
+        conn = RedisConnection.acquire_conn()
+        data = await conn.exists(key)
         return JSONResponse.get_success_response(data)
     
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
     async def drop(key: str) -> dict:
-        redis_client = RedisConnection.get_connection()
-        await redis_client.delete(key)
+        conn = RedisConnection.acquire_conn()
+        await conn.delete(key)
         return JSONResponse.API_1000_Success
 
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
     async def set(key: str, value: dict, ex: int = None):
-        redis_client = RedisConnection.get_connection()
-        await redis_client.set(
+        conn = RedisConnection.acquire_conn()
+        await conn.set(
             name=key, 
-            value=json.dumps(value),
+            value=json.dumps(value, ensure_ascii=False),
             ex=ex
         )
         return JSONResponse.API_1000_Success
+    
+    @staticmethod
+    @ExceptionLogger.handle_cache_exception_async
+    async def zget_top_n(key: str, n: int = 50):
+        conn = RedisConnection.acquire_conn()
+        if n <= 0:
+            return []
+        # 索引从0开始，所以前N个的结束索引是 n-1
+        data = await conn.zrevrange(key, 0, n - 1)
+        return JSONResponse.get_success_response(data)
+
+    @staticmethod
+    @ExceptionLogger.handle_cache_exception_async
+    async def zget_range(key: str, start: int, stop: int):
+        conn = RedisConnection.acquire_conn()
+        data = await conn.zrevrange(key, start, stop)
+        return JSONResponse.get_success_response(data)
+
+    @staticmethod
+    @ExceptionLogger.handle_cache_exception_async
+    async def zget_rank(key: str, member: str):
+        conn = RedisConnection.acquire_conn()
+        data = await conn.zrevrank(key, member)
+        return JSONResponse.get_success_response(data)

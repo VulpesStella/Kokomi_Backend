@@ -28,7 +28,7 @@
 }
 
 .sidebar-brand h1 {
-    font-size: 15px;
+    font-size: 16px;
     color: #ffffff;
     font-weight: 600;
     white-space: nowrap;
@@ -37,8 +37,20 @@
 
 /* ========== 节点标识 ========== */
 .sidebar-node {
-    padding: 14px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-node-header {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.sidebar-node-header:hover {
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .node-name {
@@ -59,19 +71,64 @@
     flex-shrink: 0;
 }
 
+/* 箭头图标 */
+.info-arrow {
+    color: #a0a4b0;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+}
+
+.info-arrow.open {
+    transform: rotate(180deg);
+}
+
+/* 折叠卡片 */
+.info-card {
+    display: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.info-card.show {
+    display: block;
+}
+
+.info-card-content {
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.info-key {
+    color: #a0a4b0;
+    font-size: 12px;
+}
+
+.info-value {
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 500;
+}
+
 /* ========== 导航菜单 ========== */
 .sidebar-nav {
     padding: 12px 0;
     flex: 1;
 }
 
-.nav-section-title {
+/* .nav-section-title {
     padding: 16px 20px 8px;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 1px;
     color: rgba(160, 164, 176, 0.5);
-}
+} */
 
 .nav-item {
     display: flex;
@@ -95,11 +152,11 @@
     border-left-color: var(--sidebar-active);
 }
 
-.nav-item.disabled {
+/* .nav-item.disabled {
     opacity: 0.4;
     cursor: not-allowed;
     pointer-events: none;
-}
+} */
 
 .nav-icon {
     margin-right: 10px;
@@ -108,13 +165,13 @@
     text-align: center;
 }
 
-.nav-badge {
+/* .nav-badge {
     margin-left: auto;
     font-size: 10px;
     background: rgba(255, 255, 255, 0.1);
     padding: 2px 6px;
     border-radius: 8px;
-}
+} */
 
 /* ========== 底部 GitHub 链接 ========== */
 .sidebar-footer {

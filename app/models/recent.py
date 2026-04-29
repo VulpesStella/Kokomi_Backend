@@ -1,7 +1,4 @@
-from aiomysql.connection import Connection
-from aiomysql.cursors import Cursor
-
-from app.database import MysqlConnection
+from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
 from app.constants import Limits
@@ -9,15 +6,12 @@ from app.constants import Limits
 
 class RecentModel:
     @ExceptionLogger.handle_database_exception_async
-    async def test_recent_enable(account_id: int):
-        '''
-        启用recent功能
-        '''
-        try:
-            conn: Connection = await MysqlConnection.get_connection()
-            await conn.begin()
-            cur: Cursor = await conn.cursor()
+    async def test_set_recent_level(account_id: int, target_level: int):
+        '''[DEMO] 设置用户recent功能级别
 
+        只允许向上升级，数据库level低于目标level时才会修改
+        '''
+        async with MySQLManager.auto_transaction_cursor() as cur:
             sql = """
                 SELECT 
                     user_level, 
@@ -25,82 +19,33 @@ class RecentModel:
                 FROM T_user_config 
                 WHERE account_id = %s;
             """
-            await cur.execute(sql,[account_id])
+            await cur.execute(sql, [account_id])
             data = await cur.fetchone()
             if data is None:
-                await conn.commit()
                 return JSONResponse.API_2016_UserNotInDB
-            else:
-                if data[0] == 0:
-                    sql = """
-                        UPDATE T_user_config 
-                        SET 
-                            user_level = 1, 
-                            storage_limit = %s
-                        WHERE account_id = %s;
-                    """
-                    await cur.execute(sql,[Limits.DefaultRecentLimit,account_id])
             
-            await conn.commit()
-            return JSONResponse.API_1000_Success
-        except Exception as e:
-            await conn.rollback()
-            raise e
-        finally:
-            await cur.close()
-            await MysqlConnection.release_connection(conn)
-
-    @ExceptionLogger.handle_database_exception_async
-    async def test_recent_close(account_id: int):
-        '''
-        删除recent功能
-        '''
-        try:
-            conn: Connection = await MysqlConnection.get_connection()
-            await conn.begin()
-            cur: Cursor = await conn.cursor()
-
-            sql = """
-                SELECT 
-                    user_level, 
-                    storage_limit 
-                FROM T_user_config 
-                WHERE account_id = %s;
-            """
-            await cur.execute(sql,[account_id])
-            data = await cur.fetchone()
-            if data is None:
-                await conn.commit()
-                return JSONResponse.API_2016_UserNotInDB
-            else:
+            current_level = data[0]
+            # 只允许向上升级
+            if current_level < target_level:
+                storage_level = Limits.DefaultRecentLimit if target_level == 1 else Limits.DefaultRecentProLimit
                 sql = """
                     UPDATE T_user_config 
                     SET 
-                        user_level = 0, 
-                        storage_limit = 0 
+                        user_level = %s, 
+                        storage_limit = %s
                     WHERE account_id = %s;
                 """
-                await cur.execute(sql,[account_id])
+                await cur.execute(sql, [target_level, storage_level, account_id])
             
-            await conn.commit()
             return JSONResponse.API_1000_Success
-        except Exception as e:
-            await conn.rollback()
-            raise e
-        finally:
-            await cur.close()
-            await MysqlConnection.release_connection(conn)
-    
-    @ExceptionLogger.handle_database_exception_async
-    async def test_daily_enable(account_id: int):
-        '''
-        启用recent(pro)功能
-        '''
-        try:
-            conn: Connection = await MysqlConnection.get_connection()
-            await conn.begin()
-            cur: Cursor = await conn.cursor()
 
+    @ExceptionLogger.handle_database_exception_async
+    async def test_reduce_recent_level(account_id: int, target_level: int):
+        '''[DEMO] 降低用户recent功能级别
+        
+        只允许向下降级，高级可降到标准或无，标准可降到无
+        '''
+        async with MySQLManager.auto_transaction_cursor() as cur:
             sql = """
                 SELECT 
                     user_level, 
@@ -108,69 +53,24 @@ class RecentModel:
                 FROM T_user_config 
                 WHERE account_id = %s;
             """
-            await cur.execute(sql,[account_id])
+            await cur.execute(sql, [account_id])
             data = await cur.fetchone()
             if data is None:
-                await conn.commit()
                 return JSONResponse.API_2016_UserNotInDB
-            else:
-                if data[0] != 2:
-                    sql = """
-                        UPDATE T_user_config 
-                        SET 
-                            user_level = 2, 
-                            storage_limit = %s
-                        WHERE account_id = %s;
-                    """
-                    await cur.execute(sql,[Limits.DefaultRecentLimit,account_id])
+            
+            current_level = data[0]
+            # 只允许向下降级：2→1/0, 1→0
+            if current_level > target_level and not (current_level == 1 and target_level != 0):
+                # 处理降级的storage_limit
+                new_limit = Limits.DefaultRecentLimit if target_level == 1 else 0
                 
-            await conn.commit()
-            return JSONResponse.get_success_response(1)
-        except Exception as e:
-            await conn.rollback()
-            raise e
-        finally:
-            await cur.close()
-            await MysqlConnection.release_connection(conn)
-
-    @ExceptionLogger.handle_database_exception_async
-    async def test_daily_close(account_id: int):
-        '''
-        删除recent(pro)功能
-        '''
-        try:
-            conn: Connection = await MysqlConnection.get_connection()
-            await conn.begin()
-            cur: Cursor = await conn.cursor()
-
-            sql = """
-                SELECT 
-                    user_level, 
-                    storage_limit 
-                FROM T_user_config 
-                WHERE account_id = %s;
-            """
-            await cur.execute(sql,[account_id])
-            data = await cur.fetchone()
-            if data is None:
-                await conn.commit()
-                return JSONResponse.API_2016_UserNotInDB
-            else:
-                if data[0] == 2:
-                    sql = """
-                        UPDATE T_user_config 
-                        SET 
-                            user_level = 1, 
-                            storage_limit = %s
-                        WHERE account_id = %s;
-                    """
-                    await cur.execute(sql,[Limits.DefaultRecentLimit,account_id])
+                sql = """
+                    UPDATE T_user_config 
+                    SET 
+                        user_level = %s, 
+                        storage_limit = %s
+                    WHERE account_id = %s;
+                """
+                await cur.execute(sql, [target_level, new_limit, account_id])
             
-            await conn.commit()
             return JSONResponse.API_1000_Success
-        except Exception as e:
-            await conn.rollback()
-            raise e
-        finally:
-            await cur.close()
-            await MysqlConnection.release_connection(conn)

@@ -1,8 +1,8 @@
-from .mysql import MysqlConnection
+from .mysql import MySQLManager
 from .sqlite import SQLiteConnection
 
 
 __all__ = [
-    'MysqlConnection',
+    'MySQLManager',
     'SQLiteConnection'
 ]

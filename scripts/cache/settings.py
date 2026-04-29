@@ -6,9 +6,9 @@ from datetime import datetime
 
 
 CLIENT_NAME = 'UserCache'
-REFRESH_INTERVAL = 600
+REFRESH_INTERVAL = 1200
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
-USE_TQDM = sys.stdout.isatty()
+USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
 
 if os.getenv('PLATFORM') is None:
     from dotenv import load_dotenv

@@ -1,109 +1,18 @@
-from aiomysql.connection import Connection
-from aiomysql.cursors import Cursor
-
 from app.core import EnvConfig
-from app.database import MysqlConnection
+from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
 from app.schemas import UserBasicData, ClanBasicData
 from app.utils import GameUtils, TimeUtils
 
 
-class PlatyerModel:
+class PlayerModel:
     @ExceptionLogger.handle_database_exception_async
-    async def check_base(account_id: int, username: str = None):
-        '''
-        检查该uid是否存在于数据库中，确保事务正常
-        '''
-        
-        try:
-            conn: Connection = await MysqlConnection.get_connection()
-            await conn.begin()
-            cur: Cursor = await conn.cursor()
-
-            sql = """
-                SELECT 
-                    table_count
-                FROM T_user_base 
-                WHERE account_id = %s;
-            """
-            await cur.execute(
-                sql,[account_id]
-            )
-            result = await cur.fetchone()
-            if result is None:
-                default_name = GameUtils.get_user_default_name(account_id)
-                sql = """
-                    INSERT INTO user_base (
-                        account_id, 
-                        username
-                    ) VALUES (
-                        %s, %s
-                    );
-                """
-                await cur.execute(
-                    sql,[account_id, default_name]
-                )
-                sql = """
-                    INSERT INTO user_stats (
-                        account_id
-                    ) VALUES (
-                        %s
-                    );
-                """
-                await cur.execute(
-                    sql,[account_id]
-                )
-                sql = """
-                    INSERT INTO user_clan (
-                        account_id
-                    ) VALUES (
-                        %s
-                    );
-                """
-                await cur.execute(
-                    sql,[account_id]
-                )
-                sql = """
-                    INSERT INTO user_cache (
-                        account_id
-                    ) VALUES (
-                        %s
-                    );
-                """
-                await cur.execute(
-                    sql,[account_id]
-                )
-                result = [default_name, None]
-                if username:
-                    sql = """
-                        UPDATE user_base 
-                        SET 
-                            username = %s
-                        WHERE account_id = %s;
-                    """
-                    await cur.execute(
-                        sql,[username, account_id]
-                    )
-
-            await conn.commit()
-            return JSONResponse.API_1000_Success
-        except Exception as e:
-            await conn.rollback()
-            raise e
-        finally:
-            await cur.close()
-            await MysqlConnection.release_connection(conn)
-
-    @ExceptionLogger.handle_database_exception_async
-    async def read_base(account_id: int):
+    async def test_read_base(account_id: int):
         '''
         从数据库中获取用户的基本数据
         '''
-        try:
-            conn: Connection = await MysqlConnection.get_connection()
-            cur: Cursor = await conn.cursor()
-
+        async with MySQLManager.read_only_cursor() as cur:
             data = {
                 'account_id': account_id,
                 'username': None,
@@ -175,143 +84,14 @@ class PlatyerModel:
             if row:
                 data['clan_id'] = row[0]
             return JSONResponse.get_success_response(data)
-        except Exception as e:
-            raise e
-        finally:
-            await cur.close()
-            await MysqlConnection.release_connection(conn)
-
-    @ExceptionLogger.handle_database_exception_async
-    async def get_user_name(account_id: int):
-        '''
-        从数据库中获取用户的基本数据，如果玩家或者工会的缓存数据不存在则返回none
-        '''
-        try:
-            conn: Connection = await MysqlConnection.get_connection()
-            await conn.begin()
-            cur: Cursor = await conn.cursor()
-
-            result = {
-                'base': None,
-                'clan': None
-            }
-            # 从数据库中读取缓存数据
-            sql = """
-                SELECT 
-                    b.username, 
-                    UNIX_TIMESTAMP(b.register_time), 
-                    b.insignias,
-                    c.clan_id 
-                FROM user_base as b 
-                LEFT JOIN user_clan as c 
-                  ON b.account_id = c.account_id 
-                WHERE b.account_id = %s;
-            """
-            await cur.execute(
-                sql, account_id
-            )
-            row = await cur.fetchone()
-            if row is None:
-                result = None
-            elif row[3] is None:
-                result['base'] = {
-                    'id': account_id,
-                    'username': row[0],
-                    'register_time': row[1],
-                    'insignias': row[2]
-                }
-            else:
-                clan_id = row[3]
-                result['base'] = {
-                    'id': account_id,
-                    'username': row[0],
-                    'register_time': row[1],
-                    'insignias': row[2]
-                }
-                sql = """
-                    SELECT 
-                        tag, 
-                        league 
-                    FROM clan_base 
-                    WHERE clan_id = %s;
-                """
-                await cur.execute(
-                    sql, clan_id
-                )
-                row = await cur.fetchone()
-                if row:
-                    result['clan'] = {
-                        'id': clan_id,
-                        'tag': row[0],
-                        'league': row[1]
-                    }
-                else:
-                    result = None
-
-            await conn.commit()
-            return JSONResponse.get_success_response(result)
-        except Exception as e:
-            await conn.rollback()
-            raise e
-        finally:
-            await cur.close()
-            await MysqlConnection.release_connection(conn)
-
-    @ExceptionLogger.handle_database_exception_async
-    async def get_user_name_batch(account_ids: list):
-        '''
-        从数据库中获取用户的基本数据，如果玩家或者工会的缓存数据不存在则返回none
-
-        用户数据为空或者隐藏战绩也返回none
-
-        参数：
-            account_id: 用户id
-            region_id: 服务器id
-        '''
-        try:
-            conn: Connection = await MysqlConnection.get_connection()
-            await conn.begin()
-            cur: Cursor = await conn.cursor()
-
-            placeholders = ",".join(["%s"] * len(account_ids))
-            # 从数据库中读取缓存数据
-            sql = f"""
-                SELECT 
-                    b.account_id, 
-                    b.username, 
-                    c.clan_id 
-                FROM user_base as b 
-                LEFT JOIN user_clan as c 
-                  ON b.account_id = c.account_id 
-                WHERE b.account_id IN ({placeholders});
-            """
-            await cur.execute(
-                sql,account_ids
-            )
-            data = {}
-            rows = await cur.fetchall()
-            for row in rows:
-                data[row[0]] = [row[1], row[2]]
-
-            await conn.commit()
-            return JSONResponse.get_success_response(data)
-        except Exception as e:
-            await conn.rollback()
-            raise e
-        finally:
-            await cur.close()
-            await MysqlConnection.release_connection(conn)
 
     @ExceptionLogger.handle_database_exception_async
     async def refresh_base(user_data: UserBasicData | None, clan_data: ClanBasicData | None):
         '''
         根据api请求获取到的用户和用户所在工会数据刷新数据库数据
         '''
-        try:
-            conn: Connection = await MysqlConnection.get_connection()
-            await conn.begin()
-            cur: Cursor = await conn.cursor()
-
+        constants = EnvConfig.get_constants()
+        async with MySQLManager.auto_transaction_cursor() as cur:
             account_id = user_data.account_id
             # 先处理更新user_base user_basic user_clan的用户数据
             sql = """
@@ -338,7 +118,7 @@ class PlatyerModel:
                 await cur.execute(
                     sql,[account_id, default_name]
                 )
-                for table_name in EnvConfig.constants.USER_INIT_TABLE_LIST:
+                for table_name in constants.USER_INIT_TABLE_LIST:
                     sql = f"""
                         INSERT INTO {table_name} (
                             account_id
@@ -356,7 +136,7 @@ class PlatyerModel:
                     WHERE account_id = %s;
                 """
                 await cur.execute(
-                    sql,[len(EnvConfig.constants.USER_INIT_TABLE_LIST),account_id]
+                    sql,[len(constants.USER_INIT_TABLE_LIST),account_id]
                 )
                 result = [default_name, None]
             if user_data.username:
@@ -479,11 +259,91 @@ class PlatyerModel:
                         sql,[clan_data.tag, clan_data.league, clan_data.clan_id]
                     )
 
-            await conn.commit()
             return JSONResponse.API_1000_Success
-        except Exception as e:
-            await conn.rollback()
-            raise e
-        finally:
-            await cur.close()
-            await MysqlConnection.release_connection(conn)
+
+    @ExceptionLogger.handle_database_exception_async
+    async def fetch_leaderboard_data(ship_id: int, account_ids: list[str]):
+        """根据用户ID列表，从数据库中批量读取排行榜数据"""
+        async with MySQLManager.read_only_cursor() as cur:
+            placeholders = ','.join(['%s'] * len(account_ids))
+            sql = f"""
+                SELECT 
+                    s.account_id,
+                    u.clan_tag,
+                    u.league,
+                    u.username,
+                    s.battles,
+                    s.rating,
+                    CASE
+                        WHEN s.rating < 750 THEN 1
+                        WHEN s.rating < 1100 THEN 2
+                        WHEN s.rating < 1350 THEN 3
+                        WHEN s.rating < 1550 THEN 4
+                        WHEN s.rating < 1750 THEN 5
+                        WHEN s.rating < 2100 THEN 6
+                        WHEN s.rating < 2450 THEN 7
+                        ELSE 8
+                    END AS rating_level,
+                    ROUND(s.win_rate, 2) AS win_rate,
+                    CASE
+                        WHEN s.win_rate < 40 THEN 1
+                        WHEN s.win_rate < 45 THEN 2
+                        WHEN s.win_rate < 50 THEN 3
+                        WHEN s.win_rate < 52.5 THEN 4
+                        WHEN s.win_rate < 55 THEN 5
+                        WHEN s.win_rate < 60 THEN 6
+                        WHEN s.win_rate < 67 THEN 7
+                        ELSE 8
+                    END AS win_rate_level,
+                    ROUND(s.solo_rate, 2) AS solo_rate,
+                    CASE
+                        WHEN s.solo_rate < 10 THEN 1
+                        WHEN s.solo_rate < 30 THEN 2
+                        WHEN s.solo_rate < 40 THEN 3
+                        WHEN s.solo_rate < 50 THEN 4
+                        WHEN s.solo_rate < 60 THEN 5
+                        WHEN s.solo_rate < 70 THEN 6
+                        WHEN s.solo_rate < 80 THEN 7
+                        ELSE 8
+                    END AS solo_rate_level,
+                    s.avg_damage,
+                    s.avg_damage_level AS avg_damage_level,
+                    s.avg_frags,
+                    s.avg_frags_level AS avg_frags_level,
+                    s.avg_exp,
+                    ROUND(s.hit_ratio, 2) AS hit_ratio,
+                    s.max_exp,
+                    s.max_damage
+                FROM T_ship_pvp_leaderboard s
+                LEFT JOIN V_user_basic_with_clan u
+                    ON s.account_id = u.account_id
+                WHERE s.account_id IN ({placeholders})
+                  AND s.ship_id = %s;
+            """
+            await cur.execute(sql, account_ids + [ship_id])
+            rows = await cur.fetchall()
+            result = {}
+            for row in rows:
+                account_id = str(row[0])
+                result[account_id] = {
+                    'clan_tag': row[1],
+                    'league': row[2],
+                    'username': row[3],
+                    'battles': row[4],
+                    'rating': row[5],
+                    'rating_level': row[6],
+                    'win_rate': row[7],
+                    'win_rate_level': row[8],
+                    'solo_rate': row[9],
+                    'solo_rate_level': row[10],
+                    'avg_damage': row[11],
+                    'avg_damage_level': row[12],
+                    'avg_frags': row[13],
+                    'avg_frags_level': row[14],
+                    'avg_exp': row[15],
+                    'hit_ratio': row[16],
+                    'max_exp': row[17],
+                    'max_damage': row[18]
+                }
+            
+            return JSONResponse.get_success_response(result)

@@ -1,8 +1,57 @@
 /* ========== 概览页专用样式 ========== */
 .overview-cards {
-    margin-bottom: 24px;
+  margin-bottom: 24px;
 }
 
 .overview-chart {
-    margin-top: 0;
+  margin-top: 0;
+}
+
+/* ========== 图表顶部栏（标题 + 切换按钮） ========== */
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.chart-title-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.chart-toggle {
+  display: flex;
+  gap: 4px;
+  background: #f0f2f5;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.toggle-btn {
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  font-family: inherit;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.toggle-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.toggle-btn.active {
+  background: #ffffff;
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-weight: 600;
 }

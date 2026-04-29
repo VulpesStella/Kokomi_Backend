@@ -5,133 +5,139 @@ import os
 import time
 import redis
 import pymysql
-from tqdm import tqdm
-from datetime import datetime
+import traceback
 
 from logger import logger
 from settings import (
-    CLIENT_NAME, REFRESH_INTERVAL, 
-    MYSQL_CONFIG, REDIS_CONFIG, REGION, DATE_FMT, USE_TQDM, CLAN_REALM_MAP, CLAN_LEAGUE_LIST
+    CLIENT_NAME, 
+    REFRESH_INTERVAL, 
+    REGION, 
+    MYSQL_CONFIG, 
+    REDIS_CONFIG, 
+    CLAN_REALM_MAP, 
+    CLAN_LEAGUE_LIST
 )
 from utils import (
+    progress_iterable,
     read_season_data,
     ensure_clan_battle_table,
     is_cb_active, 
     get_update_ids, 
     get_clan_rank_data,
-    regresh_clan_league, 
+    refresh_clan_league, 
+    refresh_clan_cache,
     update_clan_season
 )
 
 
+SECONDS_PER_DAY = 24 * 60 * 60
+EXPECTED_LEAGUE_COUNT = 13
+
 def main():
     last_refresh_time = 0
+    created_season = 0
     while True:
         start = time.monotonic()
-        redis_client = redis.Redis(**REDIS_CONFIG)
-        redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.1))
         conn = pymysql.connect(**MYSQL_CONFIG)
+        redis_client = redis.Redis(**REDIS_CONFIG)
+        # 设置当前服务状态，用于外部监控系统判断服务是否正常运行
+        redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.5))
         try:
-            # 俄服clan battle在s28后被rating战所替代
-            # SEASON_ID, SEASON_FINISH, SEASON_START = 28, 1739944800, 1744005600
             season_data = read_season_data()
-            SEASON_ID = season_data['id']
-            ensure_clan_battle_table(conn, SEASON_ID)
-            logger.info(f"Current Season ID: {SEASON_ID}")
+            season_id = season_data['id']
+            logger.info(f"Current Season ID: {season_id}")
+            # 确保当前赛季的工会战数据表存在
+            if created_season != season_id and ensure_clan_battle_table(conn, season_id):
+                created_season = season_id
+                logger.info(f'Table T_clan_battle_s{season_id} is already exists')
+            
             now_ts = int(time.time())
-            # 最低每天刷新一次
+            # 最低每天刷新一次并确保首次运行时能立即获取数据
             if (
-                now_ts - last_refresh_time > 24*60*60 or 
+                now_ts - last_refresh_time > SECONDS_PER_DAY or 
                 is_cb_active(now_ts, season_data['start'], season_data['finish'])
             ):
-                total_list = []
                 success_count = 0
-                len_update_ids = len(CLAN_LEAGUE_LIST)
-                if USE_TQDM:
-                    iterator = tqdm(
-                        CLAN_LEAGUE_LIST, 
-                        total=len_update_ids, 
-                        desc=f"{datetime.now().strftime(DATE_FMT)} [INFO] Clan Updating"
-                    )
-                else:
-                    iterator = enumerate(CLAN_LEAGUE_LIST, 1)
-                for item in iterator:
-                    if USE_TQDM:
-                        update_data = item
-                        index = iterator.n
-                    else:
-                        index, update_data = item
+                total_list = []
+                league_count = {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0}
+                for update_data in progress_iterable(
+                    items=CLAN_LEAGUE_LIST, 
+                    desc="Processing Leagues",
+                    logger_obj=logger
+                ):
+                    league, division = update_data.split('-')
                     league_data = get_clan_rank_data(
                         redis_client=redis_client,
                         realm=CLAN_REALM_MAP.get(REGION),
-                        league=update_data[0],
-                        division=update_data[1]
+                        league=league,
+                        division=division
                     )
-                    if type(league_data) == str:
-                        result = league_data
-                    else:
+                    if type(league_data) == list:
                         success_count += 1
-                        result = f'+ {len(league_data)}'
-                    total_list = total_list + league_data
-                    if USE_TQDM:
-                        iterator.set_postfix_str(f"{REGION}-{update_data[0]}-{update_data[1]} | {result}")
-                    else:
-                        logger.info(f'[{index}/{len_update_ids}] {REGION}-{update_data[0]}-{update_data[1]} | {result}')
-                logger.info(f'Total Clan: {len(total_list)}')
-                update_ids = get_update_ids(conn, SEASON_ID, total_list)
+                        league_count[league] += len(league_data)
+                        total_list.extend(league_data)
+                logger.info('Current active clans: 1(%d), 2(%d), 3(%d), 4(%d)', league_count["1"], league_count["2"], league_count["3"], league_count["4"])
+                if success_count == EXPECTED_LEAGUE_COUNT:
+                    # 成功读取全部数据后，更新所有工会的league字段
+                    refresh_clan_league(conn, total_list)
+
+                # 比较最新数据和数据库数据，确定需要更新的工会ID列表
+                update_ids = get_update_ids(conn, season_id, total_list)
                 len_update_ids = len(update_ids)
-                logger.info(f'Update Numbers: {len_update_ids}')
                 if len_update_ids > 0:
-                    if USE_TQDM:
-                        iterator = tqdm(
-                            update_ids, 
-                            total=len_update_ids, 
-                            desc=f"{datetime.now().strftime(DATE_FMT)} [INFO] Clan Updating"
-                        )
-                    else:
-                        iterator = enumerate(update_ids, 1)
-                    for item in iterator:
-                        if USE_TQDM:
-                            update_id = item
-                            index = iterator.n
-                        else:
-                            index, update_id = item
-                        result = update_clan_season(redis_client, conn, SEASON_ID, update_id)
-                        if USE_TQDM:
-                            iterator.set_postfix_str(f"{REGION}-{update_id} | {result}")
-                        else:
-                            logger.info(f'[{index}/{len_update_ids}] {REGION}-{update_id} | {result}')
-                if success_count == 13:
-                    refresh_count = regresh_clan_league(conn, total_list)
-                    logger.info(f'Refresh Clan: {refresh_count}')
+                    # 更新需要更新的工会数据
+                    logger.info(f'Clans to update: {len_update_ids}')
+                    for update_data in progress_iterable(
+                        items=update_ids, 
+                        desc="Processing Clan",
+                        logger_obj=logger
+                    ):
+                        update_clan_season(redis_client, conn, season_id, update_data)
+                
+                # 全量刷新工会排行榜缓存，防止脏数据污染
+                refresh_clan_cache(redis_client, conn, season_id)
                 last_refresh_time = now_ts
             else:
                 logger.info(f'Update time not yet reached')
         except Exception:
-            pass
+            logger.error(traceback.format_exc())
+            # 严重错误导致的循环中断，删除用于标记服务状态的key
+            try:
+                redis_client.delete(f'status:{CLIENT_NAME}')
+            except Exception as e:
+                logger.error(f'Failed to delete status key: {e}')
         finally:
+            # 大部分情况下每次循环运行时间远小于刷新间隔，大部分时间都处于sleep状态
+            # 为了减少资源占用，每次循环结束后释放数据库和redis连接，等待下一次循环时再重新建立连接
             redis_client.close()
             conn.close()
+
+        # 计算本次循环的实际运行时间，并根据刷新间隔决定是否需要sleep
         elapsed = time.monotonic() - start
-        logger.info(f'This loop took {round(elapsed,2)} seconds')
+        logger.info('This loop took %.2f seconds', round(elapsed, 2))
         sleep_time = max(0, round(REFRESH_INTERVAL - elapsed, 2))
-        if sleep_time != 0:
+        if sleep_time >= 1:
             logger.info(f'The process sleeps for {sleep_time} seconds')
             time.sleep(sleep_time)
         logger.info('-'*70)
 
-def handler(_signum, _frame):
+def handler(*_):
+    """信号处理器，退出"""
     logger.info('The process is closing')
     exit(0)
 
-if __name__ == "__main__":
-    logger.info(f'Start running service: {CLIENT_NAME}')
-    logger.info(f'Service refresh interval: {REFRESH_INTERVAL} seconds')
-    logger.info(f'Current node region: {REGION.upper()}')
-    if os.name != "nt":
+if __name__ == '__main__':
+    logger.info('Start running service: %s', CLIENT_NAME)
+    logger.info('Service refresh interval: %s seconds', REFRESH_INTERVAL)
+    logger.info('Current node region: %s', REGION.upper())
+
+    if os.name != 'nt':
+        # 在非Windows系统上注册SIGTERM信号处理器，在接收到SIGTERM信号时关闭服务
         import signal
         signal.signal(signal.SIGTERM, handler)
+
     try:
         main()
     except KeyboardInterrupt:
-        logger.info('The process is closing')
+        # 在Windows系统上，无法捕获SIGTERM信号，但可以通过捕获KeyboardInterrupt异常来实现类似的功能
+        handler()

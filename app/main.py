@@ -4,7 +4,7 @@
 import asyncio
 import threading
 from fastapi import FastAPI, Request, Security
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 # from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
@@ -14,19 +14,19 @@ from app.response import JSONResponse as API_JSONResponse
 from app.core import EnvConfig, api_logger
 from app.utils import TimeUtils
 from app.loggers import CSVWriter, log_queue
-from app.database import MysqlConnection
+from app.database import MySQLManager
 from app.health import HealthManager, ServiceMetrics
-from app.apis.platform import StatusAPI
 from app.middlewares import (
     RedisConnection,
-    get_role,
+    SecurityManager
 )
 from app.dashboard import dashboard_router
 from app.routers import (
     platform_router, 
     demo_router, 
     statistics_router,
-    recent_router
+    recent_router,
+    ranking_router
 )
 
 
@@ -83,14 +83,16 @@ async def lifespan(app: FastAPI):
     writer_thread = threading.Thread(target=csv_writer_thread, daemon=True)
     writer_thread.start()
     # 初始化mysql并测试mysql连接
-    await MysqlConnection.test_mysql()
+    await MySQLManager.init_pool()
+    await MySQLManager.test_connection()
     # 初始化并测试redis连接
+    await RedisConnection.init_conn()
     await RedisConnection.test_redis()
     # 启动 lifespan
     try:
         yield
     finally:
-        await MysqlConnection.close_mysql()
+        await MySQLManager.close_pool()
         await RedisConnection.close_redis()
         # 发送退出信号，等待剩下数据写入并退出线程
         log_queue.put(None)
@@ -122,14 +124,13 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 @app.middleware("http")
 async def request_rate_limiter(request: Request, call_next):
     # client_ip = request.client.host if request.client else None
-    # if client_ip not in EnvConfig.config.BIND_HOST:
+    # if client_ip != '127.0.0.1':
     #     return JSONResponse(
     #         status_code=403,
     #         content={"detail": "Forbidden"}
     #     )
     start = TimeUtils.timestamp_ms()
     now_time = TimeUtils.now_iso()
-    await ServiceMetrics.requests_incr('api', now_time[0:10])
     response: StreamingResponse = await call_next(request)
     elapsed = int((TimeUtils.timestamp_ms() - start))
     record = [
@@ -145,6 +146,10 @@ async def request_rate_limiter(request: Request, call_next):
     except Exception:
         api_logger.warning('Log queue full!')
         pass  # 队列满时直接丢弃，避免阻塞接口
+    try:
+        await ServiceMetrics.requests_incr('api', now_time[0:10])
+    except Exception:
+        pass
     return response
 
 
@@ -157,7 +162,7 @@ async def root():
     return {'status':'ok','messgae':'Hello! Welcome to KokomiPlatform Interface.'}
 
 @app.get("/permission/", summary="测试当前token是否可用", tags=['Default'])
-async def testRootPermission(role: bool = Security(get_role)):
+async def testRootPermission(role: bool = Security(SecurityManager.get_current_role)):
     return API_JSONResponse.get_success_response(role)
 
 @app.get("/dashboard")
@@ -180,28 +185,35 @@ app.include_router(
     demo_router, 
     prefix="/api/demo", 
     tags=['Demo Interface'],
-    dependencies=[Security(get_role)]
+    dependencies=[Security(SecurityManager.require_root)]
 )
 
 app.include_router(
     platform_router, 
     prefix="/api/platform", 
     tags=['Platform Interface'],
-    dependencies=[Security(get_role)]
+    dependencies=[Security(SecurityManager.require_user)]
 )
 
 app.include_router(
     statistics_router,
     prefix="/api/stats",
     tags=['Statistics Interface'],
-    dependencies=[Security(get_role)]
+    dependencies=[Security(SecurityManager.require_user)]
+)
+
+app.include_router(
+    ranking_router,
+    prefix="/api/ranking",
+    tags=['Ranking Interface'],
+    dependencies=[Security(SecurityManager.require_user)]
 )
 
 app.include_router(
     recent_router,
     prefix="/api/recent",
     tags=['Recent Interface'],
-    dependencies=[Security(get_role)]
+    dependencies=[Security(SecurityManager.require_user)]
 )
 
 # ------------------------------------------------------

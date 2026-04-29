@@ -1,7 +1,7 @@
 from app.core import EnvConfig
 from app.response import JSONResponse
 from app.loggers import ExceptionLogger
-from app.models import PlatyerModel
+from app.models import PlayerModel
 from app.utils import GameUtils, JsonUtils
 from app.middlewares import RedisClient
 from app.network import ExternalAPI

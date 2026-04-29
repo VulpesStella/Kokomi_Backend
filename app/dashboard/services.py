@@ -3,107 +3,91 @@
 实际使用时替换为真实的数据库查询
 """
 import json
-import random
-from datetime import datetime, timedelta
-from typing import List, Dict, Any
+from datetime import datetime, timezone
+from typing import Dict, Any
+
+from app.core import EnvConfig
+from app.health import ServiceMetrics
 
 
-def generate_time_series(hours: int = 24) -> List[str]:
-    """生成时间序列标签"""
-    now = datetime.now()
-    return [(now - timedelta(hours=i)).strftime("%H:%M") for i in range(hours - 1, -1, -1)]
-
-
-def get_overview_data() -> Dict[str, Any]:
-    """概览页数据 - 支持5个卡片 + 1个全宽柱状图"""
+async def get_overview_data() -> Dict[str, Any]:
+    """概览页数据 - 调用ServiceMetrics的各个方法组装数据"""
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    log_dir = EnvConfig.LOG_DIR
+    config = EnvConfig.get_config()
     
+    # 1. 获取今日请求统计
+    total_count, buckets, avg_elapsed_ms = ServiceMetrics.get_hourly_request_stats(today, log_dir)
+    
+    # 2. 构建24小时图表数据
+    hourly_keys, hourly_values = ServiceMetrics.build_hourly_chart_data(now, buckets)
+    
+    # 3. 获取30天API调用统计
+    monthly_keys, monthly_values = await ServiceMetrics.get_monthly_api_stats(now)
+    
+    # 4. 获取30天Celery任务统计
+    celery_keys, celery_values = await ServiceMetrics.get_monthly_celery_stats(now)
+    
+    # 5. 获取今日错误数
+    error_count = ServiceMetrics.get_today_error_count(today, log_dir)
+    
+    # 6. 获取MQ积压消息数
+    mq_backlog = ServiceMetrics.get_mq_pending_count(config)
+    
+    # 7. 获取服务状态
+    active_services, total_services = await ServiceMetrics.get_services_status()
+    
+    # 组装返回数据
     return {
         "cards": [
             {
-                "title": "今日API调用",
-                "value": f"{random.randint(5000, 50000):,}",
+                "title": "Today's API Calls",
+                "value": f"{total_count:,}",
                 "icon": "📡",
                 "color": "#667eea"
             },
             {
-                "title": "平均响应时间",
-                "value": f"{random.randint(80, 350)}ms",
+                "title": "Average Response Time",
+                "value": f"{avg_elapsed_ms}ms",
                 "icon": "⚡",
                 "color": "#f093fb"
             },
             {
-                "title": "错误率",
-                "value": f"{random.uniform(0.1, 2.5):.2f}%",
+                "title": "Today's Error",
+                "value": f"{error_count:,}",
                 "icon": "⚠️",
                 "color": "#fa709a"
             },
             {
-                "title": "活跃端点",
-                "value": str(random.randint(15, 45)),
-                "icon": "🔗",
+                "title": "MQ Pending Tasks",
+                "value": f"{mq_backlog:,}",
+                "icon": "📦",
                 "color": "#4facfe"
             },
             {
-                "title": "在线用户",
-                "value": f"{random.randint(100, 5000):,}",
-                "icon": "👥",
+                "title": "Active Services",
+                "value": f"{active_services} / {total_services}",
+                "icon": "🖥️",
                 "color": "#43e97b"
-            },
+            }
         ],
         "overview_chart_json": json.dumps({
-            "title": "24小时 API 调用量统计",
-            "yAxisName": "调用次数",
-            "labels": generate_time_series(24),
-            "values": [random.randint(100, 2000) for _ in range(24)]
+            "title": "24-Hour API Call Statistics",
+            "yAxisName": "Call Count",
+            "labels": hourly_keys,
+            "values": hourly_values
+        }),
+        "monthly_chart_json": json.dumps({
+            "title": "30-Day API Call Statistics",
+            "yAxisName": "Call Count",
+            "labels": monthly_keys,
+            "values": monthly_values
+        }),
+        "celery_chart_json": json.dumps({
+            "title": "Celery Task Consumption (30d)",
+            "yAxisName": "Tasks",
+            "labels": celery_keys,
+            "values": celery_values
         })
-    }
-
-
-def get_api_stats_data() -> Dict[str, Any]:
-    """API统计页数据"""
-    endpoints = [
-        {"path": "/api/users", "method": "GET", "calls": random.randint(1000, 10000),
-         "avg_time": f"{random.randint(20, 150)}ms", "error_rate": f"{random.uniform(0, 2):.1f}%"},
-        {"path": "/api/users/{id}", "method": "GET", "calls": random.randint(500, 5000),
-         "avg_time": f"{random.randint(15, 80)}ms", "error_rate": f"{random.uniform(0, 1):.1f}%"},
-        {"path": "/api/users", "method": "POST", "calls": random.randint(200, 3000),
-         "avg_time": f"{random.randint(50, 200)}ms", "error_rate": f"{random.uniform(0.5, 3):.1f}%"},
-        {"path": "/api/orders", "method": "GET", "calls": random.randint(800, 8000),
-         "avg_time": f"{random.randint(30, 120)}ms", "error_rate": f"{random.uniform(0, 2.5):.1f}%"},
-        {"path": "/api/orders", "method": "POST", "calls": random.randint(300, 4000),
-         "avg_time": f"{random.randint(60, 250)}ms", "error_rate": f"{random.uniform(0.5, 4):.1f}%"},
-        {"path": "/api/products", "method": "GET", "calls": random.randint(1500, 12000),
-         "avg_time": f"{random.randint(10, 60)}ms", "error_rate": f"{random.uniform(0, 0.5):.1f}%"},
-    ]
-    
-    # Top端点柱状图数据
-    top_endpoints = sorted(endpoints, key=lambda x: x["calls"], reverse=True)[:6]
-    
-    # 响应时间分位数
-    time_labels = ["P50", "P75", "P90", "P95", "P99"]
-    
-    return {
-        "endpoints": endpoints,
-        "top_chart": {
-            "labels": [f"{e['method']} {e['path']}" for e in top_endpoints],
-            "values": [e["calls"] for e in top_endpoints],
-            "title": "Top 调用量接口"
-        },
-        "latency_chart": {
-            "labels": time_labels,
-            "values": [random.randint(30, 80), random.randint(80, 150), 
-                       random.randint(150, 300), random.randint(300, 600), 
-                       random.randint(600, 1200)],
-            "title": "响应时间分位数 (ms)"
-        },
-        "method_distribution": {
-            "labels": ["GET", "POST", "PUT", "DELETE"],
-            "values": [
-                random.randint(5000, 20000),
-                random.randint(2000, 8000),
-                random.randint(500, 2000),
-                random.randint(200, 1000)
-            ],
-            "title": "请求方法分布"
-        }
     }

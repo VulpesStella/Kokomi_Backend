@@ -126,22 +126,3 @@
     border-radius: 3px;
     font-size: 12px;
 }
-
-/* ========== 方法徽章 ========== */
-.method-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #fff;
-}
-
-.method-get { background: #52c41a; }
-.method-post { background: #1890ff; }
-.method-put { background: #faad14; }
-.method-delete { background: #f5222d; }
-
-/* ========== 文本状态色 ========== */
-.error-text { color: #f5222d; font-weight: 600; }
-.success-text { color: #52c41a; }

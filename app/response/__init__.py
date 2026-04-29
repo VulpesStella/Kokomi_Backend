@@ -1,6 +1,5 @@
-from .response import JSONResponse, ResponseDict
+from .response import JSONResponse
 
 __all__ = [
-    'JSONResponse',
-    'ResponseDict'
+    'JSONResponse'
 ]

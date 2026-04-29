@@ -226,7 +226,7 @@ SELECT
     survived_rate,
     avg_scouting_damage,
     avg_potential_damage
-FROM T_ship_stats_by_battles_archive
+FROM ARCH_ship_stats_by_battles
 WHERE ship_id = 4277090288
   AND game_version = '15.3'
 ORDER BY stat_date ASC;
@@ -244,7 +244,7 @@ SELECT
     survived_rate,
     avg_scouting_damage,
     avg_potential_damage
-FROM T_ship_stats_by_users_archive
+FROM ARCH_ship_stats_by_users
 WHERE ship_id = 4277090288
   AND game_version = '15.3'
 ORDER BY stat_date ASC;
@@ -263,7 +263,7 @@ SELECT
     potential_damage,
 
     updated_at
-FROM T_ship_stats_by_recent_archive
+FROM ARCH_ship_stats_by_recent
 WHERE ship_id = 4277090288
 ORDER BY game_version ASC;
 

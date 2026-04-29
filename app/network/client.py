@@ -12,7 +12,8 @@ TIMEOUT = httpx.Timeout(
     write = 3.0,
     pool = 2.0
 )
-async_client = httpx.AsyncClient(timeout=TIMEOUT)
+# 关闭代理，避免请求外部API时被本地环境变量干扰
+async_client = httpx.AsyncClient(timeout=TIMEOUT, trust_env=False)
 
 class HttpClient:
     """负责和外部API交互"""

@@ -6,6 +6,7 @@ import httpx
 import redis
 import pymysql
 import asyncio
+import traceback
 from tqdm import tqdm
 from datetime import datetime
 
@@ -16,13 +17,13 @@ from settings import (
     REGION, DATE_FMT
 )
 from utils import (
+    progress_iterable,
     get_update_ids,
     get_version,
     get_refresh,
     read_metric_level,
     read_ship_record,
     read_ship_data,
-    refresh_leaderboard,
     update_user_cache
 )
 
@@ -35,6 +36,7 @@ async def main():
         redis_client = redis.Redis(**REDIS_CONFIG)
         redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.1))
         mysql_connection = pymysql.connect(**MYSQL_CONFIG)
+        
         try:
             refresh_data = get_refresh(mysql_connection)
             if type(refresh_data) != dict:
@@ -44,16 +46,6 @@ async def main():
             if type(ship_tier) != dict:
                 logger.error(f"Read ship_tier data failed: {ship_tier}")
                 raise ValueError()
-            redis_key = f"leaderboard:refresh_time"
-            refresh_time = redis_client.get(redis_key)
-            refresh_time = 0 if refresh_time is None else int(refresh_time)
-            if int(time.time()) - refresh_time >= 24*60*60:
-                refresh_result = refresh_leaderboard(
-                    mysql_connection=mysql_connection,
-                    redis_client=redis_client,
-                    ship_ids=list(ship_tier.keys())
-                )
-                logger.info(f'Leaderboard Refresh: {refresh_result}')
             update_ids = get_update_ids(mysql_connection)
             len_update_ids = len(update_ids)
             logger.info(f'Update Numbers: {len_update_ids}')
@@ -67,60 +59,60 @@ async def main():
                 raise ValueError()
             if len_update_ids > 0:
                 game_version = get_version()
-                if USE_TQDM:
-                    iterator = tqdm(
-                        update_ids, 
-                        total=len_update_ids, 
-                        desc=f"{datetime.now().strftime(DATE_FMT)} [INFO] Updating"
-                    )
-                else:
-                    iterator = enumerate(update_ids, 1)
-                for item in iterator:
-                    if USE_TQDM:
-                        update_id = item
-                        index = iterator.n
-                    else:
-                        index, update_id = item
-                    result = await update_user_cache(
+                for update_data in progress_iterable(
+                    items=update_ids, 
+                    desc="Processing",
+                    logger_obj=logger
+                ):
+                    await update_user_cache(
                         mysql_connection,
                         redis_client,
                         async_client,
-                        update_id,
+                        update_data,
                         game_version,
                         ship_record,
                         ship_tier,
                         metric_level
                     )
-                    if USE_TQDM:
-                        iterator.set_postfix_str(f"{REGION}-{update_id} | {result}")
-                    else:
-                        logger.info(f'[{index}/{len_update_ids}] {REGION}-{update_id} | {result}')
         except Exception:
-            pass
+            logger.error(traceback.format_exc())
+            # 严重错误导致的循环中断，删除用于标记服务状态的key
+            try:
+                redis_client.delete(f'status:{CLIENT_NAME}')
+            except Exception as e:
+                logger.error(f'Failed to delete status key: {e}')
         finally:
-            await async_client.aclose()
+            # 大部分情况下每次循环运行时间远小于刷新间隔，大部分时间都处于sleep状态
+            # 为了减少资源占用，每次循环结束后释放数据库和redis连接，等待下一次循环时再重新建立连接
             redis_client.close()
             mysql_connection.close()
+
+        # 计算本次循环的实际运行时间，并根据刷新间隔决定是否需要sleep
         elapsed = time.monotonic() - start
-        logger.info(f'This loop took {round(elapsed,2)} seconds')
+        logger.info('This loop took %.2f seconds', round(elapsed, 2))
         sleep_time = max(0, round(REFRESH_INTERVAL - elapsed, 2))
-        if sleep_time != 0:
+        if sleep_time >= 1:
             logger.info(f'The process sleeps for {sleep_time} seconds')
             time.sleep(sleep_time)
         logger.info('-'*70)
 
-def handler(_signum, _frame):
+def handler(*_):
+    """信号处理器，退出"""
     logger.info('The process is closing')
     exit(0)
 
-if __name__ == "__main__":
-    logger.info(f'Start running service: {CLIENT_NAME}')
-    logger.info(f'Service refresh interval: {REFRESH_INTERVAL} seconds')
-    logger.info(f'Current node region: {REGION.upper()}')
-    if os.name != "nt":
+if __name__ == '__main__':
+    logger.info('Start running service: %s', CLIENT_NAME)
+    logger.info('Service refresh interval: %s seconds', REFRESH_INTERVAL)
+    logger.info('Current node region: %s', REGION.upper())
+
+    if os.name != 'nt':
+        # 在非Windows系统上注册SIGTERM信号处理器，在接收到SIGTERM信号时关闭服务
         import signal
         signal.signal(signal.SIGTERM, handler)
+
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info('The process is closing')
+        # 在Windows系统上，无法捕获SIGTERM信号，但可以通过捕获KeyboardInterrupt异常来实现类似的功能
+        handler()

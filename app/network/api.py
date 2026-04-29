@@ -4,7 +4,7 @@ import asyncio
 from app.loggers import ExceptionLogger
 from app.utils import GameUtils, TimeUtils
 from app.constants import ClanColor
-from app.models import PlatyerModel
+from app.models import PlayerModel
 from app.health import ServiceMetrics
 from app.core import EnvConfig
 from app.schemas import UserBasicData, ClanBasicData
@@ -176,7 +176,7 @@ class ExternalAPI:
                 is_enabled=1,
                 is_public=0
             )
-            result = await PlatyerModel.refresh_base(refresh_user_data, None)
+            result = await PlayerModel.refresh_base(refresh_user_data, None)
             if result['code'] != 1000:
                 return result
         elif 'statistics' not in user_basic:
@@ -184,11 +184,11 @@ class ExternalAPI:
                 account_id=account_id, 
                 is_enabled=0
             )
-            result = await PlatyerModel.refresh_base(refresh_user_data, None)
+            result = await PlayerModel.refresh_base(refresh_user_data, None)
             if result['code'] != 1000:
                 return result
         elif 'basic' not in user_basic['statistics']:
-            result = await PlatyerModel.refresh_base(
+            result = await PlayerModel.refresh_base(
                 UserBasicData(
                     account_id=account_id, 
                     username=user_basic['name'],
@@ -217,7 +217,7 @@ class ExternalAPI:
                 last_battle_at=user_basic['statistics']['basic']['last_battle_time'],
                 karma=user_basic['statistics']['basic']['karma']
             )
-            result = await PlatyerModel.refresh_base(refresh_user_data, None)
+            result = await PlayerModel.refresh_base(refresh_user_data, None)
             if result['code'] != 1000:
                 return result
         # 效验用户ac是否有效
@@ -355,7 +355,7 @@ class ExternalAPI:
                 )
             else:
                 refresh_clan_data = ClanBasicData()
-            result = await PlatyerModel.refresh_base(refresh_user_data, refresh_clan_data)
+            result = await PlayerModel.refresh_base(refresh_user_data, refresh_clan_data)
             if result['code'] != 1000:
                 return result
         elif 'statistics' not in user_basic:
@@ -363,11 +363,11 @@ class ExternalAPI:
                 account_id=account_id, 
                 is_enabled=0
             )
-            result = await PlatyerModel.refresh_base(refresh_user_data, ClanBasicData())
+            result = await PlayerModel.refresh_base(refresh_user_data, ClanBasicData())
             if result['code'] != 1000:
                 return result
         elif 'basic' not in user_basic['statistics']:
-            result = await PlatyerModel.refresh_base(
+            result = await PlayerModel.refresh_base(
                 UserBasicData(
                     account_id=account_id, 
                     username=user_basic['name'],
@@ -404,7 +404,7 @@ class ExternalAPI:
                 )
             else:
                 refresh_clan_data = ClanBasicData()
-            result = await PlatyerModel.refresh_base(refresh_user_data, refresh_clan_data)
+            result = await PlayerModel.refresh_base(refresh_user_data, refresh_clan_data)
             if result['code'] != 1000:
                 return result
         # 处理数据成需要的返回格式
@@ -473,7 +473,7 @@ class ExternalAPI:
                 )
             else:
                 refresh_clan_data = ClanBasicData()
-            result = await PlatyerModel.refresh_base(refresh_user_data, refresh_clan_data)
+            result = await PlayerModel.refresh_base(refresh_user_data, refresh_clan_data)
             if result['code'] != 1000:
                 return result
         elif 'statistics' not in user_basic:
@@ -481,11 +481,11 @@ class ExternalAPI:
                 account_id=account_id, 
                 is_enabled=0
             )
-            result = await PlatyerModel.refresh_base(refresh_user_data, ClanBasicData())
+            result = await PlayerModel.refresh_base(refresh_user_data, ClanBasicData())
             if result['code'] != 1000:
                 return result
         elif 'basic' not in user_basic['statistics']:
-            result = await PlatyerModel.refresh_base(
+            result = await PlayerModel.refresh_base(
                 UserBasicData(
                     account_id=account_id, 
                     username=user_basic['name'],
@@ -522,14 +522,14 @@ class ExternalAPI:
                 )
             else:
                 refresh_clan_data = ClanBasicData()
-            result = await PlatyerModel.refresh_base(refresh_user_data, refresh_clan_data)
+            result = await PlayerModel.refresh_base(refresh_user_data, refresh_clan_data)
             if result['code'] != 1000:
                 return result
         # 处理数据成需要的返回格式
         if user_basic == None:
             return JSONResponse.API_2011_UserNotExist
         if 'hidden_profile' in user_basic:
-            return JSONResponse.API_2015_UserHiddenProfite
+            return JSONResponse.API_2015_UserHiddenProfile
         if (
             'statistics' not in user_basic or 
             'basic' not in user_basic['statistics']
@@ -592,7 +592,7 @@ class ExternalAPI:
             if response['data'] is None or response['data'][str(account_id)] == None:
                 return JSONResponse.API_2011_UserNotExist
             if 'hidden_profile' in response['data'][str(account_id)]:
-                return JSONResponse.API_2015_UserHiddenProfite
+                return JSONResponse.API_2015_UserHiddenProfile
             if 'statistics' not in response['data'][str(account_id)]:
                 return JSONResponse.API_2013_UserDataisNone
             data.append(response['data'][str(account_id)]['statistics'])
@@ -629,7 +629,7 @@ class ExternalAPI:
             return error_return
         for response in responses:
             if response['data']['meta']['hidden'] != None:
-                return JSONResponse.API_2015_UserHiddenProfite
+                return JSONResponse.API_2015_UserHiddenProfile
         if responses[0]['data']['data'][str(account_id)] is None:
             return JSONResponse.API_2013_UserDataisNone
         season_data = processing_cb_seasons(responses[0]['data']['data'][str(account_id)])

@@ -1,8 +1,8 @@
 from .redis import RedisConnection, RedisClient
-from .access import get_role
+from .access import SecurityManager
 
 __all__ = [
     'RedisConnection',
     'RedisClient',
-    'get_role'
+    'SecurityManager'
 ]

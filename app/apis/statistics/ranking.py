@@ -3,7 +3,7 @@ import pandas as pd
 from app.core import EnvConfig
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
-from app.models import PlatyerModel, ClanModel
+from app.models import PlayerModel, ClanModel
 from app.utils import NameUtils
 
 class RankingAPI:
@@ -20,7 +20,7 @@ class RankingAPI:
             return JSONResponse.API_1000_Success
         df = pd.read_csv(csv_path, nrows=50)
         account_ids = df['account_id'].tolist()
-        result = await PlatyerModel.get_user_name_batch(account_ids)
+        result = await PlayerModel.get_user_name_batch(account_ids)
         if result['code'] != 1000:
             return result
         user_map = result['data']

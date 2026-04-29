@@ -11,7 +11,7 @@ router = APIRouter()
 @router.patch("/accounts/{account_id}/", summary="刷新用户基本信息的缓存")
 async def getUserBasic(account_id: int = Path(...)):
     if GameUtils.check_uid(account_id) == False:
-        return JSONResponse.API_2001_IllegalAccoutID
+        return JSONResponse.API_2001_IllegalAccountID
     result = await StatsAPI.refresh_user_cache(account_id)
     return result
 

@@ -1,6 +1,8 @@
+import os
 import json
 import time
 import random
+import logging
 import asyncio
 import traceback
 from tqdm import tqdm
@@ -10,10 +12,13 @@ from httpx import AsyncClient
 from pymysql import Connection
 from pymysql.cursors import Cursor
 from datetime import datetime, timezone
+from typing import Any, Iterator, Optional, Union
 
 from logger import logger
 from settings import (
     REGION,
+    USE_TQDM,
+    DATE_FMT,
     DATA_DIR, 
     VORTEX_API, 
     USE_TQDM,
@@ -22,8 +27,51 @@ from settings import (
 )
 
 
+def _log_warning(message: str) -> None:
+    """根据 USE_TQDM 配置输出警告信息"""
+    if USE_TQDM:
+        tqdm.write(f'{get_formatted_date()} [WARNING] {message}')
+    else:
+        logger.warning(message)
+
+def _log_error(message: str) -> None:
+    """根据 USE_TQDM 配置输出错误信息"""
+    if USE_TQDM:
+        tqdm.write(f'{get_formatted_date()} [ERROR]\n{message}')
+    else:
+        logger.error(message)
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+def get_formatted_date() -> str:
+    """获取当前日期格式化字符串，用于日志输出"""
+    return datetime.now().strftime(DATE_FMT)
+
+def progress_iterable(
+    items: list[Any], desc: str, logger_obj: logging.Logger
+) -> Iterator[Any]:
+    """遍历列表，根据 USE_TQDM 配置使用进度条或日志输出进度。
+
+    Args:
+        items: 待遍历的列表。
+        desc: 进度描述文本。
+        logger_obj: 日志记录器。
+
+    Yields:
+        列表中的每个元素。
+    """
+    if USE_TQDM:
+        tqdm_desc = f'{get_formatted_date()} [INFO] {desc}'
+        with tqdm(items, desc=tqdm_desc, total=len(items)) as pbar:
+            for item in pbar:
+                pbar.set_postfix_str(str(item))
+                yield item
+    else:
+        total = len(items)
+        for idx, item in enumerate(items, 1):
+            logger_obj.info('%s - [%d/%d] | Current: %s', desc, idx, total, item)
+            yield item
 
 async def fetch_data(async_client: AsyncClient, url: str):
     try:
@@ -442,6 +490,7 @@ def refresh_leaderboard(
     ship_ids: list
 ):
     redis_client.set(f'leaderboard:maintenance', 1, ex=3600)
+    time.sleep(3)   # 等待一小段时间
     len_ship_ids = len(ship_ids)
     if USE_TQDM:
         iterator = tqdm(
@@ -917,7 +966,7 @@ async def update_user_cache(
                 SELECT 
                     ship_id, battles, wins, damage, frags, exp,
                     survived, scouting_damage, potential_damage
-                FROM T_ship_stats_by_recent_archive
+                FROM ARCH_ship_stats_by_recent
                 WHERE game_version = %s
             """, [game_version])
             for row in cursor.fetchall():
@@ -933,7 +982,7 @@ async def update_user_cache(
                 add_count += 1
             if insert_data != {}:
                 insert_sql = """
-                    INSERT INTO T_ship_stats_by_recent_archive (
+                    INSERT INTO ARCH_ship_stats_by_recent (
                         ship_id, game_version,
                         battles, wins, damage, frags, exp,
                         survived, scouting_damage, potential_damage
@@ -952,7 +1001,7 @@ async def update_user_cache(
                 cursor.executemany(insert_sql, insert_values)
             if update_data != {}:
                 update_sql = """
-                    UPDATE T_ship_stats_by_recent_archive
+                    UPDATE ARCH_ship_stats_by_recent
                     SET
                         battles = %s,
                         wins = %s,

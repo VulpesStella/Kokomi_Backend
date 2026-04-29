@@ -1,102 +1,231 @@
 import os
 import json
 from pathlib import Path
+from typing import Optional
 from dataclasses import dataclass
+from datetime import datetime, timezone
+
+
+@dataclass(frozen=True)
+class MySQLConfig:
+    """MySQL 数据库配置"""
+    host: str
+    port: int
+    user: str
+    password: str
+    db: str
+
+@dataclass(frozen=True)
+class RedisConfig:
+    """Redis 配置"""
+    host: str
+    port: int
+    password: str
+    db: str
+
+@dataclass(frozen=True)
+class RabbitMQConfig:
+    """RabbitMQ 配置"""
+    host: str
+    username: str
+    password: str
+
+@dataclass(frozen=True)
+class SecurityConfig:
+    """RabbitMQ 配置"""
+    root: str
+    user: str
 
 @dataclass(frozen=True)
 class RuntimeConfig:
-    PLATFORM: str
-
-    API_URL: str
-    API_TOKEN: str
-    BIND_HOST: list
-
-    MYSQL_HOST: str
-    MYSQL_PORT: int
-    MYSQL_USERNAME: str
-    MYSQL_PASSWORD: str
-    MYSQL_DATABASE: str
-    
-    REDIS_HOST: str
-    REDIS_PORT: int
-    REDIS_PASSWORD: str
-    
-    RABBITMQ_HOST: str
-    RABBITMQ_USERNAME: int
-    RABBITMQ_PASSWORD: str
+    SECURITY: SecurityConfig
+    MYSQL: MySQLConfig
+    REDIS: RedisConfig
+    RABBITMQ: RabbitMQConfig
 
 @dataclass(frozen=True)
 class EndpointsConfig:
-    VORTEX_API: list
+    VORTEX_API: list[str]
     CLAN_API: str
-    OFFICIAL_API: str | None
+    OFFICIAL_API: Optional[str]
 
 @dataclass(frozen=True)
 class ConstantsConfig:
-    USER_INIT_TABLE_LIST: list
-    CLAN_INIT_TABLE_LIST: list
-    RANKING_BATTLES_LIMIT: list
+    USER_INIT_TABLE_LIST: list[str]
+    CLAN_INIT_TABLE_LIST: list[str]
+    RANKING_BATTLES_LIMIT: dict[str, int]
 
 class EnvConfig:
-    config = None
-    endpoints = None
-    constants = None
-    REGION: str = None
-    UID_RULE: list = None
-    API_TOKEN: str = None
-    DATA_DIR = Path('/app/data')
-    LOG_DIR = Path('/app/logs')
-    SQLITE_DIR = Path('/app/data/db')
+    PLATFORM: Optional[str] = None
+    REGION: Optional[str] = None
+    REGION_TIMEZONE: Optional[int] = None
+    LOCALTION: Optional[str] = None
+    INIT_TIME : Optional[int] = None
+    UID_RULE: Optional[list] = None
+    API_TOKEN: Optional[str] = None
+    DATA_DIR: Path = Path('/app/data')
+    LOG_DIR: Path = Path('/app/logs')
+    SQLITE_DIR: Path = Path('/app/data/db')
+
+    _config: Optional[RuntimeConfig] = None
+    _endpoints: Optional[EndpointsConfig] = None
+    _constants: Optional[ConstantsConfig] = None
 
     @classmethod
-    def init(cls) -> str | None:
-        env_file = 'env.prod'
+    def _require_env(cls, key: str, default: Optional[str] = None) -> str:
+        """获取环境变量"""
+        value = os.getenv(key, default)
+        if value is None:
+            raise ValueError(f"Missing required environment variable: {key}")
+        return value
+
+    @classmethod
+    def _load_json_file(cls, file_path: Path) -> dict:
+        """加载运行必要的 JSON 文件数据"""
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Configuration file not found: {file_path}")
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in {file_path}: {e}")
+
+    @classmethod
+    def _load_env_file(cls) -> str:
+        """加载环境变量文件，返回环境文件名"""
+        # 判断是否在 Docker 环境：PLATFORM 环境变量由 Docker 容器注入
         if os.getenv('PLATFORM') is None:
+            # Windows 本地开发，需要手动从文件加载环境变量
             from dotenv import load_dotenv
-            load_result = load_dotenv('env.dev')
-            if load_result is False:
-                return None
-            env_file = 'env.dev'
-        # 加载config
-        cls.config = RuntimeConfig(
-            PLATFORM = os.getenv('PLATFORM'),
-            API_URL = os.getenv('API_URL'),
-            API_TOKEN = os.getenv('API_TOKEN'),
-            BIND_HOST = os.getenv('BIND_HOST').split('_'),
-            MYSQL_HOST = os.getenv("MYSQL_HOST"),
-            MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306)),
-            MYSQL_USERNAME = os.getenv("MYSQL_USER"),
-            MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD"),
-            MYSQL_DATABASE = os.getenv("MYSQL_DATABASE"),
-            REDIS_HOST = os.getenv("REDIS_HOST"),
-            REDIS_PORT = os.getenv("REDIS_PORT"),
-            REDIS_PASSWORD = os.getenv("REDIS_PASSWORD"),
-            RABBITMQ_HOST = os.getenv("RABBITMQ_HOST"),
-            RABBITMQ_USERNAME = os.getenv("RABBITMQ_DEFAULT_USER"),
-            RABBITMQ_PASSWORD = os.getenv("RABBITMQ_DEFAULT_PASS")
+            if not load_dotenv('env.dev'):
+                raise RuntimeError("Failed to load env.dev file")
+            return 'env.dev'
+        # Docker 容器环境，环境变量已通过容器编排工具注入
+        # 直接使用 os.getenv() 即可读取，无需加载文件
+        return 'env.prod'
+
+    @classmethod
+    def _init_runtime_config(cls):
+        """初始化运行时配置"""
+        cls.PLATFORM=cls._require_env('PLATFORM')
+
+        cls._config = RuntimeConfig(
+            SECURITY=SecurityConfig(
+                root=cls._require_env("API_ROOT_TOKEN"),
+                user=cls._require_env("API_USER_TOKEN")
+            ),
+            MYSQL=MySQLConfig(
+                host=cls._require_env("MYSQL_HOST"),
+                port=int(cls._require_env("MYSQL_PORT", "3306")),
+                user='root',  # 默认使用 root 用户
+                password=cls._require_env("MYSQL_ROOT_PASSWORD"),  # 加载 root 用户密码
+                db=cls._require_env("MYSQL_DATABASE")
+            ),
+            REDIS=RedisConfig(
+                host=cls._require_env("REDIS_HOST"),
+                port=int(cls._require_env("REDIS_PORT", "6379")),
+                password=cls._require_env("REDIS_PASSWORD"),
+                db=int(cls._require_env("REDIS_DATABASE", "0"))
+            ),
+            RABBITMQ=RabbitMQConfig(
+                host=cls._require_env("RABBITMQ_HOST"),
+                username=cls._require_env("RABBITMQ_DEFAULT_USER"),
+                password=cls._require_env("RABBITMQ_DEFAULT_PASS")
+            )
         )
-        cls.DATA_DIR = Path(os.getenv("DATA_DIR"))
-        cls.LOG_DIR = Path(os.getenv("LOG_DIR"))
-        cls.SQLITE_DIR = Path(os.getenv("SQLITE_DIR"))
+        
+        cls.DATA_DIR = Path(cls._require_env("DATA_DIR", "/app/data"))
+        cls.LOG_DIR = Path(cls._require_env("LOG_DIR", "/app/logs"))
+        cls.SQLITE_DIR = Path(cls._require_env("SQLITE_DIR", "/app/data/db"))
+
+    @classmethod
+    def _init_region(cls):
         file_path = cls.DATA_DIR / 'json/init_marker.json'
-        with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            cls.REGION = data['region']
+        data = cls._load_json_file(file_path)
+        
+        if 'region' not in data:
+            raise ValueError(f"Missing 'region' key in {file_path}")
+        
+        cls.REGION = data.get('region')
+        cls.REGION_TIMEZONE = f'UTC{data.get("timezone", 0):+d}'
+        cls.LOCATION = data.get('location', 'N/A')
+        init_timestamp = data.get('init_time')
+        cls.INIT_TIME = datetime.fromtimestamp(init_timestamp, tz=timezone.utc).strftime("%Y-%m-%d") if init_timestamp else "N/A"
+
+        if cls.REGION not in ['asia', 'eu', 'na', 'ru', 'cn']:
+            raise ValueError(f"Invalid region value: {cls.REGION}")
+
+    @classmethod
+    def _init_endpoints(cls):
         file_path = cls.DATA_DIR / 'const/endpoints.json'
-        with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)[cls.REGION]
-            cls.endpoints = EndpointsConfig(
-                VORTEX_API=data['vortex_api'],
-                CLAN_API=data['clan_api'],
-                OFFICIAL_API=data['official_api']
-            )
-            cls.UID_RULE=data['uid_rule']
+        data = cls._load_json_file(file_path)
+        
+        if cls.REGION not in data:
+            raise ValueError(f"Region '{cls.REGION}' not found in endpoints config")
+        
+        region_data = data[cls.REGION]
+        
+        required_fields = ['vortex_api', 'clan_api', 'uid_rule']
+        for field in required_fields:
+            if field not in region_data:
+                raise ValueError(
+                    f"Missing required field '{field}' in endpoints config"
+                )
+        
+        cls._endpoints = EndpointsConfig(
+            VORTEX_API=region_data['vortex_api'],
+            CLAN_API=region_data['clan_api'],
+            OFFICIAL_API=region_data.get('official_api')
+        )
+        
+        cls.UID_RULE = region_data['uid_rule']
+
+    @classmethod
+    def _init_constants(cls):
         file_path = cls.DATA_DIR / 'const/constants.json'
-        with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            cls.constants = ConstantsConfig(
-                USER_INIT_TABLE_LIST=data['USER_INIT_TABLE_LIST'],
-                CLAN_INIT_TABLE_LIST=data['CLAN_INIT_TABLE_LIST'],
-                RANKING_BATTLES_LIMIT=data['RANKING_BATTLES_LIMIT']
-            )
+        data = cls._load_json_file(file_path)
+        
+        cls._constants = ConstantsConfig(
+            USER_INIT_TABLE_LIST=data['USER_INIT_TABLE_LIST'],
+            CLAN_INIT_TABLE_LIST=data['CLAN_INIT_TABLE_LIST'],
+            RANKING_BATTLES_LIMIT=data['RANKING_BATTLES_LIMIT']
+        )
+
+    @classmethod
+    def init(cls) -> str:
+        """
+        初始化所有配置
+        返回当前使用的环境文件名 (`env.dev` 或 `env.prod`)
+        """
+        # 加载环境变量文件
+        env_file = cls._load_env_file()
+        # 初始化运行配置
+        cls._init_runtime_config()
+        # 读取子节点的区域配置
+        cls._init_region()
+        # 加载运行必要的数据文件
+        cls._init_endpoints()
+        cls._init_constants()
+
         return env_file
+
+    @classmethod
+    def get_config(cls) -> RuntimeConfig:
+        """获取运行时配置，如果未初始化则抛出异常"""
+        if cls._config is None:
+            raise RuntimeError("Configuration not initialized")
+        return cls._config
+
+    @classmethod
+    def get_endpoints(cls) -> EndpointsConfig:
+        """获取端点配置"""
+        if cls._endpoints is None:
+            raise RuntimeError("Endpoints not initialized. Call EnvConfig.init() first")
+        return cls._endpoints
+
+    @classmethod
+    def get_constants(cls) -> ConstantsConfig:
+        """获取常量配置"""
+        if cls._constants is None:
+            raise RuntimeError("Constants not initialized. Call EnvConfig.init() first")
+        return cls._constants
