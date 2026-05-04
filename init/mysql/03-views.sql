@@ -78,9 +78,31 @@ SELECT
     SUM(is_due = FALSE) AS not_due_count
 FROM V_clan_update_schedule;
 
+CREATE VIEW V_ship_ranking_stats AS
+SELECT 
+    b.ship_id, 
+    l.battles_limit AS min_battles,
+    s.win_rate, 
+    s.avg_damage, 
+    s.avg_frags
+FROM T_ship_base b
+INNER JOIN T_ship_stats_by_battles s ON b.ship_id = s.ship_id
+INNER JOIN D_ranking_battles_limit l ON b.tier = l.tier
+WHERE b.is_enabled = 1 
+    AND b.is_old = 0
+    AND b.tier > 5
+    AND s.battles >= 1000; 
+
 CREATE VIEW V_leaderboard_summary AS
 SELECT 
     ship_id,
     COUNT(*) AS total_records          -- 该船的总玩家数
 FROM T_ship_pvp_leaderboard
 GROUP BY ship_id;
+
+CREATE VIEW v_version_battles_total AS
+SELECT 
+    game_version,
+    SUM(battles) AS total_battles
+FROM ARCH_ship_stats_by_recent
+GROUP BY game_version;

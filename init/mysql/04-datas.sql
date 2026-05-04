@@ -32,6 +32,16 @@ VALUES
     (2, 7, 20 * 86400, '20d'),
     (2, 8, 30 * 86400, '30d');
 
+INSERT INTO D_ranking_battles_limit 
+    (tier, battles_limit) 
+VALUES
+    (6, 40),
+    (7, 40),
+    (8, 40),
+    (9, 50),
+    (10, 60),
+    (11, 60);
+
 INSERT INTO D_ship_type 
     (id, name) 
 VALUES
@@ -70,22 +80,35 @@ VALUES
 INSERT INTO D_metric_name
     (name)
 VALUES
+    ('battles'),
+    ('wins'),
     ('damage'),
     ('frags'),
     ('exp'),
-    ('win_rate'),
-    ('survived_rate'),
+    ('survived'),
     ('scouting_dmg'),
-    ('potential_dmg');
+    ('potential_dmg'),
+    ('planes'),
+    ('rating');
 
 INSERT INTO T_metric_level_thresholds 
     (metric_id, threshold)
 VALUES
-    (1, 0.8), (1, 0.95), (1, 1.0), (1, 1.1), (1, 1.2), (1, 1.4), (1, 1.7),
-    (2, 0.2), (2, 0.3), (2, 0.6), (2, 1.0), (2, 1.3), (2, 1.5), (2, 2.0);
+    (3, 0.8), (3, 0.95), (3, 1.0), (3, 1.1), (3, 1.2), (3, 1.4), (3, 1.7),
+    (4, 0.2), (4, 0.3), (4, 0.6), (4, 1.0), (4, 1.3), (4, 1.5), (4, 2.0);
 
 INSERT INTO T_tracking_meta 
     (tracking_key, tracking_type) 
 VALUES
     ('ship_users', 'archive_time'),
-    ('ship_battles', 'archive_time');
+    ('ship_battles', 'archive_time'),
+    ('ship_stats', 'update_time'),
+    ('maintenance', 'update_time'),
+    ('clan_season', 'refresh_time');
+
+INSERT INTO T_table_meta 
+    (metric_key, table_name) 
+VALUES
+    ('ship_entries', 'user_pvp'),
+    ('total_battles', 'user_pvp'),
+    ('leaderboard_rows', 'ship_pvp_leaderboard');

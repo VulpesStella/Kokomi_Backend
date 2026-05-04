@@ -29,13 +29,16 @@
     "Legendary": 5
   },
   "SHIP_METRIC_MAP": {
-    "win_rate":            4,
-    "avg_damage":          1,
-    "avg_frags":           2,
-    "avg_exp":             3,
-    "survived_rate":       5,
-    "avg_scouting_dmg":    6,
-    "avg_potential_dmg":   7
+    "battles": 1,
+    "wins": 2,
+    "damage": 3,
+    "frags": 4,
+    "exp": 5,
+    "survived": 6,
+    "scouting_dmg": 7,
+    "potential_dmg": 8,
+    "planes": 9,
+    "rating": 10
   },
   "USER_INIT_TABLE_LIST": [
     "T_user_stats",
@@ -55,6 +58,26 @@
     "9": 50,
     "10": 60,
     "11": 60
+  },
+  "METRIC_RATING_THRESHOLDS": {
+    "damage": [
+      0.8,
+      0.95,
+      1.0,
+      1.1,
+      1.2,
+      1.4,
+      1.7
+    ],
+    "frags": [
+      0.2,
+      0.3,
+      0.6,
+      1.0,
+      1.3,
+      1.5,
+      2.0
+    ]
   },
   "CLAN_REALM_MAP": {
     "asia": "sg",

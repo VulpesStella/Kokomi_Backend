@@ -9,10 +9,6 @@ CLIENT_NAME = 'ClanSeason'
 REFRESH_INTERVAL = 60
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
 USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
-# USE_TQDM = False
-
-# 关闭代理，避免请求外部API时被本地环境变量干扰
-os.environ['NO_PROXY'] = '127.0.0.1,localhost'
 
 # 通过api获取season数据
 # 更新SeasonID同时要创建对应的表
@@ -20,6 +16,8 @@ os.environ['NO_PROXY'] = '127.0.0.1,localhost'
 
 # 生产环境下的环境变量由Docker Compose注入env.prod，开发环境下则通过加载env.dev文件来设置
 if not os.getenv('PLATFORM') or not os.getenv('PLATFORM').startswith('KokomiAPI'):
+    # 关闭代理，避免请求外部API时被本地环境变量干扰
+    os.environ['NO_PROXY'] = '127.0.0.1,localhost'
     from dotenv import load_dotenv
     if not load_dotenv('env.dev'):
         # 开发环境下如果加载env.dev失败，直接退出程序

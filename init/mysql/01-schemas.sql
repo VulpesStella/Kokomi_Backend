@@ -1,5 +1,6 @@
 CREATE TABLE D_activity_strategy (
     id               INT          AUTO_INCREMENT,
+
     user_level       TINYINT      NOT NULL DEFAULT 0,
     activity_level   TINYINT      NOT NULL,
     interval_seconds INT          NOT NULL,
@@ -15,6 +16,20 @@ CREATE TABLE D_metric_name (
     name             VARCHAR(20)  NOT NULL,
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id) -- 主键
+);
+
+CREATE TABLE D_ranking_battles_limit (
+    id               INT          AUTO_INCREMENT,
+
+    tier             INT          NOT NULL,      -- 船只等级
+    battles_limit    INT          NOT NULL,      -- 场次限制
+
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (id), -- 主键
+
+    UNIQUE KEY uk_tier (tier)
 );
 
 CREATE TABLE D_ship_type (
@@ -78,6 +93,21 @@ CREATE TABLE T_tracking_meta (
     PRIMARY KEY (id), -- 主键
 
     UNIQUE KEY uk_key_type (tracking_key, tracking_type) -- 索引
+);
+
+CREATE TABLE T_table_meta (
+    id              INT           AUTO_INCREMENT,
+
+    metric_key      VARCHAR(50)   NOT NULL,         -- 跟踪键
+    metric_value    BIGINT        DEFAULT 0,        -- 数据
+    table_name      VARCHAR(50)   NOT NULL,         -- 数据来源表
+
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id), -- 主键
+
+    UNIQUE KEY uk_key (metric_key) -- 索引
 );
 
 CREATE TABLE T_ship_base (
@@ -157,6 +187,7 @@ CREATE TABLE T_ship_stats_by_users (
     -- 船只基本信息
     users            INT          DEFAULT 0,
     battles          BIGINT       DEFAULT 0,
+    rating           INT          DEFAULT -1,
     win_rate         FLOAT        DEFAULT 0,
     avg_damage       FLOAT        DEFAULT 0,
     avg_frags        FLOAT        DEFAULT 0,
@@ -172,50 +203,34 @@ CREATE TABLE T_ship_stats_by_users (
     UNIQUE INDEX idx_sid (ship_id) -- 索引
 );
 
-CREATE TABLE T_ship_stats_distribution (
+CREATE TABLE T_ship_rating_distribution (
     id               BIGINT       AUTO_INCREMENT,
     ship_id          BIGINT       NOT NULL,
-    metric_id        TINYINT      NOT NULL,
 
     sample_count     INT          NOT NULL DEFAULT 0,
-    p5               FLOAT        NOT NULL DEFAULT 0.0,
-    p10              FLOAT        NOT NULL DEFAULT 0.0,
-    p25              FLOAT        NOT NULL DEFAULT 0.0,
-    p50              FLOAT        NOT NULL DEFAULT 0.0,
-    p75              FLOAT        NOT NULL DEFAULT 0.0,
-    p90              FLOAT        NOT NULL DEFAULT 0.0,
-    p95              FLOAT        NOT NULL DEFAULT 0.0,
+    top1             FLOAT        NOT NULL DEFAULT 0.0,
+    top5             FLOAT        NOT NULL DEFAULT 0.0,
+    top10            FLOAT        NOT NULL DEFAULT 0.0,
+    top15            FLOAT        NOT NULL DEFAULT 0.0,
+    top50            FLOAT        NOT NULL DEFAULT 0.0,
+    top75            FLOAT        NOT NULL DEFAULT 0.0,
+    top90            FLOAT        NOT NULL DEFAULT 0.0,
 
     updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    PRIMARY KEY (id), -- 主键
-
-    UNIQUE INDEX idx_sid(ship_id, metric_id) -- 索引
+    PRIMARY KEY (id),
+    UNIQUE INDEX idx_ship (ship_id)
 );
 
 CREATE TABLE T_ship_pvp_record (
     -- 相关id
     id               INT          AUTO_INCREMENT,
-    ship_id          BIGINT       NOT NULL,    -- 1-11位的非连续数字
-    -- 船只基本信息
-    exp              INT          DEFAULT 0,
-    exp_users        INT          DEFAULT 0,
-    exp_user_id      BIGINT       DEFAULT NULL,
-    frags            INT          DEFAULT 0,
-    frags_users      INT          DEFAULT 0,
-    frags_user_id    BIGINT       DEFAULT NULL,
-    planes           INT          DEFAULT 0,
-    planes_users     INT          DEFAULT 0,
-    planes_user_id   BIGINT       DEFAULT NULL,
-    damage           INT          DEFAULT 0,
-    damage_users     INT          DEFAULT 0,
-    damage_user_id   BIGINT       DEFAULT NULL,
-    scouting_damage  INT          DEFAULT 0,
-    scouting_damage_users INT     DEFAULT 0,
-    scouting_damage_user_id BIGINT DEFAULT NULL,
-    potential_damage INT          DEFAULT 0,
-    potential_damage_users INT    DEFAULT 0,
-    potential_damage_user_id BIGINT DEFAULT NULL,
+    ship_id          BIGINT       NOT NULL,     -- 1-11位的非连续数字
+    metric_id        INT          NOT NULL,     -- 关联 D_metric_name
+
+    metric_value     INT          DEFAULT 0,
+    users_count      INT          DEFAULT 0,    -- 到达该值的用户数
+    top_user_id      BIGINT       DEFAULT NULL, -- 记录此指标最高的用户
     
     -- 记录数据创建的时间和更新时间
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
@@ -223,7 +238,7 @@ CREATE TABLE T_ship_pvp_record (
 
     PRIMARY KEY (id), -- 主键
 
-    UNIQUE INDEX idx_sid (ship_id) -- 索引
+    UNIQUE KEY uk_sid_mid (ship_id, metric_id) -- 索引
 );
 
 CREATE TABLE T_ship_pvp_leaderboard (
@@ -257,11 +272,7 @@ CREATE TABLE T_metric_level_thresholds (
 
     PRIMARY KEY (id), -- 主键
 
-    INDEX idx_mid (metric_id), -- 索引
-
-    CONSTRAINT fk_metric_id
-        FOREIGN KEY (metric_id)
-        REFERENCES D_metric_name(id)
+    INDEX idx_mid (metric_id) -- 索引
 );
 
 CREATE TABLE T_user_base (
@@ -581,4 +592,21 @@ CREATE TABLE ARCH_ship_stats_by_users (
     UNIQUE KEY uk_ship_date_ver (ship_id, stat_date, game_version),
 
     INDEX idx_ver_date_desc (game_version, stat_date DESC)
+);
+
+CREATE TABLE STAGING_ship_recent_data (
+    uuid            CHAR(36)     NOT NULL,
+    
+    status          ENUM('pending','done') DEFAULT 'pending',
+
+    game_version    VARCHAR(10)  NOT NULL,
+    account_id      BIGINT       NOT NULL,
+    payload         JSON         NOT NULL,
+    
+    created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    processed_at    TIMESTAMP    DEFAULT NULL,   -- 处理完成时间
+
+    PRIMARY KEY (uuid), -- 主键
+
+    KEY idx_consumer (status, created_at)
 );

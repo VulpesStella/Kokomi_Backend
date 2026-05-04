@@ -72,6 +72,7 @@ SELECT
     a.zh_sg AS zh,
     s.users, 
     s.battles,
+    s.rating,
     s.win_rate,
     s.avg_damage,
     s.avg_frags,
@@ -267,24 +268,22 @@ FROM ARCH_ship_stats_by_recent
 WHERE ship_id = 4277090288
 ORDER BY game_version ASC;
 
-CREATE VIEW _V_ship_record_zh AS
+CREATE VIEW _V_ship_record_by_exp AS
 SELECT
     b.ship_id,
     b.tier,
     t.name AS type,
     n.name AS nation,
     a.zh_sg AS ship_name,
-    r.exp,
-    r.planes,
-    r.damage,
-    r.scouting_damage,
-    r.potential_damage
+    r.metric_value AS exp,
+    r.users_count AS exp_users,
+    r.top_user_id,
+    u.username AS top_username,
+    r.updated_at
 FROM T_ship_pvp_record r
-INNER JOIN T_ship_base b
-    ON r.ship_id = b.ship_id
-INNER JOIN T_ship_name a
-    ON b.ship_id = a.ship_id
-INNER JOIN D_ship_type t
-    ON b.type_id = t.id
-INNER JOIN D_ship_nation n
-    ON b.nation_id = n.id;
+INNER JOIN T_ship_base b ON r.ship_id = b.ship_id
+INNER JOIN T_ship_name a ON b.ship_id = a.ship_id
+INNER JOIN D_ship_type t ON b.type_id = t.id
+INNER JOIN D_ship_nation n ON b.nation_id = n.id
+LEFT JOIN T_user_base u ON r.top_user_id = u.account_id
+WHERE r.metric_id = 5;
