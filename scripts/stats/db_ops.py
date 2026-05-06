@@ -62,32 +62,36 @@ def need_update(conn: Connection, tracking_key: str, tracking_type: str) -> bool
     """
     try:
         with conn.cursor() as cursor:
-
-            sql = f"""
+            # 检查 tracking_value
+            sql = """
                 SELECT 
                     CASE 
                         WHEN tracking_value IS NULL THEN TRUE
+                        WHEN UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(tracking_value) > 108000 THEN TRUE
                         ELSE FALSE
                     END AS need_update
                 FROM T_tracking_meta 
-                WHERE tracking_key = '{tracking_key}' 
-                AND tracking_type = '{tracking_type}';
+                WHERE tracking_key = %s 
+                  AND tracking_type = %s;
             """
-            cursor.execute(sql)
+            cursor.execute(sql, [tracking_key, tracking_type])
             result = cursor.fetchone()
             if not result[0]:
                 return False
+            
+            # 更新 tracking_value 值
             sql = f"""
                 UPDATE T_tracking_meta 
                 SET 
-                    tracking_value = CURRENT_TIMESTAMP 
-                WHERE tracking_key = '{tracking_key}' 
-                AND tracking_type = '{tracking_type}';
+                    tracking_value = NOW() 
+                WHERE tracking_key = %s 
+                  AND tracking_type = %s;
             """
-            cursor.execute(sql)
+            cursor.execute(sql, [tracking_key, tracking_type])
     except Exception:
         conn.rollback()
         logger.error(traceback.format_exc())
+        
     return True
 
 def get_max_id(cursor: Cursor) -> int:
@@ -216,7 +220,7 @@ def update_battles_stats_table(
             survived_rate         = %s,
             avg_scouting_damage   = %s,
             avg_potential_damage  = %s,
-            updated_at            = CURRENT_TIMESTAMP
+            updated_at            = NOW()
         WHERE
             ship_id = %s;
     """
@@ -255,7 +259,7 @@ def update_users_stats_table(
             survived_rate         = %s,
             avg_scouting_damage   = %s,
             avg_potential_damage  = %s,
-            updated_at            = CURRENT_TIMESTAMP
+            updated_at            = NOW()
         WHERE
             ship_id = %s;
     """
@@ -291,7 +295,7 @@ def update_rating_distribution_table(
             top50        = %s,
             top75        = %s,
             top90        = %s,
-            updated_at   = CURRENT_TIMESTAMP
+            updated_at   = NOW()
         WHERE
             ship_id = %s;
     """
@@ -414,7 +418,7 @@ def delete_leaderboard_redis(redis_client: Redis, ship_id: int) -> None:
     # 删除 key
     redis_client.delete(f'leaderboard:ship:{ship_id}')
 
-def refresh_leaderboard_redis(cursor: Cursor, redis_client: Redis, ship_id: int) -> None:
+def refresh_leaderboard_redis(cursor: Cursor, redis_client: Redis, ship_id: int) -> int:
     """
     将指定船只的排行榜数据从 MySQL 同步到 Redis
     
@@ -426,7 +430,12 @@ def refresh_leaderboard_redis(cursor: Cursor, redis_client: Redis, ship_id: int)
         cursor: 数据库游标对象
         redis_client: Redis 客户端实例
         ship_id: 需要同步的船只 ID
+
+    Returns:
+        该船只上榜的用户数量
     """
+    total_users = 0
+
     cursor.execute(
         """
         SELECT 
@@ -446,4 +455,7 @@ def refresh_leaderboard_redis(cursor: Cursor, redis_client: Redis, ship_id: int)
         for acc, rating in rows:
             if rating >= 0:
                 pipe.zadd(key, {str(acc): float(rating)})
+                total_users += 1
         pipe.execute()
+        
+    return total_users

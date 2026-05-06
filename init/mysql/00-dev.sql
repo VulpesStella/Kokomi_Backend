@@ -1,24 +1,3 @@
-CREATE VIEW _V_user_update_schedule AS
-SELECT
-    u.account_id,
-    b.username,
-    u.is_enabled,
-    u.is_public,
-    u.activity_level,
-    IFNULL(c.user_level, 0) AS user_level,
-    u.updated_at AS last_update_time,
-    F_next_user_update_time(
-        u.is_enabled,
-        u.updated_at,
-        u.activity_level,
-        IFNULL(c.user_level, 0)
-    ) AS next_update_time
-FROM T_user_stats u
-LEFT JOIN T_user_base b
-    ON u.account_id = b.account_id
-LEFT JOIN T_user_config c
-    ON u.account_id = c.account_id;
-
 CREATE VIEW _V_ship_name_zh AS
 SELECT
     b.ship_id,

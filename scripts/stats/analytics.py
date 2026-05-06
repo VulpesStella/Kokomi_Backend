@@ -43,7 +43,6 @@ class HistogramBins:
         bucket_count: 桶的数量
         min_val: 直方图覆盖的最小值
         max_val: 直方图覆盖的最大值
-        bin_width: 每个桶的宽度（自动计算）
     """
 
     def __init__(self, bucket_count: int, min_val: float, max_val: float):
@@ -148,7 +147,7 @@ class ShipStatsAggregator:
         3. 用户 Rating 分布直方图（用于计算 Rating 百分位数）
     """
 
-    def __init__(self):
+    def __init__(self, server_ship_metrics: dict[int, list[float]]):
         """
         初始化舰船统计数据聚合器
         
@@ -156,7 +155,14 @@ class ShipStatsAggregator:
             - ship_stats: 存储所有用户的场次累加数据
             - ship_user_stats: 存储有效用户（battles > 10）的场均累加数据
             - ship_rating_hist: 存储 Rating 分布直方图
+
+        Args:
+            server_ship_metrics: 服务器场次基准数据，用于计算 Rating
+            格式：{ship_id: [win_rate, avg_damage, avg_frags]}
         """
+        # 用于计算 Rating 的服务器数据
+        self.server_ship_metrics = server_ship_metrics
+
         # 一：服务器场次平均数据（所有用户数据累加）
         # ship_id -> [battles, wins, damage, frags, exp, survived, scout_dmg, potential_dmg]
         self.ship_stats = defaultdict(lambda: [0] * NUM_STATS)
@@ -168,7 +174,7 @@ class ShipStatsAggregator:
 
         # 三：用户 Rating 分布直方图（只统计 battles > 10 且 rating >= 0 的用户）
         # 使用固定桶宽直方图，范围 [0, 10000]
-        self.rating_bins = HistogramBins(bucket_count=BUCKETS, min_val=0, max_val=10000)
+        self.rating_bins = HistogramBins(bucket_count=BUCKETS, min_val=0, max_val=8000)
         # ship_id -> [bucket_0_count, bucket_1_count, ..., bucket_{BUCKETS-1}_count]
         self.ship_rating_hist = defaultdict(lambda: [0] * self.rating_bins.bucket_count)
 
@@ -180,13 +186,11 @@ class ShipStatsAggregator:
         self.total_ship_entries = 0   # 累计处理的船只-用户条目数
         self.total_ship_battles = 0   # 累计处理的总战斗场次
 
-    def add_batch(self, rows: list[tuple], server_ship_metrics: dict[int, list[float]]) -> None:
+    def add_batch(self, rows: list[tuple]) -> None:
         """处理一批原始缓存数据，并累加到服务器统计与用户 Rating 分布中
         
         Args:
-            rows: 数据库查询结果列表，每行为 (ship_cache_json_str,) 的元组
-            server_ship_metrics: 服务器场次基准数据，用于计算 Rating
-                格式：{ship_id: [win_rate, avg_damage, avg_frags]}
+            rows: 数据库查询结果列表
         """
         self.total_users += len(rows)
 
@@ -247,7 +251,7 @@ class ShipStatsAggregator:
                             int(avg_damage),               # 场均伤害
                             round(avg_frags, 2)            # 场均击毁
                         ],
-                        benchmark_stats=server_ship_metrics.get(ship_id)  # 基准数据（服务器平均）
+                        benchmark_stats=self.server_ship_metrics.get(ship_id)  # 基准数据（服务器平均）
                     )
                     
                     valid_user_averages[ship_id] = [

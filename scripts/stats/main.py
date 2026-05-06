@@ -111,33 +111,35 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
 
     # 2. 从 MySQL 读取原始数据并聚合计算
     try:
-        aggregator = ShipStatsAggregator()
         with mysql_connection.cursor() as cursor:
-            # 获取数据范围和有效船只列表
+            # 获取数据范围
             max_id = get_max_id(cursor)
-            ship_ids = get_ship_ids(cursor)
-            ranking_ship_ids = get_ranking_ship_ids(cursor)
-
-            # 只有在有数据时才进行聚合
-            if max_id > 0 and len(ship_ids) > 0:
-                # 获取服务器基准数据（用于计算 Rating）
-                ship_data = get_ship_data(cursor)
-
-                # 分批次读取用户缓存数据
-                logger.enable_tqdm()
-                for batch_offset in progress_iterable(
-                    items=range(0, max_id, BATCH_SIZE),
-                    desc="Processing cache",
-                    logger_obj=logger
-                ):
-                    # 从数据库获取一批原始缓存数据
-                    rows = get_pvp_cache(cursor, batch_offset, BATCH_SIZE)
-                    # 将这批数据添加到聚合器
-                    aggregator.add_batch(rows, ship_data)
-                logger.disable_tqdm()
-            else:
-                # 无数据，提前返回
+            if max_id == 0:
                 return
+            
+            # 获取船只 ID 列表
+            ship_ids = get_ship_ids(cursor)
+            if len(ship_ids) == 0:
+                return
+        
+            # 获取服务器基准数据（用于计算 Rating）
+            ship_data = get_ship_data(cursor)
+            
+            # 初始化聚合器
+            aggregator = ShipStatsAggregator(ship_data)
+
+            # 分批次读取用户缓存数据
+            logger.enable_tqdm()
+            for batch_offset in progress_iterable(
+                items=range(0, max_id, BATCH_SIZE),
+                desc="Processing cache",
+                logger_obj=logger
+            ):
+                # 从数据库获取一批原始缓存数据
+                rows = get_pvp_cache(cursor, batch_offset, BATCH_SIZE)
+                # 将这批数据添加到聚合器
+                aggregator.add_batch(rows)
+            logger.disable_tqdm()
     except Exception:
         logger.error(traceback.format_exc())
         
@@ -171,8 +173,11 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         logger.info('Waiting 10s for ongoing read operations to complete...')
         time.sleep(10)
 
+        ship_users = {}
+        leaderboard_rows = 0
+
         with mysql_connection.cursor() as cursor:
-            leaderboard_rows = 0
+            ranking_ship_ids = get_ranking_ship_ids(cursor)
 
             # 清空 Redis 排行榜的无效缓存
             clear_leaderboard_redis(redis_client, ranking_ship_ids)
@@ -192,19 +197,29 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
                 except Exception:
                     mysql_connection.rollback()
                     logger.error(traceback.format_exc())
-                refresh_leaderboard_redis(cursor, redis_client, ship_id)
-            logger.disable_tqdm()
+                users = refresh_leaderboard_redis(cursor, redis_client, ship_id)
+                if users > 0:
+                    ship_users[ship_id] = users
+            logger.disable_tqdm() 
             logger.info(f'Refreshed {leaderboard_rows} rows leaderboard data')
 
             # 刷新缓存表信息
             refresh_table_meta(cursor, total_ship_entries,total_ship_battles,leaderboard_rows)
-            mysql_connection.commit()
+
+        # 更新统计表
+        if ship_users != {}:
+            key = "leaderboard:users"
+            pipe = redis_client.pipeline()
+            pipe.delete(key)
+            for ship_id, users in ship_users.items():
+                pipe.hset(key, str(ship_id), users)
+            pipe.execute()
+
         # 刷新完成，删除维护锁并记录刷新时间
         redis_client.set(f'leaderboard:rating_refresh_time', int(time.time()))
         redis_client.delete(f'leaderboard:maintenance')
     except Exception:
         logger.error(traceback.format_exc())
-        return
 
 def main():
     """主服务入口，按配置的刷新间隔（REFRESH_INTERVAL）周期执行统计任务"""

@@ -7,13 +7,12 @@ from datetime import datetime
 
 CLIENT_NAME = 'ServerStats'
 REFRESH_INTERVAL = 3600
-BATCH_SIZE = 1000
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
 USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
 
-# 直方图桶数
-BUCKETS = 500
-MIN_SAMPLES = 200
+BATCH_SIZE = 1000
+BUCKETS = 400  # 直方图桶数
+MIN_SAMPLES = 200  # Rating 统计最低限制
 
 # 生产环境下的环境变量由Docker Compose注入env.prod，开发环境下则通过加载env.dev文件来设置
 if not os.getenv('PLATFORM') or not os.getenv('PLATFORM').startswith('KokomiAPI'):

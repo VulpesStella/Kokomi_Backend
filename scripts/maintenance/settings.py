@@ -10,6 +10,9 @@ REFRESH_INTERVAL = 60
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
 USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
 
+BATCH_SIZE = 10000
+STAGING_DELETE_DELAY_ENABLED = True  # 暂存数据是否延时删除
+
 # 生产环境下的环境变量由Docker Compose注入env.prod，开发环境下则通过加载env.dev文件来设置
 if not os.getenv('PLATFORM') or not os.getenv('PLATFORM').startswith('KokomiAPI'):
     # 关闭代理，避免请求外部API时被本地环境变量干扰

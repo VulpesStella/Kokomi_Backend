@@ -1,4 +1,5 @@
 import requests
+import traceback
 from redis import Redis
 from typing import Optional, Union
 
@@ -80,24 +81,28 @@ def fetch_clan_leagues(
         公会数据列表，每项为 [clan_id, tag, league, last_battle_timestamp]
         请求失败时返回 None。
     """
-    clan_data_list = []
-    url = (
-        f'{CLAN_API}/api/ladder/structure/'
-        f'?realm={realm}&league={league}&division={division}&limit=1000'
-    )
-    result = fetch_data(url)
-    error = record_http_metrics(redis_client, [result], [url])
-    if error:
-        return None
-    for temp_data in result:
-        clan_data_list.append([
-            temp_data['id'],
-            temp_data['tag'],
-            league,
-            formtime_to_timestamp(temp_data['last_battle_at'])
-        ])
-    
-    return clan_data_list
+    try:
+        clan_data_list = []
+        url = (
+            f'{CLAN_API}/api/ladder/structure/'
+            f'?realm={realm}&league={league}&division={division}&limit=1000'
+        )
+        result = fetch_data(url)
+        error = record_http_metrics(redis_client, [result], [url])
+        if error:
+            return
+        
+        for temp_data in result:
+            clan_data_list.append([
+                temp_data['id'],
+                temp_data['tag'],
+                league,
+                formtime_to_timestamp(temp_data['last_battle_at'])
+            ])
+        
+        return clan_data_list
+    except Exception:
+        logger.error(traceback.format_exc())
 
 def fetch_clan_season(redis_client: Redis, clan_id: int) -> Optional[dict]:
     """从 API 获取最新的游戏版本信息
@@ -110,9 +115,13 @@ def fetch_clan_season(redis_client: Redis, clan_id: int) -> Optional[dict]:
         工会的当前赛季的工会战数据
         失败时返回 None
     """
-    url = f'{CLAN_API}/api/clanbase/{clan_id}/claninfo/'
-    result = fetch_data(url)
-    error = record_http_metrics(redis_client, [result], [url])
-    if error:
-        return None
-    return result
+    try:
+        url = f'{CLAN_API}/api/clanbase/{clan_id}/claninfo/'
+        result = fetch_data(url)
+        error = record_http_metrics(redis_client, [result], [url])
+        if error:
+            return
+        
+        return result
+    except Exception:
+        logger.error(traceback.format_exc())

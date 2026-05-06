@@ -6,7 +6,7 @@ from .services import get_overview_data
 
 from app.core import EnvConfig
 
-PROJECT_GITHUB_URL = "https://github.com/SangonomiyaKoko/Kokomi_API"
+PROJECT_GITHUB_URL = "https://github.com/SangonomiyaKoko/Kokomi_Backend"
 
 router = APIRouter()
 

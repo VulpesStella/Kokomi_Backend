@@ -32,6 +32,9 @@ class UserStatsSyncer:
     def _extract_user_data(cls, account_id: int, api_result: dict) -> dict:
         """从 API 响应中提取用户基础数据"""
         user_data = {
+            'username': None,
+            'register_time': None,
+            'insignias': None,
             'is_enabled': 1,
             'is_public': 1,
             'total_battles': 0,
@@ -40,10 +43,7 @@ class UserStatsSyncer:
             'ranked_battles': 0,
             'rating_battles': 0,
             'karma': 0,
-            'last_battle_at': None,
-            'username': None,
-            'register_time': None,
-            'insignias': None
+            'last_battle_at': None
         }
         
         user_info = api_result.get(str(account_id)) if api_result else None
@@ -99,6 +99,18 @@ class UserStatsSyncer:
             user_data['rating_battles'] = rating_count
         
         return user_data
+
+    @staticmethod
+    def _is_existing(cursor: Cursor, account_id: int) -> tuple | None:
+        sql = """
+            SELECT 
+                username, 
+                UNIX_TIMESTAMP(updated_at) 
+            FROM T_user_base 
+            WHERE account_id = %s;
+        """
+        cursor.execute(sql, [account_id])
+        return cursor.fetchone()
 
     @staticmethod
     def _update_user_base(cursor: Cursor, account_id: int, user_data: dict, old_username: str, old_timestamp: int) -> None:
@@ -208,28 +220,22 @@ class UserStatsSyncer:
         except Exception as e:
             logger.error(traceback.format_exc())
             return type(e).__name__
+        
         try:
-            cursor: Cursor = conn.cursor()
-            sql = """
-                SELECT 
-                    username, 
-                    UNIX_TIMESTAMP(updated_at) 
-                FROM T_user_base 
-                WHERE account_id = %s;
-            """
-            cursor.execute(sql, [account_id])
-            existing = cursor.fetchone()
-            
-            if not existing:
-                return "UserNotInDB"  # 账号不存在，跳过
-            
-            old_username, old_timestamp = existing
+            with conn.cursor() as cursor:
+                # 从数据库中读取用户的username
+                existing = cls._is_existing(cursor, account_id)
+                
+                if not existing:
+                    return "UserNotInDB"  # 账号不存在，跳过
+                
+                old_username, old_timestamp = existing
 
-            # 更新 T_user_base
-            cls._update_user_base(cursor, account_id, user_data, old_username, old_timestamp)
-            
-            # 更新 T_user_stats
-            cls._update_user_stats(cursor, account_id, user_data)
+                # 更新 T_user_base
+                cls._update_user_base(cursor, account_id, user_data, old_username, old_timestamp)
+                
+                # 更新 T_user_stats
+                cls._update_user_stats(cursor, account_id, user_data)
             
             conn.commit()
             return None
@@ -237,6 +243,3 @@ class UserStatsSyncer:
             conn.rollback()
             logger.error(traceback.format_exc())
             return type(e).__name__
-        finally:
-            if 'cursor' in locals():
-                cursor.close()

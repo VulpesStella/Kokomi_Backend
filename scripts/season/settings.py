@@ -59,8 +59,8 @@ with open(file_path, "r", encoding="utf-8") as f:
 file_path = DATA_DIR / 'const/constants.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
-    CLAN_INIT_TABLE_LIST: list = data['CLAN_INIT_TABLE_LIST']
     CLAN_REALM_MAP: list = data['CLAN_REALM_MAP']
     CLAN_LEAGUE_LIST: list = data['CLAN_LEAGUE_LIST']
     CLAN_BATTLE_WINDOWS: list = data['CLAN_BATTLE_WINDOWS']
+    CLAN_INIT_TABLE_LIST: list = data['CLAN_INIT_TABLE_LIST']
 print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Configuration data loading complete")

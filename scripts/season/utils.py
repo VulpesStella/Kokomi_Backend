@@ -35,21 +35,24 @@ def read_season_data():
         data = json.load(f)
         return data
 
-def is_cb_active(now_ts: int, season_start: int, season_finish: int) -> bool:
+def is_cb_active(season_start: int, season_finish: int) -> bool:
     """判断当前时间是否处于公会战活跃窗口内
 
     Args:
-        now_ts: 当前 Unix 时间戳
         season_start: 赛季开始时间戳
         season_finish: 赛季结束时间戳
 
     Returns:
         是否在活跃窗口内
     """
+    # 当前时间戳
+    now_ts = get_current_timestamp()
+
+    # 判断是否处于赛季工会战的开启时间内
     if not (season_start <= now_ts <= season_finish):
         return False
-
-    now = datetime.fromtimestamp(now_ts, tz=timezone.utc)
+    
+    now = datetime.fromtimestamp(get_current_timestamp(), tz=timezone.utc)
     weekday = now.weekday()
     current_time = now.time()
 

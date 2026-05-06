@@ -1,5 +1,6 @@
 import random
 import requests
+import traceback
 from redis import Redis
 from typing import Optional, Union
 
@@ -71,14 +72,18 @@ def fetch_latest_version(redis_client: Redis) -> Optional[dict]:
         包含 'short' 和 'full' 键的 Dict
         失败时返回 None
     """
-    base_url = random.choice(VORTEX_API)
-    url = f'{base_url}/api/v2/graphql/glossary/version/'
-    result = fetch_data(url)
-    error = record_http_metrics(redis_client, [result], [url])
-    if error:
-        return None
-    version = result[0]['data']['version']
-    return {
-        'short': ".".join(version.split(".")[:2]),
-        'full': version
-    }
+    try:
+        base_url = random.choice(VORTEX_API)
+        url = f'{base_url}/api/v2/graphql/glossary/version/'
+        result = fetch_data(url)
+        error = record_http_metrics(redis_client, [result], [url])
+        if error:
+            return
+        
+        version = result[0]['data']['version']
+        return {
+            'short': ".".join(version.split(".")[:2]),
+            'full': version
+        }
+    except Exception:
+        logger.error(traceback.format_exc())

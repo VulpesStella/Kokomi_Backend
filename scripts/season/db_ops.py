@@ -1,7 +1,7 @@
 import traceback
 from redis import Redis
 from pymysql import Connection
-from pymysql.cursors import Cursor
+from typing import Optional
 
 from logger import logger
 from utils import get_current_timestamp
@@ -20,40 +20,43 @@ def need_update(conn: Connection, tracking_key: str, tracking_type: str) -> bool
         tracking_type: 追踪类型，用于区分不同的更新任务
 
     Returns:
-        是否需要执行更新
+        是否需要执行更新，异常则默认返回需要
     """
     try:
         with conn.cursor() as cursor:
-
-            sql = f"""
+            # 检查 tracking_value
+            sql = """
                 SELECT 
                     CASE 
                         WHEN tracking_value IS NULL THEN TRUE
-                        WHEN UNIX_TIMESTAMP(CURRENT_TIMESTAMP) - UNIX_TIMESTAMP(tracking_value) > 86400 THEN TRUE
+                        WHEN UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(tracking_value) > 86400 THEN TRUE
                         ELSE FALSE
                     END AS need_update
                 FROM T_tracking_meta 
-                WHERE tracking_key = '{tracking_key}' 
-                AND tracking_type = '{tracking_type}';
+                WHERE tracking_key = %s 
+                  AND tracking_type = %s;
             """
-            cursor.execute(sql)
+            cursor.execute(sql, [tracking_key, tracking_type])
             result = cursor.fetchone()
             if not result[0]:
                 return False
-            sql = f"""
+            
+            # 更新 tracking_value 值
+            sql = """
                 UPDATE T_tracking_meta 
                 SET 
-                    tracking_value = CURRENT_TIMESTAMP 
-                WHERE tracking_key = '{tracking_key}' 
-                AND tracking_type = '{tracking_type}';
+                    tracking_value = NOW() 
+                WHERE tracking_key = %s 
+                  AND tracking_type = %s;
             """
-            cursor.execute(sql)
+            cursor.execute(sql, [tracking_key, tracking_type])
     except Exception:
         conn.rollback()
         logger.error(traceback.format_exc())
+
     return True
 
-def read_clan_cache(conn: Connection, clan_id: int) -> tuple | None:
+def read_clan_cache(conn: Connection, clan_id: int) -> Optional[tuple]:
     """读取公会统计缓存数据
 
     从 T_clan_stats 表获取指定公会的赛季和队伍数据
@@ -115,7 +118,7 @@ def update_clan_cache(
                     stage_progress = %s,
                     team_data = %s,
                     last_battle_at = FROM_UNIXTIME(%s),
-                    updated_at = CURRENT_TIMESTAMP
+                    updated_at = NOW() 
                 WHERE clan_id = %s
             """
             cursor.execute(update_sql, update_params)
@@ -124,7 +127,7 @@ def update_clan_cache(
             if insert_data_list:
                 season_id = update_params[0]
                 insert_sql = f"""
-                    INSERT INTO T_clan_battle_s{season_id} (
+                    INSERT INTO S_clan_battle_{season_id} (
                         battle_time, clan_id, team_number, battle_result,
                         battle_rating, battle_stage, league, division,
                         division_rating, public_rating, stage_type, stage_progress
@@ -133,13 +136,18 @@ def update_clan_cache(
                     )
                 """
                 cursor.executemany(insert_sql, insert_data_list)
+                battles_result = 'Victory' if insert_data_list[3] else 'Defeat'
+                logger.debug(
+                    f"Insert a battle record: {insert_data_list[0]} {insert_data_list[1]} "
+                    f"{battles_result} {insert_data_list[4]}{insert_data_list[5]}"
+                )
 
             conn.commit()
     except Exception:
         conn.rollback()
         logger.error(traceback.format_exc())
 
-def ensure_clan_battle_table(conn: Connection, season_id: int) -> bool:
+def ensure_clan_battle_table(conn: Connection, season_id: int) -> Optional[bool]:
     """确保当前赛季的公会战数据表已创建
 
     Args:
@@ -147,45 +155,54 @@ def ensure_clan_battle_table(conn: Connection, season_id: int) -> bool:
         season_id: 赛季 ID
 
     Returns:
-        是否成功创建（或已存在）
+        是否成功创建，异常则返回None
     """
-    is_created = False
     try:
         with conn.cursor() as cursor:
-            table_name = f'T_clan_battle_s{season_id}'
-            sql = f"""
-            CREATE TABLE IF NOT EXISTS {table_name} (
-                id               INT          AUTO_INCREMENT,
-                battle_time      TIMESTAMP    NOT NULL,
-                clan_id          BIGINT       NOT NULL,
-                team_number      TINYINT      NOT NULL,
-                battle_result    BOOLEAN      NOT NULL,
-                battle_rating    VARCHAR(5)  DEFAULT NULL,
-                battle_stage     VARCHAR(5)  DEFAULT NULL,
-                league           TINYINT      DEFAULT NULL,
-                division         TINYINT      DEFAULT NULL,
-                division_rating  INT          DEFAULT NULL,
-                public_rating    INT          DEFAULT NULL,
-                stage_type       TINYINT      DEFAULT NULL,
-                stage_progress   VARCHAR(5)   DEFAULT NULL,
-                created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (id),
-                INDEX idx_time (battle_time),
-                INDEX idx_cid (clan_id)
-            );
-            """
-            cursor.execute(sql)
+            table_name = f'S_clan_battle_{season_id}'
+    
+            # 检查表是否存在
+            sql = "SHOW TABLES LIKE %s;"
+            cursor.execute(sql, [table_name])
+            existing = cursor.fetchone()
+            
+            # 不存在则创建
+            if existing and existing[0] == table_name:
+                sql = f"""
+                CREATE TABLE IF NOT EXISTS {table_name} (
+                    id               INT          AUTO_INCREMENT,
+                    battle_time      TIMESTAMP    NOT NULL,
+                    clan_id          BIGINT       NOT NULL,
+                    team_number      TINYINT      NOT NULL,
+                    battle_result    BOOLEAN      NOT NULL,
+                    battle_rating    VARCHAR(5)  DEFAULT NULL,
+                    battle_stage     VARCHAR(5)  DEFAULT NULL,
+                    league           TINYINT      DEFAULT NULL,
+                    division         TINYINT      DEFAULT NULL,
+                    division_rating  INT          DEFAULT NULL,
+                    public_rating    INT          DEFAULT NULL,
+                    stage_type       TINYINT      DEFAULT NULL,
+                    stage_progress   VARCHAR(5)   DEFAULT NULL,
+                    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (id),
+                    INDEX idx_time (battle_time),
+                    INDEX idx_cid (clan_id)
+                );
+                """
+                cursor.execute(sql)
+                conn.commit()
 
-            conn.commit()
-            is_created = True
+                return True
+            else:
+                return False
     except Exception:
         conn.rollback()
         logger.error(traceback.format_exc())
-    
-    return is_created
 
 def get_update_ids(
-    conn: Connection, season_id: int, clan_data_list: list
+    conn: Connection, 
+    season_id: int, 
+    clan_data_list: list
 ) -> list:
     """比较排行榜数据与数据库记录，返回需要更新的公会 ID 列表
 
@@ -206,12 +223,15 @@ def get_update_ids(
             clan_ids = [d[0] for d in clan_data_list]
 
             placeholders = ','.join(['%s'] * len(clan_ids))
-            cursor.execute(
-                f"""SELECT clan_id, season, UNIX_TIMESTAMP(last_battle_at) 
-                    FROM T_clan_stats
-                    WHERE clan_id IN ({placeholders})""",
-                clan_ids,
-            )
+            sql = f"""
+                SELECT 
+                    clan_id, 
+                    season, 
+                    UNIX_TIMESTAMP(last_battle_at) 
+                FROM T_clan_stats
+                WHERE clan_id IN ({placeholders});
+            """
+            cursor.execute(sql, clan_ids)
             existing_map = {row[0]: row for row in cursor.fetchall()}
 
             for clan_data in clan_data_list:
@@ -220,19 +240,30 @@ def get_update_ids(
 
                 if existing is None:
                     # 新公会：初始化基础表和统计表
-                    cursor.execute(
-                        'INSERT INTO T_clan_base (clan_id, tag) VALUES (%s, %s)',
-                        [clan_id, clan_data[1]],
-                    )
+                    sql = """
+                        INSERT INTO T_clan_base (
+                            clan_id, tag
+                        ) VALUES (
+                            %s, %s
+                        );
+                    """
+                    cursor.execute(sql,[clan_id, clan_data[1]])
                     for table_name in CLAN_INIT_TABLE_LIST:
-                        cursor.execute(
-                            f'INSERT INTO {table_name} (clan_id) VALUES (%s)',
-                            [clan_id],
-                        )
-                    cursor.execute(
-                        'UPDATE T_clan_base SET table_count = %s WHERE clan_id = %s',
-                        [len(CLAN_INIT_TABLE_LIST), clan_id],
-                    )
+                        sql = f"""
+                            INSERT INTO {table_name} (
+                                clan_id
+                            ) VALUES (
+                                %s
+                            );
+                        """
+                        cursor.execute(sql, [clan_id])
+                    sql = """
+                        UPDATE T_clan_base 
+                        SET 
+                            table_count = %s 
+                        WHERE clan_id = %s;
+                    """
+                    cursor.execute(sql, [len(CLAN_INIT_TABLE_LIST), clan_id])
                     update_ids.append(clan_id)
                 else:
                     # 已有公会：比较 last_battle_at 和赛季是否变化
@@ -270,7 +301,7 @@ def refresh_clan_league(conn: Connection, clan_data_list: list) -> None:
                 UPDATE T_clan_base 
                 SET 
                     league = 5, 
-                    updated_at = CURRENT_TIMESTAMP;
+                    updated_at = NOW();
             """
             cursor.execute(sql)
             # 批量更新
@@ -279,13 +310,14 @@ def refresh_clan_league(conn: Connection, clan_data_list: list) -> None:
                 SET 
                     tag = %s, 
                     league = %s, 
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE clan_id = %s
+                    updated_at = NOW()
+                WHERE clan_id = %s;
             """
             update_params = [
                 [d[1], d[2], d[0]] for d in clan_data_list
             ]
             cursor.executemany(update_sql, update_params)
+
             conn.commit()
             logger.info('Clan league refreshed: %d', len(clan_data_list))
     except Exception:
@@ -310,7 +342,7 @@ def refresh_clan_cache(
                     clan_id, 
                     public_rating, 
                     stage_battles, 
-                    stage_victories
+                    stage_victories 
                 FROM T_clan_stats
                 WHERE season = %s;
             """
@@ -330,7 +362,6 @@ def refresh_clan_cache(
             pipe.execute()
 
             redis_client.set('leaderboard:clan_update_time', get_current_timestamp())
-            
             logger.info('Clan leaderboard cache refreshed')
     except Exception:
         logger.error(traceback.format_exc())

@@ -204,16 +204,17 @@ def update_clan_season(
         clan_result = _build_clan_result(result, clan_id, season_id)
         team_data_1 = clan_result['team_data'][1]
         team_data_2 = clan_result['team_data'][2]
+        
+        # 加载最新数据
+        new_team_data = {
+            1: format_clan_data(team_data_1),
+            2: format_clan_data(team_data_2),
+        }
 
         # 加载本地缓存数据
         clan = read_clan_cache(conn, clan_id)
         if not clan:
             return 
-        
-        new_team_data = {
-            1: format_clan_data(team_data_1),
-            2: format_clan_data(team_data_2),
-        }
 
         if clan[0] == season_id:
             # 已有本赛季记录：对比新旧数据

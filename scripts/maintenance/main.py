@@ -1,6 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+数据更新调度服务主程序
+
+定期检测游戏版本变化、修复数据库脏数据、聚合暂存数据，
+并根据用户和公会的活跃度策略，通过 Celery 向消息队列分发数据刷新任务，
+最后将当前统计数据归档留存
+
+工作流程：
+    1. 检测游戏版本是否更新，同步最新版本信息
+    2. 修复基础表中缺失的关联数据行，聚合暂存中的 Recent 数据
+    3. 分批扫描用户和公会基础表，筛选需要刷新的 ID
+    4. 通过 Celery 将刷新任务发送到消息队列，由 Worker 异步执行
+    5. 归档用户/公会数量和船只统计数据到 ARCH 表
+    6. 等待下一个刷新周期
+"""
+
 import os
 import gc
 import time
@@ -8,7 +24,9 @@ import redis
 import pymysql
 import traceback
 from tqdm import tqdm
+from redis import Redis
 from celery import Celery
+from pymysql import Connection
 from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
@@ -23,6 +41,7 @@ from settings import (
 )
 from db_ops import (
     maintenance_database,
+    aggregate_recent_data,
     refresh_version,
     get_update_ids,
     archive_statistics
@@ -49,7 +68,7 @@ def send_task(celery_app: Celery, task_name: str, entity_id: int, queue: str) ->
         )
         return True
     except Exception as e:
-        logger.error(f"{entity_id} | {type(e).__name__}")
+        logger.error(f"Send Task failed: {entity_id} | {type(e).__name__}")
         return False
     
 def progress_iterable(
@@ -77,6 +96,66 @@ def progress_iterable(
             # logger_obj.info('%s - [%d/%d] | Current: %s', desc, idx, total, item)
             yield item
 
+def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery) -> None:
+    # 1.每小时检测游戏版本是否更新
+    try:
+        with mysql_connection.cursor() as cursor:
+            refresh_version(cursor, redis_client)
+
+        mysql_connection.commit()
+    except Exception:
+        mysql_connection.rollback()
+        logger.error(traceback.format_exc())
+
+    # 2.检测数据库是否存在脏数据行，把待写入的recent数据写入归档表
+    try:
+        with mysql_connection.cursor() as cursor:
+            maintenance_database(cursor)
+
+        mysql_connection.commit()
+    except Exception:
+        mysql_connection.rollback()
+        logger.error(traceback.format_exc())
+
+    try:
+        with mysql_connection.cursor() as cursor:
+            aggregate_recent_data(cursor)
+
+        mysql_connection.commit()
+    except Exception:
+        mysql_connection.rollback()
+        logger.error(traceback.format_exc())
+
+    # 3.更新玩家/工会的基本数据
+    for index in ['user', 'clan']:
+        update_ids = get_update_ids(mysql_connection, redis_client, index)
+        len_update_ids = len(update_ids)
+        if len_update_ids == 0:
+            continue
+        logger.info(f'{index.capitalize()} update numbers: {len_update_ids}')
+
+        failed_count = 0
+        logger.enable_tqdm()
+        for update_data in progress_iterable(
+            items=update_ids, 
+            desc=f"Processing {index}",
+            logger_obj=logger
+        ):
+            if not send_task(celery_app, f'{index}_refresh', update_data, 'refresh_queue'):
+                failed_count += 1
+        logger.disable_tqdm()
+        logger.info(f'Task sent completed - Success: {len_update_ids - failed_count} | Failed: {failed_count}')
+        
+    # 4.归档统计数据到归档表
+    try:
+        with mysql_connection.cursor() as cursor:
+            archive_statistics(cursor)
+
+        mysql_connection.commit()
+    except Exception:
+        mysql_connection.rollback()
+        logger.error(traceback.format_exc())
+
 def main():
     redis_client = None
     mysql_connection = None
@@ -90,45 +169,21 @@ def main():
         start = time.monotonic()
 
         try:
-            # 初始化资源
             redis_client = redis.Redis(**REDIS_CONFIG)
-            redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.1))
+            # 设置当前服务状态，用于外部监控系统判断服务是否正常运行
+            redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.5))
             mysql_connection = pymysql.connect(**MYSQL_CONFIG)
 
-            # 1.每小时检测游戏版本是否更新
-            refresh_version(mysql_connection, redis_client)
-    
-            # 2.检测数据库是否存在脏数据行，把待写入的recent数据写入归档表
-            maintenance_database(mysql_connection)
-
-            # 3.更新玩家/工会的基本数据
-            for index in ['user', 'clan']:
-                update_ids = get_update_ids(mysql_connection, redis_client, index)
-                len_update_ids = len(update_ids)
-                if len_update_ids == 0:
-                    continue
-                logger.info(f'{index.capitalize()} update numbers: {len_update_ids}')
-                failed_count = 0
-                logger.enable_tqdm()
-                for update_data in progress_iterable(
-                    items=update_ids, 
-                    desc=f"Processing {index}",
-                    logger_obj=logger
-                ):
-                    if not send_task(celery_app, f'{index}_refresh', update_data, 'refresh_queue'):
-                        failed_count += 1
-                logger.disable_tqdm()
-                logger.info(f'Task sent complete, Success: {len_update_ids - failed_count}  Failed: {failed_count}')
-                
-            # 4.归档统计数据到归档表
-            archive_statistics(mysql_connection)
-
+            worker(
+                mysql_connection=mysql_connection,
+                redis_client=redis_client,
+                celery_app=celery_app
+            )
         except Exception:
             logger.error(traceback.format_exc())
             # 严重错误导致的循环中断，删除用于标记服务状态的key
             try:
-                if redis_client:
-                    redis_client.delete(f'status:{CLIENT_NAME}')
+                redis_client.delete(f'status:{CLIENT_NAME}')
             except Exception as e:
                 logger.error(f'Failed to delete status key: {e}')
         finally:

@@ -1,6 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+公会战数据刷新服务主程序
+
+定期从游戏 API 拉取各联赛分段的所有公会列表，
+根据赛季活跃期和数据变化判断是否需要拉取详细数据，
+更新公会联赛段位和战斗统计，并将最新排行榜缓存到 Redis
+
+工作流程：
+    1. 读取当前赛季配置并确保赛季战表已创建
+    2. 判断赛季是否活跃或上次刷新是否超过一天
+    3. 从 API 拉取全部 13 个联赛分段的公会列表
+    4. 全量刷新公会 league 字段
+    5. 比较排行榜数据与数据库记录，筛选需要更新的公会
+    6. 逐公会拉取详细数据并写入 MySQL
+    7. 全量刷新 Redis 公会排行榜缓存
+    8. 等待下一个刷新周期
+"""
+
 import os
 import gc
 import time
@@ -24,8 +42,7 @@ from db_ops import (
 )
 from utils import (
     is_cb_active,
-    read_season_data,
-    get_current_timestamp
+    read_season_data
 )
 from settings import (
     CLIENT_NAME, 
@@ -67,27 +84,34 @@ def progress_iterable(
             logger_obj.info('%s - [%d/%d] | Current: %s', desc, idx, total, item)
             yield item
 
-def worker(mysql_connection: Connection, redis_client: Redis, created_season: int) -> None:
+def worker(mysql_connection: Connection, redis_client: Redis) -> None:
     # 1. 读取当前赛季信息
     season_data = read_season_data()
-    season_id = season_data['id']
+    season_id = season_data.get('id', 0)
+    if season_id == 0:
+        logger.warning('Season_ID not configured')
+        return
     logger.info(f"Current Season ID: {season_id}")
 
     # 2. 确保当前赛季的工会战数据表存在
-    if created_season != season_id and ensure_clan_battle_table(mysql_connection, season_id):
-        created_season = season_id
+    table_status = ensure_clan_battle_table(mysql_connection, season_id)
+    if table_status is None:
+        logger.warning(f'Failed to check if Table T_clan_battle_s{season_id} exists')
+    if table_status:
         logger.debug(f'Table T_clan_battle_s{season_id} is already exists')
+    else:
+        logger.info(f'New table T_clan_battle_s{season_id} has been successfully created.')
     
-    now_ts = get_current_timestamp()
-    # 3. 最低每天刷新一次并确保首次运行时能立即获取数据
+    # 3. 为确保首次运行时能立即获取数据，最低每天刷新一次
     if (
         need_update(mysql_connection, 'clan_season', 'refresh_time') or 
-        is_cb_active(now_ts, season_data['start'], season_data['finish'])
+        is_cb_active(season_data['start'], season_data['finish'])
     ):
         success_count = 0
         total_list = []
         league_count = {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0}
 
+        # 读取13个分段中所有工会的数据
         logger.enable_tqdm()
         for update_data in progress_iterable(
             items=CLAN_LEAGUE_LIST, 
@@ -115,15 +139,18 @@ def worker(mysql_connection: Connection, redis_client: Redis, created_season: in
         # 比较最新数据和数据库数据，确定需要更新的工会ID列表
         update_ids = get_update_ids(mysql_connection, season_id, total_list)
         len_update_ids = len(update_ids)
+        
         if len_update_ids > 0:
             # 更新需要更新的工会数据
-            logger.info(f'Clans to update: {len_update_ids}')
+            logger.info(f'Clans update numbers: {len_update_ids}')
+            logger.enable_tqdm()
             for update_data in progress_iterable(
                 items=update_ids, 
                 desc=f"Processing Clan",
                 logger_obj=logger
             ):
                 update_clan_season(redis_client, mysql_connection, season_id, update_data)
+            logger.disable_tqdm()
         
         # 全量刷新工会排行榜缓存，防止脏数据污染
         refresh_clan_cache(redis_client, mysql_connection, season_id)
@@ -133,7 +160,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, created_season: in
 def main():
     redis_client = None
     mysql_connection = None
-    created_season = 0
+    
     while True:
         start = time.monotonic()
 
@@ -145,8 +172,7 @@ def main():
             
             worker(
                 mysql_connection=mysql_connection,
-                redis_client=redis_client,
-                created_season=created_season
+                redis_client=redis_client
             )
         except Exception:
             logger.error(traceback.format_exc())

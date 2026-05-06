@@ -3,7 +3,7 @@ import uuid
 import traceback
 from datetime import datetime, timezone
 
-from .settings import LOG_DIR
+from .settings import LOG_DIR, CLIENT_NAME
 
 
 def write_error_info(
@@ -16,7 +16,7 @@ def write_error_info(
     form_time = datetime.now(timezone.utc).isoformat()
     with open(os.path.join(LOG_DIR / f'error/{form_time[0:10]}.txt'), "a", encoding="utf-8") as f:
         f.write('-------------------------------------------------------------------------------------------------------------\n')
-        f.write(f">Platform:     Celery\n")
+        f.write(f">Platform:     {CLIENT_NAME}\n")
         f.write(f">Error ID:     {error_id}\n")
         f.write(f">Error Type:   {error_type}\n")
         f.write(f">Error Name:   {error_name}\n")

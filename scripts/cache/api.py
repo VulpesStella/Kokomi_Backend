@@ -1,5 +1,6 @@
 import random
 import asyncio
+import traceback
 from redis import Redis
 from httpx import AsyncClient
 from typing import Optional, Union
@@ -27,10 +28,8 @@ async def fetch_data(async_client: AsyncClient, url: str):
         # 处理用户不存在的特殊情况
         if requset_code == 404:
             return {}
-        logger.warning(f'HTTP_STATUS_{requset_code} {url}')
         return f'HTTP_STATUS_{requset_code}'
     except Exception as e:
-        logger.error(f'ERROR_{type(e).__name__} {url}')
         return f'ERROR_{type(e).__name__}'
 
 def record_http_metrics(
@@ -84,22 +83,25 @@ async def fetch_user_pvp_data(
         成功时返回 [basic_data, ships_data, pvp_data] 三个响应
         失败时返回 None
     """
-    redis_key = f"token:ac:{account_id}"
-    ac = redis_client.get(redis_key)
-    base_url = random.choice(VORTEX_API)
+    try:
+        redis_key = f"token:ac:{account_id}"
+        ac = redis_client.get(redis_key)
+        base_url = random.choice(VORTEX_API)
 
-    urls = [
-        f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else ''),
-        f'{base_url}/api/accounts/{account_id}/ships/' + (f'?ac={ac}' if ac else ''),
-        f'{base_url}/api/accounts/{account_id}/ships/pvp/' + (f'?ac={ac}' if ac else '')
-    ]
+        urls = [
+            f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else ''),
+            f'{base_url}/api/accounts/{account_id}/ships/' + (f'?ac={ac}' if ac else ''),
+            f'{base_url}/api/accounts/{account_id}/ships/pvp/' + (f'?ac={ac}' if ac else '')
+        ]
 
-    tasks = [fetch_data(async_client, url) for url in urls]
-    responses = await asyncio.gather(*tasks)
+        tasks = [fetch_data(async_client, url) for url in urls]
+        responses = await asyncio.gather(*tasks)
 
-    # 统计 API 请求的指标
-    error = record_http_metrics(redis_client, responses, urls)
-    if error:
-        return None
+        # 统计 API 请求的指标
+        error = record_http_metrics(redis_client, responses, urls)
+        if error:
+            return
 
-    return responses
+        return responses
+    except Exception:
+        logger.error(traceback.format_exc())

@@ -2,8 +2,8 @@ import sys
 import logging
 from tqdm import tqdm
 from pathlib import Path
-from datetime import datetime
 
+from utils import get_formatted_date
 from settings import (
     CLIENT_NAME,
     LOG_LEVEL,
@@ -13,9 +13,6 @@ from settings import (
 )
 
 
-def get_formatted_date() -> str:
-    """获取当前日期格式化字符串，用于日志输出"""
-    return datetime.now().strftime(DATE_FMT)
 
 class TqdmAwareLogger(logging.Logger):
     """
@@ -65,31 +62,36 @@ class TqdmAwareLogger(logging.Logger):
         ))
         return handler
 
-    def _tqdm_log(self, level: str, msg: str) -> None:
-        """通过 tqdm.write 输出日志"""
+    def _tqdm_log(self, level: str, msg: str, *args, **kwargs) -> None:
+        """通过 tqdm.write 输出日志，支持传入格式化参数"""
+        if args:
+            try:
+                msg = msg % args
+            except TypeError:
+                msg = msg
         tqdm.write(f'{get_formatted_date()} [{level}] {msg}')
 
     def info(self, msg: str, *args, **kwargs) -> None:
         if self._use_tqdm:
-            self._tqdm_log('INFO', msg)
+            self._tqdm_log('INFO', msg, *args, **kwargs)
         else:
             super().info(msg, *args, **kwargs)
 
     def warning(self, msg: str, *args, **kwargs) -> None:
         if self._use_tqdm:
-            self._tqdm_log('WARNING', msg)
+            self._tqdm_log('WARNING', msg, *args, **kwargs)
         else:
             super().warning(msg, *args, **kwargs)
 
     def debug(self, msg: str, *args, **kwargs) -> None:
         if self._use_tqdm:
-            self._tqdm_log('DEBUG', msg)
+            self._tqdm_log('DEBUG', msg, *args, **kwargs)
         else:
             super().debug(msg, *args, **kwargs)
 
     def error(self, msg: str, *args, **kwargs) -> None:
         if self._use_tqdm:
-            self._tqdm_log('ERROR', msg)
+            self._tqdm_log('ERROR', msg, *args, **kwargs)
         else:
             super().error(msg, *args, **kwargs)
 

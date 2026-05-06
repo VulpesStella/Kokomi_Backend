@@ -1,54 +1,73 @@
--- 计算用户下次更新时间
-CREATE FUNCTION F_next_user_update_time(
+-- DELIMITER //
+
+CREATE FUNCTION F_is_user_update_due(
     p_is_enabled     BOOLEAN,
     p_updated_at     TIMESTAMP,
     p_activity_level TINYINT,
     p_user_level     TINYINT
-)
-RETURNS TIMESTAMP
-READS SQL DATA
-DETERMINISTIC
+) RETURNS BOOLEAN
+    READS SQL DATA
+    DETERMINISTIC
 BEGIN
     DECLARE v_interval INT;
-    -- 处理新用户情况，视为当前立即更新
+
+    -- 新用户需要更新
     IF p_updated_at IS NULL THEN
-        RETURN DATE_SUB(NOW(), INTERVAL 1 SECOND);
+        RETURN TRUE;
     END IF;
-    -- 不可用用户直接跳过
+
+    -- 不可用用户不需要更新
     IF p_is_enabled IS FALSE THEN
-        RETURN DATE_ADD(NOW(), INTERVAL 99999999 SECOND);
+        RETURN FALSE;
     END IF;
-    -- 查询策略
+
+    -- 查询更新间隔策略
     SELECT interval_seconds
     INTO v_interval
-    FROM D_activity_strategy
+    FROM D_user_activity_strategy
     WHERE activity_level = p_activity_level
       AND user_level = p_user_level
     LIMIT 1;
-    -- 默认1天
+
+    -- 默认 1 天
     SET v_interval = IFNULL(v_interval, 86400);
-    -- 查询策略
-    RETURN DATE_ADD(p_updated_at, INTERVAL v_interval SECOND);
+
+    -- 判断是否到期
+    RETURN p_updated_at + INTERVAL v_interval SECOND <= NOW();
 END;
 
--- 计算用户下次更新时间
-CREATE FUNCTION F_next_clan_update_time(
+CREATE FUNCTION F_is_clan_update_due(
     p_is_enabled     BOOLEAN,
     p_updated_at     TIMESTAMP
-)
-RETURNS TIMESTAMP
-DETERMINISTIC
+) RETURNS BOOLEAN
+    READS SQL DATA
+    DETERMINISTIC
 BEGIN
-    -- 处理新用户情况，视为当前立即更新
+    DECLARE v_interval INT;
+
+    -- 新用户需要更新
     IF p_updated_at IS NULL THEN
-        RETURN DATE_SUB(NOW(), INTERVAL 1 SECOND);
+        RETURN TRUE;
     END IF;
-    -- 不可用用户直接跳过
+
+    -- 不可用用户不需要更新
     IF p_is_enabled IS FALSE THEN
-        RETURN DATE_ADD(NOW(), INTERVAL 99999999 SECOND);
+        RETURN FALSE;
     END IF;
-    -- 查询策略，默认6小时
-    RETURN DATE_ADD(p_updated_at, INTERVAL 21600 SECOND);
+
+    -- 查询更新间隔策略
+    SELECT interval_seconds
+    INTO v_interval
+    FROM D_clan_activity_strategy
+    WHERE activity_level = 1
+      AND clan_level = 0
+    LIMIT 1;
+
+    -- 默认 1 天
+    SET v_interval = IFNULL(v_interval, 86400);
+
+    -- 判断是否到期
+    RETURN p_updated_at + INTERVAL v_interval SECOND <= NOW();
 END;
 
 CREATE FUNCTION F_calculate_ship_pr(
@@ -87,43 +106,29 @@ BEGIN
     RETURN ROUND(pr, 2);
 END;
 
-CREATE FUNCTION F_get_metric_level(idx INT, val DOUBLE, avg DOUBLE)
-RETURNS INT
-DETERMINISTIC
-BEGIN
-    DECLARE result INT;
-    DECLARE r_val DOUBLE;
-    IF IFNULL(avg, 0) = 0 THEN
-        RETURN -1;
-    END IF;
-    SET r_val = val / avg;
-    SELECT 1 + COUNT(*)
-    INTO result
-    FROM T_metric_level_thresholds
-    WHERE metric_id = idx
-      AND r_val >= threshold;
-    RETURN result;
-END;
-
 CREATE FUNCTION F_user_activity_level(last_battle_time BIGINT)
 RETURNS INT
 DETERMINISTIC
 BEGIN
     DECLARE current_ts BIGINT;
     DECLARE diff BIGINT;
+    
     IF IFNULL(last_battle_time, 0) = 0 THEN
         RETURN 0;
     END IF;
+    
     SET current_ts = UNIX_TIMESTAMP();
     SET diff = current_ts - last_battle_time;
+    
     RETURN CASE
-        WHEN diff <= 86400 THEN 1
-        WHEN diff <= 259200 THEN 2
-        WHEN diff <= 604800 THEN 3
-        WHEN diff <= 2592000 THEN 4
-        WHEN diff <= 7776000 THEN 5
-        WHEN diff <= 15552000 THEN 6
-        WHEN diff <= 31536000 THEN 7
-        ELSE 8
+        WHEN diff <= 86400 THEN 1       -- 1天内
+        WHEN diff <= 259200 THEN 2      -- 3天内
+        WHEN diff <= 604800 THEN 3      -- 7天内
+        WHEN diff <= 2592000 THEN 4     -- 30天内
+        WHEN diff <= 7776000 THEN 5     -- 90天内
+        WHEN diff <= 15552000 THEN 6    -- 180天内
+        WHEN diff <= 31536000 THEN 7    -- 365天内
+        WHEN diff <= 63072000 THEN 8    -- 730天内
+        ELSE 9                           -- 超过730天
     END;
-END;
+END$$
