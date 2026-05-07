@@ -33,14 +33,11 @@ def init_ship_rating_distribution():
             ship_ids = [row[0] for row in cursor.fetchall()]
             print(f'  -> Found {len(ship_ids)} ships')
 
-            # 步骤2：清空并初始化
-            print('Step 2: Clearing and initializing T_ship_rating_distribution...')
-            cursor.execute("TRUNCATE TABLE T_ship_rating_distribution")
             
             insert_sql = """
-                INSERT INTO T_ship_rating_distribution 
-                (ship_id, sample_count, top1, top5, top10, top15, top50, top75, top90)
-                VALUES (%s, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+                INSERT INTO T_ship_pvp_stats 
+                (ship_id)
+                VALUES (%s)
             """
             
             for ship_id in ship_ids:
@@ -50,17 +47,6 @@ def init_ship_rating_distribution():
 
         conn.commit()
         print(f'\nSuccess: Initialization completed!')
-        
-        # 验证
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM T_ship_rating_distribution")
-            total = cursor.fetchone()[0]
-            cursor.execute("SELECT COUNT(*) FROM T_ship_rating_distribution WHERE sample_count > 0")
-            non_zero = cursor.fetchone()[0]
-            print(f'\nVerification:')
-            print(f'  -> Total records: {total}')
-            print(f'  -> Non-zero records: {non_zero}')
-            print(f'  -> Zero records: {total - non_zero}')
             
     except Exception as e:
         conn.rollback()

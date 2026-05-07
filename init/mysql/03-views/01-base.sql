@@ -54,3 +54,27 @@ SELECT
     SUM(battles) AS total_battles
 FROM ARCH_ship_stats_by_recent
 GROUP BY game_version;
+
+CREATE VIEW V_ship_ownership_stats AS
+SELECT
+    b.ship_id,
+    b.tier,
+    t.name AS type,
+    n.name AS nation,
+    a.zh_sg AS ship_name,
+    CAST(COALESCE(s.ship_users, 0) AS DECIMAL(10,4)) / NULLIF(m.metric_value, 0) * 100 
+        AS ownership_rate,
+    CAST(COALESCE(s.total_battles, 0) AS DECIMAL(10,2)) / NULLIF(s.ship_users, 0) 
+        AS avg_battles_per_user
+FROM T_ship_base b
+INNER JOIN T_ship_name a ON b.ship_id = a.ship_id
+INNER JOIN D_ship_type t ON b.type_id = t.id
+INNER JOIN D_ship_nation n ON b.nation_id = n.id
+LEFT JOIN T_ship_pvp_stats s ON b.ship_id = s.ship_id
+CROSS JOIN (
+    SELECT metric_value 
+    FROM T_table_meta 
+    WHERE table_name = 'user_pvp' 
+      AND metric_key = 'total_users'
+    LIMIT 1
+) m;

@@ -41,6 +41,8 @@ from db_ops import (
     update_battles_stats_table,
     update_users_stats_table,
     update_rating_distribution_table,
+    update_ship_pvp_stats,
+    refresh_leaderboard_meta,
     refresh_leaderboard_mysql,
     refresh_leaderboard_redis,
     delete_leaderboard_redis,
@@ -155,8 +157,11 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
             # 更新 Rating 分布统计表
             update_rating_distribution_table(cursor, aggregator.compute_rating_percentiles())
 
-            # 输出统计数据
-            total_ship_entries, total_ship_battles = aggregator.aggregation_stats()
+            # 更新船只持有统计数据
+            update_ship_pvp_stats(cursor, aggregator.compute_ownership_stats(ship_ids))
+
+            # 更新表的统计信息
+            refresh_table_meta(cursor, aggregator.aggregation_stats())
 
             mysql_connection.commit()
     except Exception:
@@ -204,7 +209,7 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
             logger.info(f'Refreshed {leaderboard_rows} rows leaderboard data')
 
             # 刷新缓存表信息
-            refresh_table_meta(cursor, total_ship_entries,total_ship_battles,leaderboard_rows)
+            refresh_leaderboard_meta(cursor, leaderboard_rows)
 
         # 更新统计表
         if ship_users != {}:

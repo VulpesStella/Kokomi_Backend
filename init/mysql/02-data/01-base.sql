@@ -119,6 +119,7 @@ VALUES
 INSERT INTO T_table_meta 
     (metric_key, table_name) 
 VALUES
+    ('total_users', 'user_pvp'),
     ('ship_entries', 'user_pvp'),
     ('total_battles', 'user_pvp'),
     ('leaderboard_rows', 'ship_pvp_leaderboard');

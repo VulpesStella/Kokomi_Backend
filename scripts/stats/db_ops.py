@@ -309,17 +309,50 @@ def update_rating_distribution_table(
         cursor.executemany(update_sql, params)
         logger.info(f"Updated {cursor.rowcount} rows in T_ship_rating_distribution")
 
+def update_ship_pvp_stats(
+    cursor: Cursor,
+    update_data: list[tuple]
+) -> None:
+    """刷新 T_ship_pvp_stats 表中的统计数据
+    
+    使用 UPDATE 操作更新船只持有用户数和总场次
+    
+    Args:
+        cursor: 数据库游标对象
+        update_data: 待更新数据列表，每项为 [ship_users, total_battles, ship_id]
+    """
+    sql = """
+        UPDATE T_ship_pvp_stats
+        SET
+            ship_users = %s,
+            total_battles = %s
+        WHERE ship_id = %s;
+    """
+    
+    cursor.executemany(sql, update_data)
+    logger.info(f"Updated {len(update_data)} rows in T_ship_pvp_stats")
+
 def refresh_table_meta(
     cursor: Cursor, 
-    total_ship_entries: int,
-    total_ship_battles: int,
-    leaderboard_rows: int
+    aggregation_stats: tuple
 ) -> None:
     """刷新 T_table_meta 表中的统计数据
     
     Args:
         cursor: 数据库游标对象
+        aggregation_stats: 聚合统计信息元组
     """
+    total_users, total_ship_entries, total_ship_battles = aggregation_stats
+
+    # 更新 total_users
+    sql = """
+        UPDATE T_table_meta 
+        SET 
+            metric_value = %s 
+        WHERE metric_key = 'total_users';
+    """
+    cursor.execute(sql, [total_users])
+
     # 更新 ship_entries
     sql = """
         UPDATE T_table_meta 
@@ -337,7 +370,17 @@ def refresh_table_meta(
         WHERE metric_key = 'total_battles';
     """
     cursor.execute(sql, [total_ship_battles])
+
+def refresh_leaderboard_meta(
+    cursor: Cursor, 
+    leaderboard_rows: int
+) -> None:
+    """刷新 T_table_meta 表中的统计数据
     
+    Args:
+        cursor: 数据库游标对象
+        leaderboard_rows: 排行榜总计条目
+    """
     # 更新 leaderboard_rows
     sql = """
         UPDATE T_table_meta 
@@ -347,7 +390,6 @@ def refresh_table_meta(
     """
     cursor.execute(sql, [leaderboard_rows])
     
-
 def refresh_leaderboard_mysql(cursor: Cursor, ship_id: int) -> int:
     """
     更新 MySQL 排行榜中指定船只的 rating 和指标评级

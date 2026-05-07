@@ -145,6 +145,7 @@ class ShipStatsAggregator:
         1. 服务器场次平均数据（所有用户数据累加后求平均）
         2. 服务器用户平均数据（只统计 battles > 10 的有效用户）
         3. 用户 Rating 分布直方图（用于计算 Rating 百分位数）
+        4. 统计船只持有率和用户平均场次所需要的数据
     """
 
     def __init__(self, server_ship_metrics: dict[int, list[float]]):
@@ -155,6 +156,7 @@ class ShipStatsAggregator:
             - ship_stats: 存储所有用户的场次累加数据
             - ship_user_stats: 存储有效用户（battles > 10）的场均累加数据
             - ship_rating_hist: 存储 Rating 分布直方图
+            - ship_ownership_stats: 存储船只持有用户数和总场次
 
         Args:
             server_ship_metrics: 服务器场次基准数据，用于计算 Rating
@@ -178,6 +180,10 @@ class ShipStatsAggregator:
         # ship_id -> [bucket_0_count, bucket_1_count, ..., bucket_{BUCKETS-1}_count]
         self.ship_rating_hist = defaultdict(lambda: [0] * self.rating_bins.bucket_count)
 
+        # 四：船只持有统计（所有有数据的用户）
+        # ship_id -> [ship_users, total_battles]
+        self.ship_ownership_stats = defaultdict(lambda: [0, 0])
+
         # Rating 百分位目标
         self.rating_percentile_targets = [0.01, 0.05, 0.10, 0.15, 0.50, 0.75, 0.90]
 
@@ -192,11 +198,11 @@ class ShipStatsAggregator:
         Args:
             rows: 数据库查询结果列表
         """
-        self.total_users += len(rows)
 
         for row in rows:
             if row is None:
                 continue
+
             try:
                 # 解析 JSON 格式的船只缓存数据
                 payload = json.loads(row[0])
@@ -205,6 +211,8 @@ class ShipStatsAggregator:
 
             if not isinstance(payload, dict):
                 continue
+
+            self.total_users += 1
 
             # 临时存储本用户的有效船只场均数据
             # ship_id -> [battles, win_rate, avg_damage, avg_frags, avg_exp, 
@@ -235,6 +243,13 @@ class ShipStatsAggregator:
 
                 self.total_ship_entries += 1
                 self.total_ship_battles += stats[IDX_BATTLES]
+
+                # 四：累加船只持有统计（所有有数据的用户）
+                # ship_users 计数 +1（每个用户在同一船上只计一次）
+                # total_battles 累加该用户在该船上的场次
+                owner = self.ship_ownership_stats[ship_id]
+                owner[0] += 1                    # 用户数 +1
+                owner[1] += stats[IDX_BATTLES]   # 累加场次
 
                 # 二：计算有效用户的场均数据（battles > 10）
                 battles = stats[IDX_BATTLES]
@@ -390,6 +405,33 @@ class ShipStatsAggregator:
             
         return percentiles
     
+    def compute_ownership_stats(self, ship_ids: list[int]) -> list:
+        """计算每艘船的持有统计更新数据
+        
+        将累加的船只持有用户数和总场次转换为待数据库更新的元组列表，
+        排除异常 ship_id 和无效数据
+        
+        Args:
+            ship_ids: 有效的船只 ID 列表（用于过滤）
+            
+        Returns:
+            待更新数据列表，每项为 [ship_users, total_battles, ship_id]
+        """
+        update_data = []
+        for ship_id, owner in self.ship_ownership_stats.items():
+            if ship_id not in ship_ids:
+                continue
+            
+            ship_users = owner[0]
+            total_battles = owner[1]
+            
+            if ship_users == 0:
+                continue
+            
+            update_data.append([ship_users, total_battles, ship_id])
+        
+        return update_data
+
     def aggregation_stats(self) -> tuple[int, int]:
         """输出聚合统计信息到日志，并更新 T_table_meta 表
     
@@ -397,7 +439,7 @@ class ShipStatsAggregator:
             cursor: 数据库游标对象
             
         Returns:
-            tuple: (total_ship_entries, total_ship_battles)
+            tuple: (self.total_users, total_ship_entries, total_ship_battles)
         """
         logger.info(
             "Users: %s | "
@@ -407,4 +449,4 @@ class ShipStatsAggregator:
             f"{self.total_ship_entries:,}",
             f"{self.total_ship_battles:,}"
         )
-        return (self.total_ship_entries, self.total_ship_battles)
+        return (self.total_users, self.total_ship_entries, self.total_ship_battles)
