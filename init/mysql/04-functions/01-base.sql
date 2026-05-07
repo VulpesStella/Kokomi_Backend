@@ -1,5 +1,38 @@
 -- DELIMITER //
 
+-- 用户活跃度计算函数
+-- 根据最后战斗时间距今的差值，返回1-9的活跃度等级
+-- 活跃度越高表示用户最近越活跃（间隔时间越短）
+CREATE FUNCTION F_user_activity_level(last_battle_time BIGINT)
+RETURNS INT
+DETERMINISTIC
+BEGIN
+    DECLARE current_ts BIGINT;
+    DECLARE diff BIGINT;
+    
+    IF IFNULL(last_battle_time, 0) = 0 THEN
+        RETURN 0;
+    END IF;
+    
+    SET current_ts = UNIX_TIMESTAMP();
+    SET diff = current_ts - last_battle_time;
+    
+    RETURN CASE
+        WHEN diff <= 86400 THEN 1       -- 1天内
+        WHEN diff <= 259200 THEN 2      -- 3天内
+        WHEN diff <= 604800 THEN 3      -- 7天内
+        WHEN diff <= 2592000 THEN 4     -- 30天内
+        WHEN diff <= 7776000 THEN 5     -- 90天内
+        WHEN diff <= 15552000 THEN 6    -- 180天内
+        WHEN diff <= 31536000 THEN 7    -- 365天内
+        WHEN diff <= 63072000 THEN 8    -- 730天内
+        ELSE 9                           -- 超过730天
+    END;
+END;
+
+-- 用户更新到期判断函数
+-- 根据用户的启用状态、上次更新时间及活跃度等级，
+-- 查询 D_user_activity_strategy 表获取更新间隔，判断是否需要更新
 CREATE FUNCTION F_is_user_update_due(
     p_is_enabled     BOOLEAN,
     p_updated_at     TIMESTAMP,
@@ -36,6 +69,9 @@ BEGIN
     RETURN p_updated_at + INTERVAL v_interval SECOND <= NOW();
 END;
 
+-- 公会更新到期判断函数
+-- 根据公会的启用状态和上次更新时间，
+-- 查询 D_clan_activity_strategy 表获取更新间隔，判断是否需要更新
 CREATE FUNCTION F_is_clan_update_due(
     p_is_enabled     BOOLEAN,
     p_updated_at     TIMESTAMP
@@ -70,6 +106,9 @@ BEGIN
     RETURN p_updated_at + INTERVAL v_interval SECOND <= NOW();
 END;
 
+-- 船只PR值计算函数
+-- 根据用户的实际与预期胜率、伤害、击杀数据，
+-- 通过归一化与加权公式计算综合个人评级（Personal Rating）
 CREATE FUNCTION F_calculate_ship_pr(
     actual_wins DOUBLE,
     actual_dmg DOUBLE,
@@ -106,29 +145,23 @@ BEGIN
     RETURN ROUND(pr, 2);
 END;
 
-CREATE FUNCTION F_user_activity_level(last_battle_time BIGINT)
+-- 指标等级计算函数
+-- 根据指标ID、实际值及平均值，查询 T_metric_level_thresholds 表获取阈值等级
+-- 返回实际值/平均值所达到的等级（1-8），比值越高等级越高
+CREATE FUNCTION F_get_metric_level(idx INT, val DOUBLE, avg DOUBLE)
 RETURNS INT
 DETERMINISTIC
 BEGIN
-    DECLARE current_ts BIGINT;
-    DECLARE diff BIGINT;
-    
-    IF IFNULL(last_battle_time, 0) = 0 THEN
-        RETURN 0;
+    DECLARE result INT;
+    DECLARE r_val DOUBLE;
+    IF IFNULL(avg, 0) = 0 THEN
+        RETURN -1;
     END IF;
-    
-    SET current_ts = UNIX_TIMESTAMP();
-    SET diff = current_ts - last_battle_time;
-    
-    RETURN CASE
-        WHEN diff <= 86400 THEN 1       -- 1天内
-        WHEN diff <= 259200 THEN 2      -- 3天内
-        WHEN diff <= 604800 THEN 3      -- 7天内
-        WHEN diff <= 2592000 THEN 4     -- 30天内
-        WHEN diff <= 7776000 THEN 5     -- 90天内
-        WHEN diff <= 15552000 THEN 6    -- 180天内
-        WHEN diff <= 31536000 THEN 7    -- 365天内
-        WHEN diff <= 63072000 THEN 8    -- 730天内
-        ELSE 9                           -- 超过730天
-    END;
-END$$
+    SET r_val = val / avg;
+    SELECT 1 + COUNT(*)
+    INTO result
+    FROM T_metric_level_thresholds
+    WHERE metric_id = idx
+      AND r_val >= threshold;
+    RETURN result;
+END;
