@@ -58,15 +58,6 @@ with open(file_path, "r", encoding="utf-8") as f:
     SHIP_METRIC_MAP: dict = data['SHIP_METRIC_MAP']
     METRIC_RATING_THRESHOLDS: list = data['METRIC_RATING_THRESHOLDS']
 
-METRIC_MAPPING = [
-    (SHIP_METRIC_MAP['exp'],            'max_exp'),
-    (SHIP_METRIC_MAP['frags'],          'max_frags'),
-    (SHIP_METRIC_MAP['planes'],         'max_planes_killed'),
-    (SHIP_METRIC_MAP['damage'],         'max_damage_dealt'),
-    (SHIP_METRIC_MAP['scouting_dmg'],   'max_scouting_damage'),
-    (SHIP_METRIC_MAP['potential_dmg'],  'max_total_agro')
-]
-
 METRIC_ID_TO_INDEX = {
     SHIP_METRIC_MAP['exp']: 0,
     SHIP_METRIC_MAP['frags']: 1,
@@ -75,5 +66,7 @@ METRIC_ID_TO_INDEX = {
     SHIP_METRIC_MAP['scouting_dmg']: 4,
     SHIP_METRIC_MAP['potential_dmg']: 5
 }
+# 反向映射，方便从索引取 metric_id
+INDEX_TO_METRIC_ID = {v: k for k, v in METRIC_ID_TO_INDEX.items()}
 
 print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Configuration data loading complete")

@@ -1,3 +1,4 @@
+import json
 from pymysql import Connection
 from pymysql.cursors import Cursor
 from typing import Union
@@ -6,18 +7,19 @@ from logger import logger
 from settings import METRIC_ID_TO_INDEX
 
 
-def read_ship_record(cursor: Cursor) -> Union[str, dict]:
-    """读取船只 PvP 极值记录数据
+def read_ship_record(cursor: Cursor) -> dict:
+    """读取船只 PvP 极值记录数据（返回用户ID集合）
 
-    按 ship_id 和 metric_id 分组，将各指标的最高值、达成人数和达成用户
-    组织为嵌套字典结构
+    按 ship_id 和 metric_id 分组，将各指标的最高值、达成人数和达成用户集合
+    组织为嵌套字典结构。
 
     Args:
         cursor: 数据库游标
 
     Returns:
-        字典，键为 ship_id，值为按 METRIC_ID_TO_INDEX 顺序排列的
-        [[metric_value, users_count, top_user_id], ...] 列表
+        字典，键为 ship_id (str)，值为按 METRIC_ID_TO_INDEX 顺序排列的
+        [[metric_value, users_count, top_user_ids], ...] 列表，
+        其中 top_user_ids 始终为 set 类型（可能为空 set）。
     """
     result = {}
     
@@ -29,7 +31,7 @@ def read_ship_record(cursor: Cursor) -> Union[str, dict]:
             metric_id,
             metric_value,
             users_count,
-            top_user_id
+            top_user_ids
         FROM T_ship_pvp_record
         WHERE metric_id IN ({placeholders});
     """
@@ -38,12 +40,22 @@ def read_ship_record(cursor: Cursor) -> Union[str, dict]:
     for row in cursor.fetchall():
         ship_id = str(row[0])
         metric_id = row[1]
+        metric_value = row[2]
+        users_count = row[3]
+        top_user_ids_raw = row[4]  # JSON 字符串或 None
+        
+        # 转换为 set，NULL 或空数组均得到空集合
+        if top_user_ids_raw is not None:
+            top_user_ids = set(json.loads(top_user_ids_raw))
+        else:
+            top_user_ids = set()
         
         if ship_id not in result:
-            result[ship_id] = [[0, 0, None] for _ in range(len(METRIC_ID_TO_INDEX))]
+            # 初始化：每个指标默认 [0, 0, set()]
+            result[ship_id] = [[0, 0, set()] for _ in range(len(METRIC_ID_TO_INDEX))]
         
         idx = METRIC_ID_TO_INDEX[metric_id]
-        result[ship_id][idx] = [row[2], row[3], row[4]]
+        result[ship_id][idx] = [metric_value, users_count, top_user_ids]
     
     return result
 

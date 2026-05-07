@@ -284,7 +284,7 @@ CREATE TABLE IF NOT EXISTS T_ship_pvp_record (
     metric_id        INT          NOT NULL,        -- 关联 D_metric_name
     metric_value     INT          DEFAULT 0,       -- 指标最高值
     users_count      INT          DEFAULT 0,       -- 到达该值的用户数
-    top_user_id      BIGINT       DEFAULT NULL,    -- 记录此指标最高的用户
+    top_user_ids     JSON         DEFAULT NULL,    -- 记录此指标最高的用户ID集合
 
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

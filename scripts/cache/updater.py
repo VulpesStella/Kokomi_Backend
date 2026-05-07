@@ -8,10 +8,10 @@ from pymysql.cursors import Cursor
 from typing import Optional
 
 from logger import logger
-from settings import METRIC_MAPPING
-from api import fetch_user_pvp_data
 from syncer import UserStatsSyncer
+from api import fetch_user_pvp_data
 from utils import calc_ship_rating
+from settings import INDEX_TO_METRIC_ID
 
 
 
@@ -125,6 +125,36 @@ class UserCacheUpdater:
                 pvp.get('art_agro', 0) // 1000  # 注意单位
             ]
         return ship_pvp_cache
+    
+    @staticmethod
+    def _build_ship_pvp_record(pvp_data: dict) -> dict:
+        """构建船只 PvP 极值缓存数据
+
+        将 API 返回的按船只分组的 PvP 数据提取出所需字段，
+        按固定顺序组装为列表，供后续与记录比较使用
+
+        Args:
+            pvp_data: API 返回的船只 PvP 数据
+
+        Returns:
+            ship_id -> [max_exp, max_frags, max_planes_killed, max_damage_dealt,
+            max_scouting_damage, max_total_agro]
+        """
+        ship_pvp_record = {}
+        for ship_id, ship_data in pvp_data.items():
+            pvp = ship_data.get('pvp', {})
+            if not pvp:
+                continue
+            
+            ship_pvp_record[ship_id] = [
+                pvp.get('max_exp', 0),
+                pvp.get('max_frags', 0),
+                pvp.get('max_planes_killed', 0),
+                pvp.get('max_damage_dealt', 0),
+                pvp.get('max_scouting_damage', 0),
+                pvp.get('max_total_agro', 0)
+            ]
+        return ship_pvp_record
 
     @staticmethod
     def _calc_recent_diff(old_cache: dict, latest_data: dict):
@@ -219,48 +249,49 @@ class UserCacheUpdater:
             logger.error(traceback.format_exc())
             return type(e).__name__
 
-    def _update_ship_records(
-        self,
-        ship_pvp_cache: dict, 
-        account_id: int
-    ) -> list:
-        """更新船只极值记录
+    def _update_ship_records(self, ship_pvp_record: dict, account_id: int) -> list:
+        """更新船只极值记录（基于用户ID集合）
 
-        遍历用户各船只的数据，与当前服务器最高记录比较，
-        若超过则更新为新的最高记录，若持平则增加达成人数
+        遍历用户各船只的数据列表，与当前服务器最高记录比较：
+        - 超过：设为新记录，用户集合仅含当前用户
+        - 平记录：若用户尚未在集合中，则加入集合并增加计数
+        - 相同用户重复平记录：忽略
 
         Args:
-            ship_pvp_cache: 船只 PvP 缓存数据
-            account_id: 用户 ID
+            ship_pvp_cache: {ship_id: [exp, frags, planes, damage, scouting, potential]}
+            account_id: 当前用户 ID
 
         Returns:
-            需要更新的记录列表 [(metric_value, users_count, top_user_id, ship_id, metric_id), ...]
+            需要写入数据库的更新记录列表，
+            每项为 (metric_value, users_count, top_user_ids_json, ship_id, metric_id)
         """
         updated_record = []
-        
-        for ship_id in ship_pvp_cache.keys():
+
+        for ship_id, user_values_list in ship_pvp_record.items():
             if ship_id not in self.ship_record:
                 continue
-            
-            for idx, (metric_id, data_key) in enumerate(METRIC_MAPPING):
-                ship_data = ship_pvp_cache.get(ship_id, {})
-                if isinstance(ship_data, dict):
-                    user_value = ship_data.get(data_key, 0)
-                else:
-                    continue
-                
-                current = self.ship_record[ship_id][idx]
-                
-                if user_value > current[0]:
-                    logger.debug(f'{current} -> {[user_value, 1, account_id]}')
-                    self.ship_record[ship_id][idx] = [user_value, 1, account_id]
-                    updated_record.append((user_value, 1, account_id, int(ship_id), metric_id))
-                elif user_value == current[0] and user_value > 0:
-                    new_users_count = current[1] + 1
-                    logger.debug(f'{current} -> {[current[0], new_users_count, None]}')
-                    self.ship_record[ship_id][idx] = [current[0], new_users_count, None]
-                    updated_record.append((current[0], new_users_count, None, int(ship_id), metric_id))
-        
+
+            # ship_record[ship_id] 是按 METRIC_ID_TO_INDEX 顺序的列表
+            # 每个元素为 [metric_value, users_count, top_user_ids_set]
+            for idx, user_value in enumerate(user_values_list):
+                metric_id = INDEX_TO_METRIC_ID[idx]
+                current_value, _, current_set = self.ship_record[ship_id][idx]
+
+                # 超过当前最高值 → 新记录
+                if user_value > current_value:
+                    new_set = {account_id}
+                    self.ship_record[ship_id][idx] = [user_value, 1, new_set]
+                    updated_record.append((user_value, 1, json.dumps(list(new_set)), int(ship_id), metric_id))
+
+                # 平记录且数值大于0，且用户尚未在集合中 → 增加达成者
+                elif user_value == current_value and user_value > 0 and account_id not in current_set:
+                    current_set.add(account_id)
+                    new_count = len(current_set)
+                    self.ship_record[ship_id][idx] = [user_value, new_count, current_set]
+                    updated_record.append((user_value, new_count, json.dumps(list(current_set)), int(ship_id), metric_id))
+
+                # 用户已在集合中或数值为0 → 无变化，跳过
+
         return updated_record
 
     def _build_ranking_cache(
@@ -362,7 +393,7 @@ class UserCacheUpdater:
                 avg_frags = %s, 
                 avg_exp = %s, 
                 ship_cache = %s, 
-                updated_at = CURRENT_TIMESTAMP 
+                updated_at = NOW() 
             WHERE account_id = %s;
         """
         cursor.execute(sql, [
@@ -403,7 +434,7 @@ class UserCacheUpdater:
                 max_scouting_damage_id = %s, 
                 max_potential_damage = %s, 
                 max_potential_damage_id = %s, 
-                updated_at = CURRENT_TIMESTAMP 
+                updated_at = NOW() 
             WHERE account_id = %s;
         """
         cursor.execute(sql, record + [account_id])
@@ -417,7 +448,7 @@ class UserCacheUpdater:
 
         Args:
             cursor: 数据库游标
-            updated_record: [(metric_value, users_count, top_user_id, ship_id, metric_id), ...]
+            updated_record: [(metric_value, users_count, top_user_ids_json, ship_id, metric_id), ...]
         """
         if not updated_record:
             return
@@ -427,7 +458,7 @@ class UserCacheUpdater:
             SET
                 metric_value = %s,
                 users_count = %s,
-                top_user_id = %s
+                top_user_ids = %s
             WHERE ship_id = %s
               AND metric_id = %s;
         """
@@ -476,7 +507,7 @@ class UserCacheUpdater:
                 max_exp, max_damage, updated_at
             )
             VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
             )
             ON DUPLICATE KEY UPDATE 
                 rating = VALUES(rating),
@@ -491,7 +522,7 @@ class UserCacheUpdater:
                 hit_ratio = VALUES(hit_ratio),
                 max_exp = VALUES(max_exp),
                 max_damage = VALUES(max_damage),
-                updated_at = CURRENT_TIMESTAMP;
+                updated_at = NOW();
         """
         cursor.executemany(sql, values_to_insert)
 
@@ -618,9 +649,10 @@ class UserCacheUpdater:
             # 构建船只PVP缓存
             pvp_data = responses[2][str(account_id)]['statistics']
             ship_pvp_cache = self._build_ship_pvp_cache(pvp_data)
+            ship_pvp_record = self._build_ship_pvp_record(pvp_data)
             
             # 更新船只记录
-            update_record_list = self._update_ship_records(ship_pvp_cache, account_id)
+            update_record_list = self._update_ship_records(ship_pvp_record, account_id)
             
             # 构建排行榜缓存
             ships_data = responses[1][str(account_id)]['statistics']

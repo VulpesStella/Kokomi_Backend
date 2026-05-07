@@ -247,7 +247,46 @@ FROM ARCH_ship_stats_by_recent
 WHERE ship_id = 4277090288
 ORDER BY game_version ASC;
 
-CREATE VIEW _V_ship_record_by_exp AS
+-- 伤害 (damage)
+CREATE OR REPLACE VIEW _V_ship_record_by_damage AS
+SELECT
+    b.ship_id,
+    b.tier,
+    t.name AS type,
+    n.name AS nation,
+    a.zh_sg AS ship_name,
+    r.metric_value AS damage,
+    r.users_count AS damage_users,
+    r.top_user_ids,
+    r.updated_at
+FROM T_ship_pvp_record r
+INNER JOIN T_ship_base b ON r.ship_id = b.ship_id
+INNER JOIN T_ship_name a ON b.ship_id = a.ship_id
+INNER JOIN D_ship_type t ON b.type_id = t.id
+INNER JOIN D_ship_nation n ON b.nation_id = n.id
+WHERE r.metric_id = 3;
+
+-- 击杀 (frags)
+CREATE OR REPLACE VIEW _V_ship_record_by_frags AS
+SELECT
+    b.ship_id,
+    b.tier,
+    t.name AS type,
+    n.name AS nation,
+    a.zh_sg AS ship_name,
+    r.metric_value AS frags,
+    r.users_count AS frags_users,
+    r.top_user_ids,
+    r.updated_at
+FROM T_ship_pvp_record r
+INNER JOIN T_ship_base b ON r.ship_id = b.ship_id
+INNER JOIN T_ship_name a ON b.ship_id = a.ship_id
+INNER JOIN D_ship_type t ON b.type_id = t.id
+INNER JOIN D_ship_nation n ON b.nation_id = n.id
+WHERE r.metric_id = 4;
+
+-- 经验 (exp)
+CREATE OR REPLACE VIEW _V_ship_record_by_exp AS
 SELECT
     b.ship_id,
     b.tier,
@@ -256,13 +295,68 @@ SELECT
     a.zh_sg AS ship_name,
     r.metric_value AS exp,
     r.users_count AS exp_users,
-    r.top_user_id,
-    u.username AS top_username,
+    r.top_user_ids,
     r.updated_at
 FROM T_ship_pvp_record r
 INNER JOIN T_ship_base b ON r.ship_id = b.ship_id
 INNER JOIN T_ship_name a ON b.ship_id = a.ship_id
 INNER JOIN D_ship_type t ON b.type_id = t.id
 INNER JOIN D_ship_nation n ON b.nation_id = n.id
-LEFT JOIN T_user_base u ON r.top_user_id = u.account_id
 WHERE r.metric_id = 5;
+
+-- 侦查伤害 (scouting_dmg)
+CREATE OR REPLACE VIEW _V_ship_record_by_scouting AS
+SELECT
+    b.ship_id,
+    b.tier,
+    t.name AS type,
+    n.name AS nation,
+    a.zh_sg AS ship_name,
+    r.metric_value AS scouting_dmg,
+    r.users_count AS scouting_users,
+    r.top_user_ids,
+    r.updated_at
+FROM T_ship_pvp_record r
+INNER JOIN T_ship_base b ON r.ship_id = b.ship_id
+INNER JOIN T_ship_name a ON b.ship_id = a.ship_id
+INNER JOIN D_ship_type t ON b.type_id = t.id
+INNER JOIN D_ship_nation n ON b.nation_id = n.id
+WHERE r.metric_id = 7;
+
+-- 潜在伤害 (potential_dmg)
+CREATE OR REPLACE VIEW _V_ship_record_by_potential AS
+SELECT
+    b.ship_id,
+    b.tier,
+    t.name AS type,
+    n.name AS nation,
+    a.zh_sg AS ship_name,
+    r.metric_value AS potential_dmg,
+    r.users_count AS potential_users,
+    r.top_user_ids,
+    r.updated_at
+FROM T_ship_pvp_record r
+INNER JOIN T_ship_base b ON r.ship_id = b.ship_id
+INNER JOIN T_ship_name a ON b.ship_id = a.ship_id
+INNER JOIN D_ship_type t ON b.type_id = t.id
+INNER JOIN D_ship_nation n ON b.nation_id = n.id
+WHERE r.metric_id = 8;
+
+-- 击落飞机 (planes)
+CREATE OR REPLACE VIEW _V_ship_record_by_planes AS
+SELECT
+    b.ship_id,
+    b.tier,
+    t.name AS type,
+    n.name AS nation,
+    a.zh_sg AS ship_name,
+    r.metric_value AS planes,
+    r.users_count AS planes_users,
+    r.top_user_ids,
+    r.updated_at
+FROM T_ship_pvp_record r
+INNER JOIN T_ship_base b ON r.ship_id = b.ship_id
+INNER JOIN T_ship_name a ON b.ship_id = a.ship_id
+INNER JOIN D_ship_type t ON b.type_id = t.id
+INNER JOIN D_ship_nation n ON b.nation_id = n.id
+WHERE r.metric_id = 9;
