@@ -67,17 +67,52 @@ INNER JOIN D_ship_type t
 INNER JOIN D_ship_nation n
     ON b.nation_id = n.id;
 
-CREATE VIEW _V_user_max_exp_record AS
+CREATE OR REPLACE VIEW _V_ship_recent_v15_3 AS
 SELECT
-    b.username,
-    u.max_exp,
-    n.zh_sg AS max_exp_ship,
-    u.updated_at
-FROM T_user_pvp_record u
-LEFT JOIN T_user_base b
-    ON u.account_id = b.account_id
-LEFT JOIN T_ship_name n
-    ON u.max_exp_id = n.ship_id;
+    b.ship_id,
+    b.tier,
+    t.name AS type,
+    n.name AS nation,
+    a.zh_sg AS ship_name,
+    r.battles,
+    ROUND(r.wins / NULLIF(r.battles, 0) * 100, 2) AS win_rate,
+    ROUND(r.damage / NULLIF(r.battles, 0), 1) AS avg_damage,
+    ROUND(r.frags / NULLIF(r.battles, 0), 2) AS avg_frags,
+    ROUND(r.exp / NULLIF(r.battles, 0), 2) AS avg_exp,
+    ROUND(r.survived / NULLIF(r.battles, 0) * 100, 2) AS survived_rate,
+    ROUND(r.scouting_damage / NULLIF(r.battles, 0), 2) AS avg_scouting_dmg,
+    ROUND(r.potential_damage / NULLIF(r.battles, 0), 2) AS avg_potential_dmg,
+    r.updated_at
+FROM ARCH_ship_stats_by_recent r
+INNER JOIN T_ship_base b ON r.ship_id = b.ship_id
+INNER JOIN T_ship_name a ON b.ship_id = a.ship_id
+INNER JOIN D_ship_type t ON b.type_id = t.id
+INNER JOIN D_ship_nation n ON b.nation_id = n.id
+WHERE r.game_version = '15.3';
+
+CREATE VIEW _V_ship_ownership_stats AS
+SELECT
+    b.ship_id,
+    b.tier,
+    t.name AS type,
+    n.name AS nation,
+    a.zh_sg AS ship_name,
+    CAST(COALESCE(s.ship_users, 0) AS DECIMAL(10,4)) / NULLIF(m.metric_value, 0) * 100 
+        AS ownership_rate,
+    CAST(COALESCE(s.total_battles, 0) AS DECIMAL(10,2)) / NULLIF(s.ship_users, 0) 
+        AS avg_battles_per_user
+FROM T_ship_base b
+INNER JOIN T_ship_name a ON b.ship_id = a.ship_id
+INNER JOIN D_ship_type t ON b.type_id = t.id
+INNER JOIN D_ship_nation n ON b.nation_id = n.id
+LEFT JOIN T_ship_pvp_stats s ON b.ship_id = s.ship_id
+CROSS JOIN (
+    SELECT metric_value 
+    FROM T_table_meta 
+    WHERE table_name = 'user_pvp' 
+      AND metric_key = 'total_users'
+    LIMIT 1
+) m;
 
 CREATE VIEW _V_test_leaderboard_4277090288 AS
 SELECT 
@@ -360,3 +395,27 @@ INNER JOIN T_ship_name a ON b.ship_id = a.ship_id
 INNER JOIN D_ship_type t ON b.type_id = t.id
 INNER JOIN D_ship_nation n ON b.nation_id = n.id
 WHERE r.metric_id = 9;
+
+CREATE VIEW V_ship_ownership_stats AS
+SELECT
+    b.ship_id,
+    b.tier,
+    t.name AS type,
+    n.name AS nation,
+    a.zh_sg AS ship_name,
+    ROUND(COALESCE(s.ship_users, 0) / NULLIF(m.metric_value, 0) * 100, 2) 
+        AS ownership_rate,
+    ROUND(COALESCE(s.total_battles, 0) / NULLIF(s.ship_users, 0), 2) 
+        AS avg_battles_per_user
+FROM T_ship_base b
+INNER JOIN T_ship_name a ON b.ship_id = a.ship_id
+INNER JOIN D_ship_type t ON b.type_id = t.id
+INNER JOIN D_ship_nation n ON b.nation_id = n.id
+LEFT JOIN T_ship_pvp_stats s ON b.ship_id = s.ship_id
+CROSS JOIN (
+    SELECT metric_value 
+    FROM T_table_meta 
+    WHERE table_name = 'user_pvp' 
+      AND metric_key = 'total_users'
+    LIMIT 1
+) m;

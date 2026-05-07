@@ -28,8 +28,8 @@ from pymysql import Connection
 from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
-from utils import get_current_utc_hour
 from analytics import ShipStatsAggregator
+from utils import get_current_utc_hour
 from db_ops import (
     need_update,
     analyze_db_files,
@@ -101,7 +101,7 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         not need_update(mysql_connection, 'ship_stats', 'update_time') and 
         get_current_utc_hour() != 23
     ):
-        # 尽量避开在高峰时段
+        # 尽量避开高峰时段
         logger.info(f'Update time not yet reached')
         return
     

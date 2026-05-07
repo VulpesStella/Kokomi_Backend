@@ -1,9 +1,7 @@
 import json
-from pymysql import Connection
 from pymysql.cursors import Cursor
 from typing import Union
 
-from logger import logger
 from settings import METRIC_ID_TO_INDEX
 
 

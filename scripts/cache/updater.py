@@ -250,7 +250,7 @@ class UserCacheUpdater:
             return type(e).__name__
 
     def _update_ship_records(self, ship_pvp_record: dict, account_id: int) -> list:
-        """更新船只极值记录（基于用户ID集合）
+        """更新船只极值记录
 
         遍历用户各船只的数据列表，与当前服务器最高记录比较：
         - 超过：设为新记录，用户集合仅含当前用户
