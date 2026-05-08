@@ -6,23 +6,17 @@ class ShipModel:
     @ExceptionLogger.handle_database_exception_async
     async def get_ranking_ship_ids():
         async with MySQLManager.read_only_cursor() as cur:
-            result = []
+            result = {}
             sql = """
                 SELECT 
-                    b.ship_id, 
-                    s.battles 
-                FROM T_ship_base b
-                LEFT JOIN T_ship_stats_by_battles s
-                  ON b.ship_id = s.ship_id
-                WHERE b.is_enabled = 1 
-                AND b.is_old = 0
-                AND b.tier > 5;
+                    ship_id, 
+                    min_battles 
+                FROM V_ship_ranking_stats;
             """
             await cur.execute(sql)
             rows = await cur.fetchall()
             for row in rows:
-                if row[1] >= 1000:
-                    result.append(row[0])
+                result[row[0]] = row[1]
             return JSONResponse.get_success_response(result)
             
     @ExceptionLogger.handle_database_exception_async
@@ -36,7 +30,14 @@ class ShipModel:
                     r.name AS rarity,
                     b.premium, 
                     b.special, 
-                    b.index_code
+                    b.index_code,
+                    a.zh_sg, 
+                    a.zh_cn, 
+                    a.zh_tw, 
+                    a.en_short, 
+                    a.en_full, 
+                    a.ja, 
+                    a.ru 
                 FROM
                     T_ship_base b
                 INNER JOIN D_ship_type t
@@ -45,6 +46,8 @@ class ShipModel:
                     ON b.nation_id = n.id
                 INNER JOIN D_ship_rarity r
                     ON b.rarity_id = r.id
+                INNER JOIN T_ship_name a
+                    ON b.ship_id = a.ship_id
                 WHERE b.ship_id = %s;
             """
             await cur.execute(sql, [ship_id])
@@ -56,7 +59,20 @@ class ShipModel:
                 'rarity': row[3],
                 'is_premium': True if row[4] else False,
                 'is_special': True if row[5] else False,
-                'index': row[6]
+                'index': row[6][:6],
+                'name': {
+                    'zh': {
+                        'sg': row[7],
+                        'cn': row[8],
+                        'tw': row[9]
+                    },
+                    'en': {
+                        'short': row[10],
+                        'full': row[11]
+                    },
+                    'ja': row[12],
+                    'ru': row[13]
+                }
             } 
             return JSONResponse.get_success_response(result)
 

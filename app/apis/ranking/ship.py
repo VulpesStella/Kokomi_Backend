@@ -1,92 +1,41 @@
-from typing import Any
+from typing import Any, Optional
 
 from app.core import EnvConfig
 from app.loggers import ExceptionLogger
-from app.response import JSONResponse
+from app.response import JSONResponse, ResponseDict
 from app.middlewares import RedisClient
 from app.models import ShipModel, PlayerModel
 
 
 class ShipRankingAPI:
-    PAGE_SIZE = 50
-    CACHE_EXPIRE = 2 * 60  # 2分钟
-
     @staticmethod
-    async def _get_ranking_base_data(ship_id: int, is_specify: bool) -> tuple[bool, Any]:
-        ok, ship_ids = JSONResponse.extract_data(
-            response=await ShipModel.get_ranking_ship_ids()
-        )
-        if not ok:
-            return False, ship_ids
+    def _build_leaderboard(start_rank: int, user_ids: list, users_data: dict) -> list[dict]:
+        """构建排行榜数据列表
 
-        if ship_id not in ship_ids:
-            return False, JSONResponse.API_2018_ShipNotQualifiedForRanking
+        Args:
+            start_rank: 起始排名（1-based）
+            user_ids: 用户ID列表（按排名顺序）
+            users_data: 用户详情数据字典
 
-        ok, updated_at = JSONResponse.extract_data(
-            response=await RedisClient.get("leaderboard:update_time")
-        )
-        if not ok:
-            return False, updated_at
-
-        ok, ship_info = JSONResponse.extract_data(
-            response=await ShipModel.get_ship_info(ship_id)
-        )
-        if not ok:
-            return False, ship_info
-
-        constants = EnvConfig.get_constants()
-        if is_specify:
-            ranking_data = {
-                'page': 0,
-                'info': {
-                    'region': EnvConfig.REGION,
-                    'limit': constants.RANKING_BATTLES_LIMIT.get(
-                        str(ship_info['tier']),
-                        0
-                    ),
-                    'updated_at': updated_at
-                },
-                'ship': ship_info,
-                'rank': 0,
-                'datas': []
-            }
-        else:
-            ranking_data = {
-                'page': 0,
-                'info': {
-                    'region': EnvConfig.REGION,
-                    'limit': constants.RANKING_BATTLES_LIMIT.get(
-                        str(ship_info['tier']),
-                        0
-                    ),
-                    'updated_at': updated_at
-                },
-                'ship': ship_info,
-                'datas': []
-            }
-        return True, ranking_data
-
-    @staticmethod
-    async def _build_leaderboard(ship_id: int, user_ids: list[str], start_rank: int):
-        ok, users_data = JSONResponse.extract_data(
-            response=await PlayerModel.fetch_leaderboard_data(ship_id, user_ids)
-        )
-        if not ok:
-            return False, users_data
-
+        Returns:
+            排行榜数据列表，每个元素包含排名、用户信息、战绩数据等
+        """
         leaderboard = []
         for offset, user_id in enumerate(user_ids):
             user_detail = users_data.get(user_id, {})
-            if user_detail.get('clan_tag'):
+            
+            # 构建公会信息（如果有）
+            user_clan = None
+            if user_detail.get('clan_id'):
                 user_clan = {
+                    'id': user_detail.get('clan_id'),
                     'tag': user_detail.get('clan_tag', ''),
                     'league': user_detail.get('league', 0)
                 }
-            else:
-                user_clan = None
 
             leaderboard.append({
-                'rank': start_rank + offset,
+                'rank': start_rank + offset,  # 计算实际排名
+                'user_id': int(user_id),
                 'username': user_detail.get('username', ''),
                 'clan': user_clan,
                 'battles': user_detail.get('battles', 0),
@@ -110,99 +59,230 @@ class ShipRankingAPI:
                 }
             })
 
-        return True, leaderboard
+        return leaderboard
 
-    @ExceptionLogger.handle_program_exception_async
-    async def get_ship_ranking(ship_id: int, page: int = 1):
-        """获取指定船只排行榜指定页的数据，每页 50 条"""
+    @classmethod
+    async def _get_ship_ids(cls) -> tuple[Optional[Any], Optional[dict]]:
+        """获取所有参与排行的船只ID列表
 
-        ok, ranking_data = await ShipRankingAPI._get_ranking_base_data(ship_id, False)
-        if not ok:
-            return ranking_data
-
-        if page <= 0:
-            page = 1
-
-        # 查缓存
-        cache_key = f'leaderboard:cache:{ship_id}_{page}'
-        ok, cached_data = JSONResponse.extract_data(
-            response=await RedisClient.get(cache_key)
+        Returns:
+            (error, ship_ids): error为None时ship_ids有效，否则ship_ids为错误响应
+        """
+        error, ship_ids = JSONResponse.extract_data_strict(
+            response=await ShipModel.get_ranking_ship_ids()
         )
-        if ok and cached_data:
-            return JSONResponse.get_success_response(cached_data)
+        return error, ship_ids
 
-        # 缓存未命中，走数据库
+    @classmethod
+    async def _get_ship_info(cls, ship_id: int) -> tuple[Optional[Any], Optional[dict]]:
+        """获取船只详细信息
+
+        Args:
+            ship_id: 船只ID
+
+        Returns:
+            (error, ship_info): error为None时ship_info有效，否则ship_info为错误响应
+        """
+        error, ship_info = JSONResponse.extract_data_strict(
+            response=await ShipModel.get_ship_info(ship_id)
+        )
+        return error, ship_info
+
+    @classmethod
+    async def _get_updated_at(cls) -> tuple[Optional[Any], Optional[str]]:
+        """获取排行榜最后更新时间
+
+        Returns:
+            (error, updated_at): error为None时updated_at有效，否则updated_at为错误响应
+        """
+        error, updated_at = JSONResponse.extract_data_strict(
+            response=await RedisClient.get("leaderboard:ship_update_time")
+        )
+        return error, updated_at
+
+    @classmethod
+    @ExceptionLogger.handle_program_exception_async
+    async def get_ship_ranking(cls, ship_id: int, page_index: int = 1, page_size: int = 50) -> ResponseDict:
+        """获取指定船只排行榜的分页数据
+
+        Args:
+            ship_id: 船只ID
+            page_index: 页码，从1开始
+            page_size: 每页数量
+
+        Returns:
+            ResponseDict
+        """
+        # 1. 获取并验证符合条件的船只ID列表
+        error, ship_ids = await cls._get_ship_ids()
+        if error:
+            return ship_ids
+
+        # 船只不存在排行榜中，返回空数据
+        if ship_id not in ship_ids:
+            return JSONResponse.API_1000_Success
+
+        # 2. 获取缓存更新时间
+        error, updated_at = await cls._get_updated_at()
+        if error:
+            return updated_at
+
+        # 3. 获取船只详细信息
+        error, ship_info = await cls._get_ship_info(ship_id)
+        if error:
+            return ship_info
+
+        # 4. 计算分页起始和结束索引（Redis zrevrange使用0-based索引，包含stop）
         ship_ranking_key = f"leaderboard:ship:{ship_id}"
-        start = (page - 1) * ShipRankingAPI.PAGE_SIZE
-        stop = start + ShipRankingAPI.PAGE_SIZE - 1
+        start = (page_index - 1) * page_size
+        stop = start + page_size - 1  # Redis的zrevrange包含stop索引
 
-        ok, page_user_ids = JSONResponse.extract_data(
+        # 5. 获取排行榜总人数
+        error, total_users = JSONResponse.extract_data_strict(
+            response=await RedisClient.zget_total(ship_ranking_key)
+        )
+        if error:
+            return total_users
+        
+        # 起始索引超过总人数时的处理
+        if start >= total_users:
+            return JSONResponse.API_1000_Success
+
+        # 7. 获取当前页的用户ID列表
+        error, page_user_ids = JSONResponse.extract_data_strict(
             response=await RedisClient.zget_range(ship_ranking_key, start, stop)
         )
-        if not ok:
+        if error:
             return page_user_ids
 
         if not page_user_ids:
-            return JSONResponse.API_2019_NoRankingDataForShip
+            return JSONResponse.API_1000_Success
 
-        ok, leaderboard = await ShipRankingAPI._build_leaderboard(
-            ship_id,
-            page_user_ids,
-            start + 1
+        # 8. 批量获取用户详情数据
+        error, users_data = JSONResponse.extract_data_strict(
+            response=await PlayerModel.get_leaderboard_data(ship_id, page_user_ids)
         )
-        if not ok:
-            return leaderboard
+        if error:
+            return users_data
 
-        ranking_data['page'] = page
-        ranking_data['datas'] = leaderboard
+        # 9. 构建返回数据
+        total_pages = (total_users + page_size - 1) // page_size
+        data = {
+            'page': {
+                'index': page_index,
+                'size': page_size,
+                'total': total_pages
+            },
+            'info': {
+                'region': EnvConfig.REGION,
+                'limit': ship_ids.get(ship_id, 40),
+                'users': total_users,
+                'updated_at': updated_at
+            },
+            'ship': ship_info,
+            'datas': cls._build_leaderboard(
+                start + 1,
+                page_user_ids,
+                users_data
+            )
+        }
 
-        # 写缓存
-        await RedisClient.set(cache_key, ranking_data, ShipRankingAPI.CACHE_EXPIRE)
+        return JSONResponse.get_success_response(data)
 
-        return JSONResponse.get_success_response(ranking_data)
-
+    @classmethod
     @ExceptionLogger.handle_program_exception_async
-    async def get_ship_user_ranking(ship_id: int, account_id: int):
-        """获取指定用户在某个船只排行榜中的排名及所在页数据"""
+    async def get_ship_user_ranking(cls, ship_id: int, account_id: int, page_size: int = 50) -> ResponseDict:
+        """获取指定用户在船只排行榜中的排名及所在页数据
 
-        ok, ranking_data = await ShipRankingAPI._get_ranking_base_data(ship_id, True)
-        if not ok:
-            return ranking_data
+        Args:
+            ship_id: 船只ID
+            account_id: 用户账号ID
+            page_size: 每页数量
 
+        Returns:
+            ResponseDict
+        """
+        # 1. 获取并验证符合条件的船只ID列表
+        error, ship_ids = await cls._get_ship_ids()
+        if error:
+            return ship_ids
+
+        if ship_id not in ship_ids:
+            return JSONResponse.API_1000_Success
+
+        # 2. 获取用户排名
         ship_ranking_key = f"leaderboard:ship:{ship_id}"
-        ok, user_rank = JSONResponse.extract_data(
+        error, user_rank = JSONResponse.extract_data_strict(
             response=await RedisClient.zget_rank(ship_ranking_key, str(account_id))
         )
-        if not ok:
+        if error:
             return user_rank
 
+        # 用户不存在于排行榜中
         if user_rank is None:
-            return JSONResponse.API_2020_NoRankingDataForUser
+            return JSONResponse.API_1000_Success
 
-        rank = user_rank + 1
-        page = (user_rank // ShipRankingAPI.PAGE_SIZE) + 1
-        start = (page - 1) * ShipRankingAPI.PAGE_SIZE
-        stop = start + ShipRankingAPI.PAGE_SIZE - 1
+        # 3. 获取排行榜总人数
+        error, total_users = JSONResponse.extract_data_strict(
+            response=await RedisClient.zget_total(ship_ranking_key)
+        )
+        if error:
+            return total_users
 
-        ok, page_user_ids = JSONResponse.extract_data(
+        # 4. 计算用户所在页码及该页的起止索引
+        rank = int(user_rank) + 1
+        page_index = (user_rank // page_size) + 1
+        start = (page_index - 1) * page_size
+        stop = start + page_size - 1
+
+        # 5. 获取所在页的用户ID列表
+        error, page_user_ids = JSONResponse.extract_data_strict(
             response=await RedisClient.zget_range(ship_ranking_key, start, stop)
         )
-        if not ok:
+        if error:
             return page_user_ids
 
         if not page_user_ids:
-            return JSONResponse.API_2019_NoRankingDataForShip
-
-        ok, leaderboard = await ShipRankingAPI._build_leaderboard(
-            ship_id,
-            page_user_ids,
-            start + 1
-        )
-        if not ok:
-            return leaderboard
-
-        ranking_data['rank'] = rank
-        ranking_data['page'] = page
-        ranking_data['datas'] = leaderboard
+            return JSONResponse.API_1000_Success
         
-        return JSONResponse.get_success_response(ranking_data)
+        # 6. 获取缓存更新时间
+        error, updated_at = await cls._get_updated_at()
+        if error:
+            return updated_at
+
+        # 7. 获取船只详细信息
+        error, ship_info = await cls._get_ship_info(ship_id)
+        if error:
+            return ship_info
+
+        # 8. 获取用户详情数据
+        error, users_data = JSONResponse.extract_data_strict(
+            response=await PlayerModel.get_leaderboard_data(ship_id, page_user_ids)
+        )
+        if error:
+            return users_data
+
+        # 8. 构建返回数据
+        total_pages = (total_users + page_size - 1) // page_size
+        data = {
+            'page': {
+                'index': page_index,
+                'size': page_size,
+                'total': total_pages
+            },
+            'info': {
+                'region': EnvConfig.REGION,
+                'limit': ship_ids.get(ship_id, 40),
+                'users': total_users,
+                'rank': rank,
+                'updated_at': updated_at
+            },
+            'ship': ship_info,
+            'datas': cls._build_leaderboard(
+                start + 1,
+                page_user_ids,
+                users_data
+            )
+        }
+
+        return JSONResponse.get_success_response(data)

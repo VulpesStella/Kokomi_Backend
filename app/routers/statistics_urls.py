@@ -8,12 +8,12 @@ from app.utils import GameUtils
 router = APIRouter()
 
 
-@router.patch("/accounts/{account_id}/", summary="刷新用户基本信息的缓存")
-async def getUserBasic(account_id: int = Path(...)):
-    if GameUtils.check_uid(account_id) == False:
-        return JSONResponse.API_2001_IllegalAccountID
-    result = await StatsAPI.refresh_user_cache(account_id)
-    return result
+# @router.patch("/accounts/{account_id}/", summary="刷新用户基本信息的缓存")
+# async def getUserBasic(account_id: int = Path(...)):
+#     if GameUtils.check_uid(account_id) == False:
+#         return JSONResponse.API_2001_IllegalAccountID
+#     result = await StatsAPI.refresh_user_cache(account_id)
+#     return result
 
 # @router.post("/leaderboard/{ship_id}/top50/", summary="获取船只排行榜的前50名玩家")
 # async def getUserBasic(ship_id: int = Path(...)):

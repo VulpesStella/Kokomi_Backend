@@ -40,9 +40,9 @@ class MySQLManager:
             await asyncio.sleep(1)
             cls._pool.close()
             await asyncio.wait_for(cls._pool.wait_closed(), timeout=timeout)
-            api_logger.info("MySQL pool closed")
+            api_logger.info("MySQL connection pool closed")
         except (asyncio.TimeoutError, Exception) as e:
-            api_logger.warning(f"Graceful close failed ({e}), forcing...")
+            api_logger.warning(f"MySQL connection pool close failed, forcing...")
             cls._force_close_all()
         finally:
             cls._pool = None
@@ -85,20 +85,17 @@ class MySQLManager:
         api_logger.info("All connections force-aborted")
 
     @classmethod
-    async def _acquire_healthy_conn(cls, max_retries=2) -> Connection:
-        """获取健康连接，自动丢弃死连接"""
+    async def _acquire_healthy_conn(cls) -> Connection:
+        """获取健康连接，失败直接抛出异常"""
         if cls._pool is None:
             raise RuntimeError("Pool not initialized")
-        for attempt in range(max_retries):
-            conn: Connection = await cls._pool.acquire()
-            try:
-                await asyncio.wait_for(conn.ping(), timeout=2.0)
-                return conn
-            except Exception:
-                api_logger.warning(f"Dead connection discarded (attempt {attempt+1})")
-                await cls._discard_conn(conn)
-                if attempt == max_retries - 1:
-                    raise Exception("No healthy connection available")
+        conn = await cls._pool.acquire()
+        try:
+            await asyncio.wait_for(conn.ping(), timeout=2.0)
+            return conn
+        except Exception:
+            await cls._release_conn_only(conn)
+            raise RuntimeError("Acquire healthy connection Failed")
 
     @classmethod
     async def _discard_conn(cls, conn: Connection) -> None:
@@ -118,8 +115,8 @@ class MySQLManager:
         try:
             if cls._pool:
                 await cls._pool.release(conn)
-        except Exception as e:
-            api_logger.warning(f"MySQL connection release failed, discarding: {e}")
+        except Exception:
+            api_logger.warning(f"MySQL connection release failed, discarding")
             await cls._discard_conn(conn)
 
     @classmethod
@@ -146,8 +143,8 @@ class MySQLManager:
                 await conn.rollback()
             except Exception:
                 pass
-            await cls._discard_conn(conn)
-            # api_logger.warning("Auto transaction rolled back due to exception, connection discarded!")
+            await cls._release_conn_only(conn)
+            api_logger.warning("Auto transaction rolled back due to exception")
             raise
         else:
             await conn.commit()
@@ -203,7 +200,7 @@ class MySQLManager:
             except Exception:
                 pass
             await cls._discard_conn(conn)
-            # api_logger.warning("Manual transaction rolled back due to exception, connection discarded!")
+            api_logger.warning("Manual transaction rolled back due to exception")
             raise
         else:
             # 正常退出 → 检测事务状态

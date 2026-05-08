@@ -16,19 +16,7 @@ from .processing import (
 )
 
 class StatsAPI:
-    @ExceptionLogger.handle_program_exception_async
-    async def refresh_user_cache(account_id: int):
-        redis_key = f"token:ac:{account_id}"
-        result = await RedisClient.get(redis_key)
-        if result['code'] != 1000:
-            return result
-        if result['data']:
-            ac = result['data']
-        else:
-            ac = None
-        result = await ExternalAPI.get_user_header(account_id, ac)
-        return result
-    
+    ...
     # @staticmethod
     # @ExceptionLogger.handle_program_exception_async
     # async def get_user_pvp(

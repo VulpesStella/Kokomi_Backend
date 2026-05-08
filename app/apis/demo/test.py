@@ -1,9 +1,10 @@
 import shutil
 
 from app.core import EnvConfig
+from app.constants import ClanColor
 from app.loggers import ExceptionLogger
-from app.network import ExternalAPI
-from app.response import JSONResponse
+from app.network import DemoExternalAPI
+from app.response import JSONResponse, ResponseDict
 from app.models import RecentModel
 from app.middlewares import RedisClient
 
@@ -15,34 +16,133 @@ RECENT_LEVEL_PLUS = 2
 class TestAPI:
     @ExceptionLogger.handle_program_exception_async
     async def test_error_log():
+        """测试错误日志记录功能"""
         raise NotImplementedError
     
     @ExceptionLogger.handle_program_exception_async
-    async def get_user_basic(account_id: int):
-        # 获取用户的基本数据
+    async def get_user_basic(account_id: int) -> ResponseDict:
+        """获取用户基本信息
+
+        Args:
+            account_id: 用户 ID
+
+        Returns:
+            ResponseDict: 统一格式的响应对象
+        """
+        # 从 Redis 中获取用户的 access_token
         redis_key = f"token:ac:{account_id}"
-        result = await RedisClient.get(redis_key)
-        if result['code'] != 1000:
+        response = await RedisClient.get_token(redis_key)
+        error, access_token = JSONResponse.extract_data_strict(response)
+        if error:
+            return access_token
+        
+        # 请求 API 获取用户基本信息
+        response = await DemoExternalAPI.get_user_basic(account_id, access_token)
+        error, result = JSONResponse.extract_data_strict(response)
+        if error:
             return result
-        ac = result['data']
-        return await ExternalAPI.test_get_user_basic(account_id, ac)
+        
+        # 检查用户是否存在
+        if result is None:
+            return JSONResponse.API_2011_UserNotExist
+        
+        # 提取当前用户的详细信息
+        user_info = result.get(str(account_id)) if result else None
+        
+        # 检查用户是否隐藏了个人资料
+        if 'hidden_profile' in user_info:
+            return JSONResponse.API_2015_UserHiddenProfile
+        
+        # 验证用户数据和统计信息是否存在
+        if user_info is None or 'statistics' not in user_info:
+            return JSONResponse.API_2011_UserNotExist
+        
+        # 验证统计数据中是否包含基本信息
+        if 'basic' not in user_info['statistics']:
+            return JSONResponse.API_2013_UserDataIsNone
+        
+        statistics = user_info['statistics']
+        basic_data = statistics.get('basic', {})
+        leveling_points = basic_data.get('leveling_points', 0)
+
+        # 处理时间戳字段
+        register_time = int(user_info.get('created_at', 0))
+        last_battle_time = basic_data.get('last_battle_time', 0)
+        
+        # 构建返回数据
+        data = {
+            'region': EnvConfig.REGION,
+            'user_id': account_id,
+            'username': user_info['name'],
+            'total_battles': leveling_points,
+            'pve_battles': statistics.get('pve', {}).get('battles_count', 0),
+            'pvp_battles': statistics.get('pvp', {}).get('battles_count', 0),
+            'ranked_battles': statistics.get('rank_solo', {}).get('battles_count', 0),
+            'rating_battles': 0,
+            'karma': basic_data.get('karma', 0),
+            'register_time': register_time if register_time not in (0, None) else None,
+            'last_battle_at': last_battle_time if last_battle_time not in (0, None) else None,
+            'insignias': user_info.get('dog_tag')
+        }
+
+        # RU 区域特殊处理：统计 rating 模式战斗场次
+        if EnvConfig.REGION == 'ru':
+            rating_count = 0
+            rating_count += statistics.get('rating_solo', {}).get('battles_count', 0)
+            rating_count += statistics.get('rating_div', {}).get('battles_count', 0)
+            data['rating_battles'] = rating_count
+        
+        return JSONResponse.get_success_response(data)
     
     @ExceptionLogger.handle_program_exception_async
     async def get_user_clan(account_id: int):
-        # 获取用户的工会数据
-        return await ExternalAPI.test_get_user_clan(account_id)
+        response = await DemoExternalAPI.get_user_clan(account_id)
+        error, result = JSONResponse.extract_data_strict(response)
+        if error:
+            return result
+        
+        # 构建返回数据
+        data = {
+            'region': EnvConfig.REGION,
+            'user_id': account_id,
+            'clan_id': None
+        }
+        if result and result['clan_id'] != None:
+            data['clan_id'] = result['clan_id']
+            data['clan_tag'] = result['clan']['tag']
+            data['league'] = ClanColor.CLAN_COLOR_INDEX.get(result['clan']['color'], 5)
+        
+        return JSONResponse.get_success_response(data)
 
     @ExceptionLogger.handle_program_exception_async
-    async def get_user_header(account_id: int):
-        redis_key = f"token:ac:{account_id}"
-        result = await RedisClient.get(redis_key)
-        if result['code'] != 1000:
+    async def get_clan_basic(clan_id: int):
+        response = await DemoExternalAPI.get_clan_basic(clan_id)
+        error, result = JSONResponse.extract_data_strict(response)
+        if error:
             return result
-        ac = result['data']
-        result = await ExternalAPI.get_user_header(account_id, ac)
-        if result['code'] != 1000:
-            return result
-        return JSONResponse.get_success_response(result)
+        
+        # 检查用户是否存在
+        if result is None:
+            return JSONResponse.API_2012_ClanNotExist
+
+        clanview = result.get('clanview', {})
+        clan_info = clanview.get('clan', {})
+
+        if clan_info.get('tag') is None or clan_info.get('members_count', 0) == 0:
+            return JSONResponse.API_2014_ClanDataIsNone
+
+        # 构建返回数据
+        data = {
+            'region': EnvConfig.REGION,
+            'clan_id': clan_id,
+            'tag': clan_info.get('tag'),
+            'name': clan_info.get('name'),
+            'league': ClanColor.CLAN_COLOR_INDEX_2.get(clan_info.get('color', '#'), 5),
+            'members': clan_info.get('members_count', 0),
+            'max_members': clan_info.get('max_members_count', 0)
+        }
+
+        return JSONResponse.get_success_response(data)
     
     @ExceptionLogger.handle_program_exception_async
     async def set_recent(account_id: int, level: str):

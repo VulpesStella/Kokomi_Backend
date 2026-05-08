@@ -151,6 +151,7 @@ def _build_insert_data(
             rating_diff = new_data['public_rating'] - old_data['public_rating']
         else:
             rating_diff = new_data['public_rating']
+            
         if rating_diff > 0:
             temp_list.append(f'+{rating_diff}')
         elif rating_diff < 0:
@@ -235,12 +236,17 @@ def update_clan_season(
             clan_result['last_battle_time'],
         )
 
+        # 计算胜率
+        battles = clan_result.get('battles_count', 0)
+        wins = clan_result.get('wins_count', 0)
+        win_rate = round((wins / battles) * 100, 2) if battles > 0 else 0.0
+
         # 准备更新参数
         update_params = [
             season_id,
             clan_result['leading_team_number'],
-            clan_result['battles_count'],
-            clan_result['wins_count'],
+            battles,
+            win_rate,
             clan_result['public_rating'],
             clan_result['league'],
             clan_result['division'],

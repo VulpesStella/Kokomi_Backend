@@ -5,15 +5,19 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Tuple
 
 from app.middlewares import RedisClient
+from app.loggers import ExceptionLogger
 
 
 class ServiceMetrics:
+    @ExceptionLogger.handle_cache_exception_async
     async def requests_incr(key: str, date: str):
         await RedisClient.incr(f"metrics:{key}:{date}")
 
+    @ExceptionLogger.handle_cache_exception_async
     async def http_incrby(date: str, amount: int):
         await RedisClient.incrby(f"metrics:http_total:{date}", amount)
 
+    @ExceptionLogger.handle_cache_exception_async
     async def http_error_incrby(date: str, amount: int):
         await RedisClient.incrby(f"metrics:http_error:{date}", amount)
 

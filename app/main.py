@@ -16,6 +16,7 @@ from app.utils import TimeUtils
 from app.loggers import CSVWriter, log_queue
 from app.database import MySQLManager
 from app.health import HealthManager, ServiceMetrics
+from app.network import HttpClient
 from app.middlewares import (
     RedisConnection,
     SecurityManager
@@ -82,6 +83,8 @@ async def lifespan(app: FastAPI):
     # 启动API日志写入线程
     writer_thread = threading.Thread(target=csv_writer_thread, daemon=True)
     writer_thread.start()
+    # 初始化http客户端
+    HttpClient.init_client()
     # 初始化mysql并测试mysql连接
     await MySQLManager.init_pool()
     await MySQLManager.test_connection()
@@ -92,6 +95,7 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        await HttpClient.close_client()
         await MySQLManager.close_pool()
         await RedisConnection.close_redis()
         # 发送退出信号，等待剩下数据写入并退出线程
@@ -195,12 +199,12 @@ app.include_router(
     dependencies=[Security(SecurityManager.require_user)]
 )
 
-app.include_router(
-    statistics_router,
-    prefix="/api/stats",
-    tags=['Statistics Interface'],
-    dependencies=[Security(SecurityManager.require_user)]
-)
+# app.include_router(
+#     statistics_router,
+#     prefix="/api/stats",
+#     tags=['Statistics Interface'],
+#     dependencies=[Security(SecurityManager.require_user)]
+# )
 
 app.include_router(
     ranking_router,

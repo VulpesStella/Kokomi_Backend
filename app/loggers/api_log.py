@@ -4,7 +4,7 @@ import queue
 from app.core import EnvConfig
 
 
-log_queue = queue.Queue(maxsize=1000)
+log_queue = queue.Queue(maxsize=10000)
 
 HEADER = [
     "timestamp",   # 时间戳

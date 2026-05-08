@@ -39,6 +39,7 @@ from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
 from updater import UserCacheUpdater
+from utils import get_current_timestamp
 from db_ops import (
     get_update_ids,
     read_ship_data,
@@ -174,6 +175,8 @@ async def main():
                 redis_client=redis_client,
                 async_client=async_client
             )
+
+            redis_client.set(f'leaderboard:ship_update_time', get_current_timestamp())
 
         except Exception:
             logger.error(traceback.format_exc())

@@ -104,14 +104,14 @@ def update_clan_cache(
                 UPDATE T_clan_stats
                 SET
                     season = %s,
-                    leading_team_number = %s,
-                    battles_count = %s,
-                    wins_count = %s,
+                    leading_team = %s,
+                    battles = %s,
+                    win_rate = %s,
                     public_rating = %s,
                     league = %s,
                     division = %s,
                     division_rating = %s,
-                    longest_winning_streak = %s,
+                    max_streak = %s,
                     stage_type = %s,
                     stage_battles = %s,
                     stage_victories = %s,
@@ -133,14 +133,16 @@ def update_clan_cache(
                         division_rating, public_rating, stage_type, stage_progress
                     ) VALUES (
                         FROM_UNIXTIME(%s),%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s
-                    )
+                    );
                 """
                 cursor.executemany(insert_sql, insert_data_list)
-                battles_result = 'Victory' if insert_data_list[3] else 'Defeat'
-                logger.debug(
-                    f"Insert a battle record: {insert_data_list[0]} {insert_data_list[1]} "
-                    f"{battles_result} {insert_data_list[4]}{insert_data_list[5]}"
-                )
+                # for insert_data in insert_data_list:
+                #     battles_result = 'Victory' if insert_data[3] else 'Defeat'
+                #     logger.debug(
+                #         f"Insert a battle record: {insert_data[0]} {insert_data[1]} "
+                #         f"{battles_result} {insert_data[4] if insert_data[4] else ''}"
+                #         f"{insert_data[5] if insert_data[5] else ''}"
+                #     )
 
             conn.commit()
     except Exception:

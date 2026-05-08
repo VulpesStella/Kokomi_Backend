@@ -97,7 +97,8 @@ def fetch_clan_leagues(
                 temp_data['id'],
                 temp_data['tag'],
                 league,
-                formtime_to_timestamp(temp_data['last_battle_at'])
+                formtime_to_timestamp(temp_data['last_battle_at']),
+                temp_data['season_number']
             ])
         
         return clan_data_list

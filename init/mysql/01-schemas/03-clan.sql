@@ -23,14 +23,14 @@ CREATE TABLE IF NOT EXISTS T_clan_stats (
 
     clan_id          BIGINT       NOT NULL,        -- 10位的非连续数字
     season           TINYINT      DEFAULT 0,       -- 赛季 ID
-    leading_team_number TINYINT   DEFAULT NULL,    -- 主力队伍编号
-    battles_count    INT          DEFAULT 0,       -- 战斗总数
-    wins_count       INT          DEFAULT 0,       -- 胜场数
+    leading_team     TINYINT      DEFAULT NULL,    -- 主力队伍编号
+    battles          INT          DEFAULT 0,       -- 战斗总数
+    win_rate         FLOAT        DEFAULT 0,       -- 胜率
     public_rating    INT          DEFAULT 1100,    -- 公开评分
     league           TINYINT      DEFAULT 4,       -- 段位 0紫金 1白金 2黄金 3白银 4青铜
     division         TINYINT      DEFAULT 2,       -- 分段 1/2/3
     division_rating  INT          DEFAULT 0,       -- 分段评分
-    longest_winning_streak INT    DEFAULT 0,       -- 最长连胜
+    max_streak       INT          DEFAULT 0,       -- 最长连胜
     stage_type       TINYINT      DEFAULT NULL,    -- 晋级赛类型
     stage_battles    TINYINT      DEFAULT 0,       -- 晋级赛场次
     stage_victories  TINYINT      DEFAULT 0,       -- 晋级赛胜场

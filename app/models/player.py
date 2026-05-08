@@ -14,7 +14,8 @@ class PlayerModel:
         '''
         async with MySQLManager.read_only_cursor() as cur:
             data = {
-                'account_id': account_id,
+                'region': EnvConfig.REGION,
+                'user_id': account_id,
                 'username': None,
                 'is_enabled': False,
                 'is_public': False
@@ -29,13 +30,14 @@ class PlayerModel:
             await cur.execute(sql, [account_id])
             row = await cur.fetchone()
             if not row:
-                return JSONResponse.get_success_response({'account_id': account_id})
+                return JSONResponse.API_2016_UserNotInDB
             data['username'] = row[0]
             # 读user_stats库
             sql = """
                 SELECT
                     is_enabled,
-                    is_public
+                    is_public,
+                    activity_level
                 FROM T_user_stats
                 WHERE account_id = %s;
             """
@@ -46,15 +48,7 @@ class PlayerModel:
                 data['is_public'] = row[1]
             if not data['is_enabled'] or not data['is_public']:
                 return JSONResponse.get_success_response(data)
-            sql = """
-                SELECT 
-                    UNIX_TIMESTAMP(next_update_time) 
-                FROM V_user_update_schedule 
-                WHERE account_id = %s;
-            """
-            await cur.execute(sql, [account_id])
-            row = await cur.fetchone()
-            data['next_update'] = TimeUtils.calu_time_diff(row[0])
+            data['activity_level'] = row[2]
             # 读user_config库
             sql = """
                 SELECT
@@ -262,13 +256,14 @@ class PlayerModel:
             return JSONResponse.API_1000_Success
 
     @ExceptionLogger.handle_database_exception_async
-    async def fetch_leaderboard_data(ship_id: int, account_ids: list[str]):
+    async def get_leaderboard_data(ship_id: int, account_ids: list[str]):
         """根据用户ID列表，从数据库中批量读取排行榜数据"""
         async with MySQLManager.read_only_cursor() as cur:
             placeholders = ','.join(['%s'] * len(account_ids))
             sql = f"""
                 SELECT 
                     s.account_id,
+                    u.clan_id,
                     u.clan_tag,
                     u.league,
                     u.username,
@@ -326,24 +321,25 @@ class PlayerModel:
             for row in rows:
                 account_id = str(row[0])
                 result[account_id] = {
-                    'clan_tag': row[1],
-                    'league': row[2],
-                    'username': row[3],
-                    'battles': row[4],
-                    'rating': row[5],
-                    'rating_level': row[6],
-                    'win_rate': row[7],
-                    'win_rate_level': row[8],
-                    'solo_rate': row[9],
-                    'solo_rate_level': row[10],
-                    'avg_damage': row[11],
-                    'avg_damage_level': row[12],
-                    'avg_frags': row[13],
-                    'avg_frags_level': row[14],
-                    'avg_exp': row[15],
-                    'hit_ratio': row[16],
-                    'max_exp': row[17],
-                    'max_damage': row[18]
+                    'clan_id': row[1],
+                    'clan_tag': row[2],
+                    'league': row[3],
+                    'username': row[4],
+                    'battles': row[5],
+                    'rating': row[6],
+                    'rating_level': row[7],
+                    'win_rate': row[8],
+                    'win_rate_level': row[9],
+                    'solo_rate': row[10],
+                    'solo_rate_level': row[11],
+                    'avg_damage': row[12],
+                    'avg_damage_level': row[13],
+                    'avg_frags': row[14],
+                    'avg_frags_level': row[15],
+                    'avg_exp': row[16],
+                    'hit_ratio': row[17],
+                    'max_exp': row[18],
+                    'max_damage': row[19]
                 }
             
             return JSONResponse.get_success_response(result)

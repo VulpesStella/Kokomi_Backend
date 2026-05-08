@@ -41,6 +41,15 @@ async def getUserAPI(
     result = await TestAPI.get_user_basic(user_id)
     return result
 
+@router.get("/clan/{clan_id}/basic/", summary="获取工会游戏接口中的基本信息，仅读取数据")
+async def getUserAPI(
+    clan_id: int = Path(..., description="游戏工会UID")
+):
+    if not GameUtils.check_uid(clan_id):
+        return JSONResponse.API_2002_IllegalClanID
+    result = await TestAPI.get_clan_basic(clan_id)
+    return result
+
 @router.get("/user/{user_id}/clan/", summary="获取用户游戏接口中的工会信息，仅读取数据")
 async def getUserAPI(
     user_id: int = Path(..., description="游戏玩家UID")
@@ -48,15 +57,6 @@ async def getUserAPI(
     if not GameUtils.check_uid(user_id):
         return JSONResponse.API_2001_IllegalAccountID
     result = await TestAPI.get_user_clan(user_id)
-    return result
-
-@router.get("/user/{user_id}/header/", summary="获取用户游戏接口中的基本和工会信息，读取数据并更新数据库")
-async def getUserAPI(
-    user_id: int = Path(..., description="游戏玩家UID")
-):
-    if not GameUtils.check_uid(user_id):
-        return JSONResponse.API_2001_IllegalAccountID
-    result = await TestAPI.get_user_header(user_id)
     return result
 
 @router.patch("/user/{user_id}/features/", summary="启用记录玩家近期数据的功能")

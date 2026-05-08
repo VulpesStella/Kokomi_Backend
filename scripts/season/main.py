@@ -126,6 +126,20 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
                 division=division
             )
             if type(league_data) == list:
+                if not league_data:
+                    success_count += 1
+                    continue 
+
+                latest_season_id = league_data[0][4]
+                # 赛季变化处理
+                if latest_season_id != season_id:
+                    if total_list:
+                        logger.warning('Clan battle season changed')
+                        return
+                    # 首次遇到新赛季，更新season_id
+                    season_id = latest_season_id
+                    logger.info(f"Latest Season ID: {season_id}")
+
                 success_count += 1
                 league_count[league] += len(league_data)
                 total_list.extend(league_data)

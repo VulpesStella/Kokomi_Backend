@@ -94,6 +94,13 @@ class RedisClient:
     
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
+    async def get_token(key: str) -> dict:
+        conn = RedisConnection.acquire_conn()
+        data = await conn.get(key)
+        return JSONResponse.get_success_response(data)
+    
+    @staticmethod
+    @ExceptionLogger.handle_cache_exception_async
     async def get_by_pipe(keys: list) -> dict:
         """用于统计api相关指标"""
         conn = RedisConnection.acquire_conn()
@@ -159,6 +166,15 @@ class RedisClient:
         conn = RedisConnection.acquire_conn()
         data = await conn.zrevrange(key, start, stop)
         return JSONResponse.get_success_response(data)
+    
+    @staticmethod
+    @ExceptionLogger.handle_cache_exception_async
+    async def zget_total(key: str):
+        """获取有序集合中的成员总数"""
+        conn = RedisConnection.acquire_conn()
+        data = await conn.zcard(key)
+        count = int(data) if data else 0
+        return JSONResponse.get_success_response(count)
 
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async

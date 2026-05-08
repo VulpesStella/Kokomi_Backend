@@ -1,14 +1,15 @@
 import random
 import asyncio
+from typing import Optional, Union, Any
 
 from app.loggers import ExceptionLogger
 from app.utils import GameUtils, TimeUtils
 from app.constants import ClanColor
 from app.models import PlayerModel
 from app.health import ServiceMetrics
-from app.core import EnvConfig
+from app.core import EnvConfig, api_logger
 from app.schemas import UserBasicData, ClanBasicData
-from app.response import JSONResponse
+from app.response import JSONResponse, ResponseDict
 
 from .client import HttpClient
 from .processing import (
@@ -20,623 +21,349 @@ from .processing import (
 )
 
 
-def varify_responses(responses: list | dict):
-    error = 0
-    error_return = None
-    if type(responses) == list:
-        for response in responses:
-            if response['code'] != 1000:
-                error += 1
-                error_return = response
-    else:
-        if responses['code'] != 1000:
-            error = 1
-    if error == 0:
-        return None, None
-    else:
-        return error, error_return
 
-class ExternalAPI:
-    '''
-    对外部的接口
-    '''
+async def record_http_metrics(
+    responses: list[ResponseDict],
+    urls: list[str]
+) -> Union[tuple[True, ResponseDict], tuple[False, list[Any]]]:
+    """记录 HTTP 请求指标到 Redis
+    
+    如果有多个Error则返回最后一个Error的信息
+
+    Args:
+        responses: fetch_data 返回结果列表
+
+    Returns:
+        错误字符串，全部成功则返回 None
+    """
+    results = []
+    error_count = 0
+    error = None
+
+    for i, response in enumerate(responses):
+        error, result = JSONResponse.extract_data_strict(response)
+        if error:
+            api_logger.warning(f"{result['message']} {urls[i]}")
+            error_count += 1
+            error = result
+        else:
+            results.append(result)
+
+    if error_count:
+        today = TimeUtils.now_iso()[:10]
+        await ServiceMetrics.http_error_incrby(today, error_count)
+        return True, error
+    else:
+        return False, results
+
+class DemoExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
-    async def get_user_search(nickname: str, limit: int = 10):
+    async def get_user_basic(account_id: int, user_token: Optional[str]) -> ResponseDict:
+        """请求获取用户的基本数据
+
+        通过 Vortex API 获取指定账户的基本信息，包括用户名、统计数据、注册时间等
+
+        Args:
+            account_id: 用户 ID
+            user_token: 用户的访问令牌
+
+        Returns:
+            ResponseDict: 统一格式的响应对象
+        """
+        # 获取配置的端点列表
+        endpoints = EnvConfig.get_endpoints()
+        base_url = random.choice(endpoints.VORTEX_API)
+
+        # 调用 HTTP 客户端获取用户数据
+        url = f'{base_url}/api/accounts/{account_id}/' + (f'?ac={user_token}' if user_token else '')
+        response = await HttpClient.get_user_data(url)
+
+        error, results = await record_http_metrics([response], [url])
+        if error:
+            return results
+        
+        return JSONResponse.get_success_response(results[0])
+    
+    @staticmethod
+    @ExceptionLogger.handle_program_exception_async
+    async def get_user_clan(account_id: int) -> ResponseDict:
+        # 获取配置的端点列表
+        endpoints = EnvConfig.get_endpoints()
+        base_url = random.choice(endpoints.VORTEX_API)
+        
+        # 调用 HTTP 客户端获取用户所在工会数据
+        url = f'{base_url}/api/accounts/{account_id}/clans/'
+        response = await HttpClient.get_user_data(url)
+
+        error, results = await record_http_metrics([response], [url])
+        if error:
+            return results
+        
+        return JSONResponse.get_success_response(results[0])
+    
+    @staticmethod
+    @ExceptionLogger.handle_program_exception_async
+    async def get_clan_basic(clan_id: int) -> ResponseDict:
+        # 获取配置的端点列表
+        endpoints = EnvConfig.get_endpoints()
+        base_url = endpoints.CLAN_API
+
+        # 调用 HTTP 客户端获取用户数据
+        url = f'{base_url}/api/clanbase/{clan_id}/claninfo/'
+        response = await HttpClient.get_clan_data(url)
+
+        error, results = await record_http_metrics([response], [url])
+        if error:
+            return results
+        
+        return JSONResponse.get_success_response(results[0])
+       
+
+class ExternalAPI:
+    @staticmethod
+    @ExceptionLogger.handle_program_exception_async
+    async def get_user_search(nickname: str):
         '''获取用户名称搜索结构
 
         通过输入的用户名称搜索用户账号
 
         参数：
             nickname: 用户名称
-            limit: 限制返回结果数量(1-10)，为1表示精准匹配结果
         
         返回：
             结果列表
         '''
-        if limit < 1:
-            limit = 1
-        if limit > 10:
-            limit = 10
-        nickname = nickname.lower()
-        base_url = random.choice(EnvConfig.endpoints.VORTEX_API)
-        url = f'{base_url}/api/accounts/search/{nickname.lower()}/?limit={limit}'
-        result = await HttpClient.get_user_search(url)
-        now_time = TimeUtils.now_iso()
-        await ServiceMetrics.http_incrby(now_time[:10], 1)
-        error_count, error_return = varify_responses(result)
-        if error_count != None:
-            await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
-            return error_return
-        search_data = []
-        if limit == 1:
-            for temp_data in result.get('data',None):
-                if nickname == temp_data['name'].lower():
-                    search_data.append({
-                        'region': EnvConfig.REGION,
-                        'account_id':temp_data['spa_id'],
-                        'name':temp_data['name']
-                    })
-                    break
-        else:
-            for temp_data in result.get('data',None):
-                if len(search_data) > limit:
-                    break
-                search_data.append({
-                    'region': EnvConfig.REGION,
-                    'account_id':temp_data['spa_id'],
-                    'name':temp_data['name']
-                })
-        return JSONResponse.get_success_response(search_data)
+        endpoints = EnvConfig.get_endpoints()
+        base_url = random.choice(endpoints.VORTEX_API)
+        
+        url = f'{base_url}/api/accounts/search/{nickname.lower()}/'
+        response = await HttpClient.get_user_data(url)
+
+        error, results = await record_http_metrics([response], [url])
+        if error:
+            return results
+        
+        return JSONResponse.get_success_response(results[0])
     
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
-    async def get_clan_search(tag: str, limit: int = 10):
+    async def get_clan_search(tag: str):
         '''
         通过输入的工会名称搜索工会账号
 
         参数：
             tga: 工会名称
-            limit: 限制返回结果数量(1-10)，为1表示精准匹配结果
         
         返回：
             结果列表
         '''
-        if limit < 1:
-            limit = 1
-        if limit > 10:
-            limit = 10
-        tag = tag.lower()
-        base_url = EnvConfig.endpoints.CLAN_API
-        url = f'{base_url}/api/search/autocomplete/?search={tag}&type=clans'
-        result = await HttpClient.get_clan_search(url)
-        now_time = TimeUtils.now_iso()
-        await ServiceMetrics.http_incrby(now_time[:10], 1)
-        error_count, error_return = varify_responses(result)
-        if error_count != None:
-            await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
-            return error_return
-        search_data = []
-        if limit == 1:
-            # 精准匹配工会名称
-            for temp_data in result.get('data',None):
-                if tag == temp_data['tag'].lower():
-                    search_data.append({
-                        'region': EnvConfig.REGION,
-                        'clan_id':temp_data['id'],
-                        'tag':temp_data['tag']
-                    })
-                    break
-        else:
-            # 提取前10个结果
-            for temp_data in result.get('data',None):
-                if len(search_data) > limit:
-                    break
-                if tag in temp_data['tag'].lower():
-                    search_data.append({
-                        'region': EnvConfig.REGION,
-                        'clan_id':temp_data['id'],
-                        'tag':temp_data['tag']
-                    })
-        return JSONResponse.get_success_response(search_data)
+        endpoints = EnvConfig.get_endpoints()
+        base_url = endpoints.CLAN_API
+
+        url = f'{base_url}/api/search/autocomplete/?search={tag.lower()}&type=clans'
+        response = await HttpClient.get_clan_data(url)
+
+        error, results = await record_http_metrics([response], [url])
+        if error:
+            return results
+        
+        return JSONResponse.get_success_response(results[0].get('search_autocomplete_result', []))
 
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
-    async def varify_ac(account_id: int, ac: str = None):
-        """检测传入的用户ac是否有效"""
-        base_url = random.choice(EnvConfig.endpoints.VORTEX_API)
-        url = f'{base_url}/api/accounts/{account_id}/'
-        response = await HttpClient.get_user_data(url)
-        now_time = TimeUtils.now_iso()
-        await ServiceMetrics.http_incrby(now_time[:10], 1)
-        error_count, error_return = varify_responses(response)
-        if error_count != None:
-            await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
-            return error_return
-        if response['data']:
-            user_basic = response['data'][str(account_id)]
-        if user_basic == None:
-            return JSONResponse.API_2011_UserNotExist
-        if 'hidden_profile' not in user_basic:
-            return JSONResponse.get_success_response(False)
-        url = f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else '')
-        response = await HttpClient.get_user_data(url)
-        await ServiceMetrics.http_incrby(now_time[:10], 1)
-        error_count, error_return = varify_responses(response)
-        if error_count != None:
-            await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
-            return error_return
-        # 刷新数据库数据
-        if response['data']:
-            user_basic = response['data'][str(account_id)]
-        if 'hidden_profile' in user_basic:
-            refresh_user_data = UserBasicData(
-                account_id=account_id, 
-                username=user_basic['name'],
-                is_enabled=1,
-                is_public=0
-            )
-            result = await PlayerModel.refresh_base(refresh_user_data, None)
-            if result['code'] != 1000:
-                return result
-        elif 'statistics' not in user_basic:
-            refresh_user_data = UserBasicData(
-                account_id=account_id, 
-                is_enabled=0
-            )
-            result = await PlayerModel.refresh_base(refresh_user_data, None)
-            if result['code'] != 1000:
-                return result
-        elif 'basic' not in user_basic['statistics']:
-            result = await PlayerModel.refresh_base(
-                UserBasicData(
-                    account_id=account_id, 
-                    username=user_basic['name'],
-                    register_time=int(user_basic['created_at'])
-                ), None
-            )
-            if result['code'] != 1000:
-                return result
+    async def get_user_basic(account_id: int, user_clan: bool, user_token: Optional[str]):
+        endpoints = EnvConfig.get_endpoints()
+        base_url = random.choice(endpoints.VORTEX_API)
+        if user_clan:
+            urls = [
+                f'{base_url}/api/accounts/{account_id}/' + (f'?ac={user_token}' if user_token else ''),
+                f'{base_url}/api/accounts/{account_id}/clans/'
+            ]
+            tasks = []
+            responses = []
+            async with asyncio.Semaphore(len(urls)):
+                for url in urls:
+                    tasks.append(HttpClient.get_user_data(url))
+                responses = await asyncio.gather(*tasks)
         else:
-            rating_count = 0
-            if EnvConfig.REGION == 'ru':
-                rating_count += 0 if user_basic['rating_solo']['pve'] == {} else user_basic['statistics']['rating_solo']['battles_count']
-                rating_count += 0 if user_basic['rating_div']['pve'] == {} else user_basic['statistics']['rating_div']['battles_count']
-            refresh_user_data = UserBasicData(
-                account_id=account_id, 
-                username=user_basic['name'],
-                register_time=int(user_basic['created_at']),
-                insignias=GameUtils.get_insignias(user_basic['dog_tag']),
-                is_enabled=1,
-                is_public=1,
-                total_battles=user_basic['statistics']['basic']['leveling_points'],
-                pve_battles=0 if user_basic['statistics']['pve'] == {} else user_basic['statistics']['pve']['battles_count'],
-                pvp_battles=0 if user_basic['statistics']['pvp'] == {} else user_basic['statistics']['pvp']['battles_count'],
-                ranked_battles=0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count'],
-                rating_battles=rating_count,
-                last_battle_at=user_basic['statistics']['basic']['last_battle_time'],
-                karma=user_basic['statistics']['basic']['karma']
-            )
-            result = await PlayerModel.refresh_base(refresh_user_data, None)
-            if result['code'] != 1000:
-                return result
-        # 效验用户ac是否有效
-        if user_basic == None:
-            return JSONResponse.API_2011_UserNotExist
-        if 'hidden_profile' not in user_basic:
-            return JSONResponse.get_success_response(True)
-        else:
-            return JSONResponse.get_success_response(False)
+            urls = [
+                f'{base_url}/api/accounts/{account_id}/' + (f'?ac={user_token}' if user_token else '')
+            ]
+            responses = [await HttpClient.get_user_data(urls[0])]
 
-    @staticmethod
-    @ExceptionLogger.handle_program_exception_async
-    async def test_get_user_basic(account_id: int, ac1: str = None):
-        """请求获取用户的基本数据，但不更新数据库"""
-        base_url = random.choice(EnvConfig.endpoints.VORTEX_API)
-        url = f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac1}' if ac1 else '')
-        response = await HttpClient.get_user_data(url)
-        now_time = TimeUtils.now_iso()
-        await ServiceMetrics.http_incrby(now_time[:10], 1)
-        error_count, error_return = varify_responses(response)
-        if error_count != None:
-            await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
-            return error_return
-        # 刷新数据库数据
-        result: dict = response['data']
-        if result:
-            result = result.get(str(account_id))
-        if result is None:
-            return JSONResponse.API_2011_UserNotExist
-        user_data = {
-            'account_id': account_id,
-            'username': None,
-            'register_time': None,
-            'insignias': None,
-            'is_enabled': 1,
-            'is_public': 1,
-            'total_battles': 0,
-            'pve_battles': 0,
-            'pvp_battles': 0,
-            'ranked_battles': 0,
-            'rating_battles': 0,
-            'karma': 0,
-            'last_battle_at': 0
-        }
-        if 'hidden_profile' in result:
-            user_data['is_public'] = 0
-            user_data['username'] = result['name']
-        elif 'statistics' not in result:
-            user_data['is_enabled'] = 0
-        elif 'basic' not in result['statistics']:
-            user_data['is_enabled'] = 1
-            user_data['username'] = result['name']
-            user_data['register_time'] = int(result['created_at'])
-        else:
-            leveling_points = result['statistics']['basic']['leveling_points']
-            if leveling_points >= 1000000:
-                leveling_points = leveling_points - 1000000
-            user_data['username'] = result['name']
-            user_data['register_time'] = int(result['created_at'])
-            user_data['insignias'] = GameUtils.get_insignias(result['dog_tag'])
-            user_data['total_battles'] = leveling_points
-            user_data['karma'] = result['statistics']['basic']['karma']
-            user_data['last_battle_at'] = result['statistics']['basic']['last_battle_time']
-            user_data['pve_battles'] = 0 if result['statistics']['pve'] == {} else result['statistics']['pve']['battles_count']
-            user_data['pvp_battles'] = 0 if result['statistics']['pvp'] == {} else result['statistics']['pvp']['battles_count']
-            user_data['ranked_battles'] = 0 if result['statistics']['rank_solo'] == {} else result['statistics']['rank_solo']['battles_count']
-            if EnvConfig.REGION == 'ru':
-                rating_count = 0
-                rating_count += 0 if result['statistics']['rating_solo'] == {} else result['statistics']['rating_solo']['battles_count']
-                rating_count += 0 if result['statistics']['rating_div'] == {} else result['statistics']['rating_div']['battles_count']
-                user_data['rating_battles'] = rating_count
-        return JSONResponse.get_success_response(user_data)
-    
-    @staticmethod
-    @ExceptionLogger.handle_program_exception_async
-    async def test_get_user_clan(account_id: int):
-        """请求获取用户的基本数据，但不更新数据库"""
-        base_url = random.choice(EnvConfig.endpoints.VORTEX_API)
-        url = f'{base_url}/api/accounts/{account_id}/clans/'
-        response = await HttpClient.get_user_data(url)
-        now_time = TimeUtils.now_iso()
-        await ServiceMetrics.http_incrby(now_time[:10], 1)
-        error_count, error_return = varify_responses(response)
-        if error_count != None:
-            await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
-            return error_return
-        # 刷新数据库数据
-        result = response['data']
-        user_data = {
-            'account_id': account_id,
-            'clan_id': None
-        }
-        if result and result['clan_id'] != None:
-            user_data['clan_id'] = result['clan_id']
-            user_data['clan_tag'] = result['clan']['tag']
-            user_data['league'] = ClanColor.CLAN_COLOR_INDEX.get(result['clan']['color'], 5)
-        return JSONResponse.get_success_response(user_data)
+        error, results = await record_http_metrics(responses, urls)
+        if error:
+            return results
         
-    @staticmethod
-    @ExceptionLogger.handle_program_exception_async
-    async def get_user_header(account_id: int, ac1: str = None):
-        base_url = random.choice(EnvConfig.endpoints.VORTEX_API)
-        urls = [
-            f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac1}' if ac1 else ''),
-            f'{base_url}/api/accounts/{account_id}/clans/'
-        ]
-        tasks = []
-        responses = []
-        async with asyncio.Semaphore(len(urls)):
-            for url in urls:
-                tasks.append(HttpClient.get_user_data(url))
-            responses = await asyncio.gather(*tasks)
-        now_time = TimeUtils.now_iso()
-        await ServiceMetrics.http_incrby(now_time[:10], 2)
-        error_count, error_return = varify_responses(responses)
-        if error_count != None:
-            await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
-            return error_return
-        # 刷新数据库数据
-        if responses[0]['data']:
-            user_basic = responses[0]['data'][str(account_id)]
-        user_clan = responses[1]['data']
-        if 'hidden_profile' in user_basic:
-            refresh_user_data = UserBasicData(
-                account_id=account_id, 
-                username=user_basic['name'],
-                is_enabled=1,
-                is_public=0
-            )
-            if user_clan and user_clan['clan_id'] != None:
-                refresh_clan_data = ClanBasicData(
-                    clan_id=user_clan['clan_id'],
-                    tag=user_clan['clan']['tag'],
-                    league=ClanColor.CLAN_COLOR_INDEX.get(user_clan['clan']['color'], 5)
-                )
-            else:
-                refresh_clan_data = ClanBasicData()
-            result = await PlayerModel.refresh_base(refresh_user_data, refresh_clan_data)
-            if result['code'] != 1000:
-                return result
-        elif 'statistics' not in user_basic:
-            refresh_user_data = UserBasicData(
-                account_id=account_id, 
-                is_enabled=0
-            )
-            result = await PlayerModel.refresh_base(refresh_user_data, ClanBasicData())
-            if result['code'] != 1000:
-                return result
-        elif 'basic' not in user_basic['statistics']:
-            result = await PlayerModel.refresh_base(
-                UserBasicData(
-                    account_id=account_id, 
-                    username=user_basic['name'],
-                    register_time=int(user_basic['created_at'])
-                ), ClanBasicData()
-            )
-            if result['code'] != 1000:
-                return result
-        else:
-            rating_count = 0
-            if EnvConfig.REGION == 'ru':
-                rating_count += 0 if user_basic['rating_solo']['pve'] == {} else user_basic['statistics']['rating_solo']['battles_count']
-                rating_count += 0 if user_basic['rating_div']['pve'] == {} else user_basic['statistics']['rating_div']['battles_count']
-            refresh_user_data = UserBasicData(
-                account_id=account_id, 
-                username=user_basic['name'],
-                register_time=int(user_basic['created_at']),
-                insignias=GameUtils.get_insignias(user_basic['dog_tag']),
-                is_enabled=1,
-                is_public=1,
-                total_battles=user_basic['statistics']['basic']['leveling_points'],
-                pve_battles=0 if user_basic['statistics']['pve'] == {} else user_basic['statistics']['pve']['battles_count'],
-                pvp_battles=0 if user_basic['statistics']['pvp'] == {} else user_basic['statistics']['pvp']['battles_count'],
-                ranked_battles=0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count'],
-                rating_battles=rating_count,
-                last_battle_at=user_basic['statistics']['basic']['last_battle_time'],
-                karma=user_basic['statistics']['basic']['karma']
-            )
-            if user_clan and user_clan['clan_id'] != None:
-                refresh_clan_data = ClanBasicData(
-                    clan_id=user_clan['clan_id'],
-                    tag=user_clan['clan']['tag'],
-                    league=ClanColor.CLAN_COLOR_INDEX.get(user_clan['clan']['color'], 5)
-                )
-            else:
-                refresh_clan_data = ClanBasicData()
-            result = await PlayerModel.refresh_base(refresh_user_data, refresh_clan_data)
-            if result['code'] != 1000:
-                return result
-        # 处理数据成需要的返回格式
-        if user_basic == None:
-            return JSONResponse.API_2011_UserNotExist
-        data = {
-            'account_id': account_id,
-            'username': user_basic['name'],
-            'register_time': None,
-            'insignias': None,
-            'clan_id': None,
-            'clan_tag': None,
-            'clan_league': None
-        }
-        if user_clan and user_clan['clan_id'] != None:
-            data['clan_id'] = user_clan['clan_id']
-            data['clan_tag'] = user_clan['clan']['tag']
-            data['clan_league'] = ClanColor.CLAN_COLOR_INDEX.get(user_clan['clan']['color'], 5)
-        if 'hidden_profile' in user_basic:
-            return JSONResponse.get_success_response(data)
-        if (
-            'statistics' not in user_basic or 
-            'basic' not in user_basic['statistics']
-        ):
-            return JSONResponse.API_2013_UserDataisNone
-        data['insignias'] = GameUtils.get_insignias(user_basic['dog_tag'])
-        data['register_time'] = user_basic['statistics']['basic']['created_at']
-        return JSONResponse.get_success_response(data)
+        return JSONResponse.get_success_response(results)
         
-    @staticmethod
-    @ExceptionLogger.handle_program_exception_async
-    async def get_user_basic(account_id: int, ac1: str = None):
-        base_url = random.choice(EnvConfig.endpoints.VORTEX_API)
-        urls = [
-            f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac1}' if ac1 else ''),
-            f'{base_url}/api/accounts/{account_id}/clans/'
-        ]
-        tasks = []
-        responses = []
-        async with asyncio.Semaphore(len(urls)):
-            for url in urls:
-                tasks.append(HttpClient.get_user_data(url))
-            responses = await asyncio.gather(*tasks)
-        now_time = TimeUtils.now_iso()
-        await ServiceMetrics.http_incrby(now_time[:10], 2)
-        error_count, error_return = varify_responses(responses)
-        if error_count != None:
-            await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
-            return error_return
-        # 刷新数据库数据
-        if responses[0]['data']:
-            user_basic = responses[0]['data'][str(account_id)]
-        user_clan = responses[1]['data']
-        if 'hidden_profile' in user_basic:
-            refresh_user_data = UserBasicData(
-                account_id=account_id, 
-                username=user_basic['name'],
-                is_enabled=1,
-                is_public=0
-            )
-            if user_clan and user_clan['clan_id'] != None:
-                refresh_clan_data = ClanBasicData(
-                    clan_id=user_clan['clan_id'],
-                    tag=user_clan['clan']['tag'],
-                    league=ClanColor.CLAN_COLOR_INDEX.get(user_clan['clan']['color'], 5)
-                )
-            else:
-                refresh_clan_data = ClanBasicData()
-            result = await PlayerModel.refresh_base(refresh_user_data, refresh_clan_data)
-            if result['code'] != 1000:
-                return result
-        elif 'statistics' not in user_basic:
-            refresh_user_data = UserBasicData(
-                account_id=account_id, 
-                is_enabled=0
-            )
-            result = await PlayerModel.refresh_base(refresh_user_data, ClanBasicData())
-            if result['code'] != 1000:
-                return result
-        elif 'basic' not in user_basic['statistics']:
-            result = await PlayerModel.refresh_base(
-                UserBasicData(
-                    account_id=account_id, 
-                    username=user_basic['name'],
-                    register_time=int(user_basic['created_at'])
-                ), ClanBasicData()
-            )
-            if result['code'] != 1000:
-                return result
-        else:
-            rating_count = 0
-            if EnvConfig.REGION == 'ru':
-                rating_count += 0 if user_basic['rating_solo']['pve'] == {} else user_basic['statistics']['rating_solo']['battles_count']
-                rating_count += 0 if user_basic['rating_div']['pve'] == {} else user_basic['statistics']['rating_div']['battles_count']
-            refresh_user_data = UserBasicData(
-                account_id=account_id, 
-                username=user_basic['name'],
-                register_time=int(user_basic['created_at']),
-                insignias=GameUtils.get_insignias(user_basic['dog_tag']),
-                is_enabled=1,
-                is_public=1,
-                total_battles=user_basic['statistics']['basic']['leveling_points'],
-                pve_battles=0 if user_basic['statistics']['pve'] == {} else user_basic['statistics']['pve']['battles_count'],
-                pvp_battles=0 if user_basic['statistics']['pvp'] == {} else user_basic['statistics']['pvp']['battles_count'],
-                ranked_battles=0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count'],
-                rating_battles=rating_count,
-                last_battle_at=user_basic['statistics']['basic']['last_battle_time'],
-                karma=user_basic['statistics']['basic']['karma']
-            )
-            if user_clan and user_clan['clan_id'] != None:
-                refresh_clan_data = ClanBasicData(
-                    clan_id=user_clan['clan_id'],
-                    tag=user_clan['clan']['tag'],
-                    league=ClanColor.CLAN_COLOR_INDEX.get(user_clan['clan']['color'], 5)
-                )
-            else:
-                refresh_clan_data = ClanBasicData()
-            result = await PlayerModel.refresh_base(refresh_user_data, refresh_clan_data)
-            if result['code'] != 1000:
-                return result
-        # 处理数据成需要的返回格式
-        if user_basic == None:
-            return JSONResponse.API_2011_UserNotExist
-        if 'hidden_profile' in user_basic:
-            return JSONResponse.API_2015_UserHiddenProfile
-        if (
-            'statistics' not in user_basic or 
-            'basic' not in user_basic['statistics']
-        ):
-            return JSONResponse.API_2013_UserDataisNone
-        data = {
-            'basic': {},
-            'clan': {},
-            'info': {},
-            'statistics': {},
-            'seasons': {}
-        }
-        data['basic'] = {
-            'id': account_id,
-            'name': user_basic['name'],
-            'insignias': GameUtils.get_insignias(user_basic['dog_tag'])
-        }
-        if user_clan and user_clan['clan_id'] != None:
-            data['clan'] = {
-                'id': user_clan['clan_id'],
-                'tag': user_clan['clan']['tag'],
-                'league': ClanColor.CLAN_COLOR_INDEX.get(user_clan['clan']['color'], 5)
-            }
-        user_basic = user_basic['statistics']
-        data['info'] = user_basic['basic']
-        data['statistics'] = processing_user_basic(user_basic)
-        data['seasons'] = processing_season(user_basic['seasons'], user_basic['rank_info'])
-        return JSONResponse.get_success_response(data)
+    # @staticmethod
+    # @ExceptionLogger.handle_program_exception_async
+    # async def varify_ac(account_id: int, user_token: Optional[str]):
+    #     """检测传入的用户ac是否有效"""
+    #     # 获取配置的端点列表
+    #     endpoints = EnvConfig.get_endpoints()
+    #     base_url = random.choice(endpoints.VORTEX_API)
+    #     url = f'{base_url}/api/accounts/{account_id}/'
+    #     response = await HttpClient.get_user_data(url)
+    #     error, results = await record_http_metrics([response], [url])
+    #     if error:
+    #         return results[0]
         
-    @staticmethod
-    @ExceptionLogger.handle_program_exception_async
-    async def get_user_pvp(account_id: int, ac1: str = None, field: str = 'pvp', include_old: bool = True):
-        base_url = random.choice(EnvConfig.endpoints.VORTEX_API)
-        if field == 'pvp':
-            urls = [
-                f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac1}' if ac1 else ''),
-                f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac1}' if ac1 else ''),
-                f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac1}' if ac1 else '')
-            ]
-            fields = ['pvp_solo','pvp_div2','pvp_div3']
-        else:
-            urls = [
-                f'{base_url}/api/accounts/{account_id}/ships/{field}/' + (f'?ac={ac1}' if ac1 else '')
-            ]
-            fields = [field]
-        tasks = []
-        responses = []
-        async with asyncio.Semaphore(len(urls)):
-            for url in urls:
-                tasks.append(HttpClient.get_user_data(url))
-            responses = await asyncio.gather(*tasks)
-        now_time = TimeUtils.now_iso()
-        await ServiceMetrics.http_incrby(now_time[:10], len(urls))
-        error_count, error_return = varify_responses(responses)
-        if error_count != None:
-            await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
-            return error_return
-        data = []
-        for response in responses:
-            if response['data'] is None or response['data'][str(account_id)] == None:
-                return JSONResponse.API_2011_UserNotExist
-            if 'hidden_profile' in response['data'][str(account_id)]:
-                return JSONResponse.API_2015_UserHiddenProfile
-            if 'statistics' not in response['data'][str(account_id)]:
-                return JSONResponse.API_2013_UserDataisNone
-            data.append(response['data'][str(account_id)]['statistics'])
-        result, record = processing_pvp_data(data,fields,include_old)
-        return JSONResponse.get_success_response(
-            {
-                'original_data': result,
-                'record': record
-            }
-        )
+    #     if response['data']:
+    #         user_basic = response['data'][str(account_id)]
+    #     if user_basic == None:
+    #         return JSONResponse.API_2011_UserNotExist
+    #     if 'hidden_profile' not in user_basic:
+    #         return JSONResponse.get_success_response(False)
+    #     url = f'{base_url}/api/accounts/{account_id}/' + (f'?ac={user_token}' if user_token else '')
+    #     response = await HttpClient.get_user_data(url)
+    #     await ServiceMetrics.http_incrby(now_time[:10], 1)
+    #     error_count, error_return = varify_responses(response)
+    #     if error_count != None:
+    #         await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
+    #         return error_return
+    #     # 刷新数据库数据
+    #     if response['data']:
+    #         user_basic = response['data'][str(account_id)]
+    #     if 'hidden_profile' in user_basic:
+    #         refresh_user_data = UserBasicData(
+    #             account_id=account_id, 
+    #             username=user_basic['name'],
+    #             is_enabled=1,
+    #             is_public=0
+    #         )
+    #         result = await PlayerModel.refresh_base(refresh_user_data, None)
+    #         if result['code'] != 1000:
+    #             return result
+    #     elif 'statistics' not in user_basic:
+    #         refresh_user_data = UserBasicData(
+    #             account_id=account_id, 
+    #             is_enabled=0
+    #         )
+    #         result = await PlayerModel.refresh_base(refresh_user_data, None)
+    #         if result['code'] != 1000:
+    #             return result
+    #     elif 'basic' not in user_basic['statistics']:
+    #         result = await PlayerModel.refresh_base(
+    #             UserBasicData(
+    #                 account_id=account_id, 
+    #                 username=user_basic['name'],
+    #                 register_time=int(user_basic['created_at'])
+    #             ), None
+    #         )
+    #         if result['code'] != 1000:
+    #             return result
+    #     else:
+    #         rating_count = 0
+    #         if EnvConfig.REGION == 'ru':
+    #             rating_count += 0 if user_basic['rating_solo']['pve'] == {} else user_basic['statistics']['rating_solo']['battles_count']
+    #             rating_count += 0 if user_basic['rating_div']['pve'] == {} else user_basic['statistics']['rating_div']['battles_count']
+    #         refresh_user_data = UserBasicData(
+    #             account_id=account_id, 
+    #             username=user_basic['name'],
+    #             register_time=int(user_basic['created_at']),
+    #             insignias=GameUtils.get_insignias(user_basic['dog_tag']),
+    #             is_enabled=1,
+    #             is_public=1,
+    #             total_battles=user_basic['statistics']['basic']['leveling_points'],
+    #             pve_battles=0 if user_basic['statistics']['pve'] == {} else user_basic['statistics']['pve']['battles_count'],
+    #             pvp_battles=0 if user_basic['statistics']['pvp'] == {} else user_basic['statistics']['pvp']['battles_count'],
+    #             ranked_battles=0 if user_basic['statistics']['rank_solo'] == {} else user_basic['statistics']['rank_solo']['battles_count'],
+    #             rating_battles=rating_count,
+    #             last_battle_at=user_basic['statistics']['basic']['last_battle_time'],
+    #             karma=user_basic['statistics']['basic']['karma']
+    #         )
+    #         result = await PlayerModel.refresh_base(refresh_user_data, None)
+    #         if result['code'] != 1000:
+    #             return result
+    #     # 效验用户ac是否有效
+    #     if user_basic == None:
+    #         return JSONResponse.API_2011_UserNotExist
+    #     if 'hidden_profile' not in user_basic:
+    #         return JSONResponse.get_success_response(True)
+    #     else:
+    #         return JSONResponse.get_success_response(False)
+
+    # @staticmethod
+    # @ExceptionLogger.handle_program_exception_async
+    # async def get_user_pvp(account_id: int, ac1: str = None, field: str = 'pvp', include_old: bool = True):
+    #     base_url = random.choice(EnvConfig.endpoints.VORTEX_API)
+    #     if field == 'pvp':
+    #         urls = [
+    #             f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac1}' if ac1 else ''),
+    #             f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac1}' if ac1 else ''),
+    #             f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac1}' if ac1 else '')
+    #         ]
+    #         fields = ['pvp_solo','pvp_div2','pvp_div3']
+    #     else:
+    #         urls = [
+    #             f'{base_url}/api/accounts/{account_id}/ships/{field}/' + (f'?ac={ac1}' if ac1 else '')
+    #         ]
+    #         fields = [field]
+    #     tasks = []
+    #     responses = []
+    #     async with asyncio.Semaphore(len(urls)):
+    #         for url in urls:
+    #             tasks.append(HttpClient.get_user_data(url))
+    #         responses = await asyncio.gather(*tasks)
+    #     now_time = TimeUtils.now_iso()
+    #     await ServiceMetrics.http_incrby(now_time[:10], len(urls))
+    #     error_count, error_return = varify_responses(responses)
+    #     if error_count != None:
+    #         await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
+    #         return error_return
+    #     data = []
+    #     for response in responses:
+    #         if response['data'] is None or response['data'][str(account_id)] == None:
+    #             return JSONResponse.API_2011_UserNotExist
+    #         if 'hidden_profile' in response['data'][str(account_id)]:
+    #             return JSONResponse.API_2015_UserHiddenProfile
+    #         if 'statistics' not in response['data'][str(account_id)]:
+    #             return JSONResponse.API_2013_UserDataisNone
+    #         data.append(response['data'][str(account_id)]['statistics'])
+    #     result, record = processing_pvp_data(data,fields,include_old)
+    #     return JSONResponse.get_success_response(
+    #         {
+    #             'original_data': result,
+    #             'record': record
+    #         }
+    #     )
         
-    @staticmethod
-    @ExceptionLogger.handle_program_exception_async
-    async def get_user_cb(account_id: int):
-        base_url = EnvConfig.endpoints.OFFICIAL_API
-        api_token = EnvConfig.API_TOKEN
-        if not base_url or not api_token:
-            return JSONResponse.API_2007_RegionNotSupported
-        urls = [
-            f'{base_url}/wows/clans/seasonstats/?application_id={api_token}&account_id={account_id}',
-            f'{base_url}/wows/account/achievements/?application_id={api_token}&account_id={account_id}'
-        ]
-        tasks = []
-        responses = []
-        async with asyncio.Semaphore(len(urls)):
-            for url in urls:
-                tasks.append(HttpClient.get_offical_user_data(url))
-            responses = await asyncio.gather(*tasks)
-        now_time = TimeUtils.now_iso()
-        await ServiceMetrics.http_incrby(now_time[:10], len(urls))
-        error_count, error_return = varify_responses(responses)
-        if error_count != None:
-            await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
-            return error_return
-        for response in responses:
-            if response['data']['meta']['hidden'] != None:
-                return JSONResponse.API_2015_UserHiddenProfile
-        if responses[0]['data']['data'][str(account_id)] is None:
-            return JSONResponse.API_2013_UserDataisNone
-        season_data = processing_cb_seasons(responses[0]['data']['data'][str(account_id)])
-        achievements = processing_cb_achieve(responses[1]['data']['data'][str(account_id)])
-        return JSONResponse.get_success_response(
-            {
-                'seasons': season_data,
-                'achievements': achievements
-            }
-        )
+    # @staticmethod
+    # @ExceptionLogger.handle_program_exception_async
+    # async def get_user_cb(account_id: int):
+    #     base_url = EnvConfig.endpoints.OFFICIAL_API
+    #     api_token = EnvConfig.API_TOKEN
+    #     if not base_url or not api_token:
+    #         return JSONResponse.API_2007_RegionNotSupported
+    #     urls = [
+    #         f'{base_url}/wows/clans/seasonstats/?application_id={api_token}&account_id={account_id}',
+    #         f'{base_url}/wows/account/achievements/?application_id={api_token}&account_id={account_id}'
+    #     ]
+    #     tasks = []
+    #     responses = []
+    #     async with asyncio.Semaphore(len(urls)):
+    #         for url in urls:
+    #             tasks.append(HttpClient.get_offical_user_data(url))
+    #         responses = await asyncio.gather(*tasks)
+    #     now_time = TimeUtils.now_iso()
+    #     await ServiceMetrics.http_incrby(now_time[:10], len(urls))
+    #     error_count, error_return = varify_responses(responses)
+    #     if error_count != None:
+    #         await ServiceMetrics.http_error_incrby(now_time[:10], error_count)
+    #         return error_return
+    #     for response in responses:
+    #         if response['data']['meta']['hidden'] != None:
+    #             return JSONResponse.API_2015_UserHiddenProfile
+    #     if responses[0]['data']['data'][str(account_id)] is None:
+    #         return JSONResponse.API_2013_UserDataisNone
+    #     season_data = processing_cb_seasons(responses[0]['data']['data'][str(account_id)])
+    #     achievements = processing_cb_achieve(responses[1]['data']['data'][str(account_id)])
+    #     return JSONResponse.get_success_response(
+    #         {
+    #             'seasons': season_data,
+    #             'achievements': achievements
+    #         }
+    #     )

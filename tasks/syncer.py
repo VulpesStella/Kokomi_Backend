@@ -56,7 +56,7 @@ class UserStatsSyncer:
             return user_data
         
         # 无有效数据
-        if 'statistics' not in user_info:
+        if user_info is None or 'statistics' not in user_info:
             user_data['is_enabled'] = 0
             return user_data
         
@@ -76,7 +76,7 @@ class UserStatsSyncer:
         if REGION == 'cn' and leveling_points >= CSSLP:
             leveling_points -= CSSLP
         
-        # 处理时间戳字段：0 或 None 都转为 None
+        # 处理时间戳字段
         register_time = int(user_info.get('created_at', 0))
         last_battle_time = basic_data.get('last_battle_time', 0)
         
