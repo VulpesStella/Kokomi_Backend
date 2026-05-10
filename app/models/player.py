@@ -2,13 +2,12 @@ from app.core import EnvConfig
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
-from app.schemas import UserBasicData, ClanBasicData
-from app.utils import GameUtils, TimeUtils
+from app.utils import TimeUtils
 
 
-class PlayerModel:
+class DemoPlayerModel:
     @ExceptionLogger.handle_database_exception_async
-    async def test_read_base(account_id: int):
+    async def read_base(account_id: int):
         '''
         从数据库中获取用户的基本数据
         '''
@@ -79,180 +78,19 @@ class PlayerModel:
                 data['clan_id'] = row[0]
             return JSONResponse.get_success_response(data)
 
+class PlayerModel:
     @ExceptionLogger.handle_database_exception_async
-    async def refresh_base(user_data: UserBasicData | None, clan_data: ClanBasicData | None):
-        '''
-        根据api请求获取到的用户和用户所在工会数据刷新数据库数据
-        '''
-        constants = EnvConfig.get_constants()
+    async def record_query(account_id: int):
+        """记录一次用户查询"""
         async with MySQLManager.auto_transaction_cursor() as cur:
-            account_id = user_data.account_id
-            # 先处理更新user_base user_basic user_clan的用户数据
             sql = """
-                SELECT 
-                    username, 
-                    UNIX_TIMESTAMP(updated_at) 
-                FROM T_user_base 
+                UPDATE T_user_config
+                SET
+                    query_count = query_count + 1,
+                    last_query_at = NOW()
                 WHERE account_id = %s;
             """
-            await cur.execute(
-                sql,[account_id]
-            )
-            result = await cur.fetchone()
-            if result is None:
-                default_name = GameUtils.get_user_default_name(account_id)
-                sql = """
-                    INSERT INTO T_user_base (
-                        account_id, 
-                        username
-                    ) VALUES (
-                        %s, %s
-                    );
-                """
-                await cur.execute(
-                    sql,[account_id, default_name]
-                )
-                for table_name in constants.USER_INIT_TABLE_LIST:
-                    sql = f"""
-                        INSERT INTO {table_name} (
-                            account_id
-                        ) VALUES (
-                            %s
-                        );
-                    """
-                    await cur.execute(
-                        sql,[account_id]
-                    )
-                sql = """
-                    UPDATE T_user_base 
-                    SET 
-                        table_count = %s 
-                    WHERE account_id = %s;
-                """
-                await cur.execute(
-                    sql,[len(constants.USER_INIT_TABLE_LIST),account_id]
-                )
-                result = [default_name, None]
-            if user_data.username:
-                if user_data.insignias is None:
-                    sql = """
-                        UPDATE T_user_base 
-                        SET 
-                            username = %s, 
-                            updated_at = CURRENT_TIMESTAMP 
-                        WHERE account_id = %s;
-                    """
-                    await cur.execute(
-                        sql, [user_data.username, account_id]
-                    )
-                else:
-                    sql = """
-                        UPDATE T_user_base 
-                        SET 
-                            username = %s, 
-                            register_time = FROM_UNIXTIME(%s), 
-                            insignias = %s, 
-                            updated_at = CURRENT_TIMESTAMP 
-                        WHERE account_id = %s;
-                    """
-                    await cur.execute(
-                        sql,[user_data.username, user_data.register_time, user_data.insignias, account_id]
-                    )
-                if result[1] and result[0] != user_data.username:
-                    sql = """
-                        INSERT INTO T_user_action (
-                            account_id, 
-                            username
-                        ) VALUES (
-                            %s, %s
-                        );
-                    """
-                    await cur.execute(
-                        sql, [account_id, result[0]]
-                    )
-            if user_data.is_enabled == 0:
-                sql = """
-                    UPDATE T_user_stats 
-                    SET 
-                        is_enabled = 0, 
-                        activity_level = 0,  
-                        updated_at = CURRENT_TIMESTAMP 
-                    WHERE account_id = %s;
-                """
-                await cur.execute(
-                    sql,[account_id]
-                )
-            elif user_data.is_public == 0:
-                sql = """
-                    UPDATE T_user_stats 
-                    SET 
-                        is_enabled = 1, 
-                        is_public = 0, 
-                        activity_level = 0, 
-                        updated_at = CURRENT_TIMESTAMP 
-                    WHERE account_id = %s;
-                """
-                await cur.execute(
-                    sql,[account_id]
-                )
-                
-            else:
-                last_battle_time = user_data.last_battle_at if user_data.last_battle_at != 0 else None
-                sql = """
-                    UPDATE T_user_stats 
-                    SET 
-                        is_enabled = 1,  
-                        is_public = 1, 
-                        activity_level = F_user_activity_level(%s),
-                        total_battles = %s, 
-                        pve_battles = %s, 
-                        pvp_battles = %s, 
-                        ranked_battles = %s, 
-                        rating_battles = %s, 
-                        karma = %s, 
-                        last_battle_at = FROM_UNIXTIME(%s), 
-                        updated_at = CURRENT_TIMESTAMP 
-                    WHERE account_id = %s;
-                """
-                await cur.execute(
-                    sql,
-                    [
-                        last_battle_time, 
-                        user_data.total_battles, 
-                        user_data.pve_battles, 
-                        user_data.pvp_battles, 
-                        user_data.ranked_battles, 
-                        user_data.rating_battles, 
-                        user_data.karma, 
-                        last_battle_time, 
-                        account_id
-                    ]
-                )
-            # 处理更新clan_base数据
-            if clan_data != None:
-                sql = """
-                    UPDATE T_user_clan 
-                    SET 
-                        clan_id = %s, 
-                        updated_at = CURRENT_TIMESTAMP 
-                    WHERE account_id = %s;
-                """
-                await cur.execute(
-                    sql,[clan_data.clan_id, account_id]
-                )
-                if clan_data.clan_id:
-                    sql = """
-                        UPDATE T_clan_base 
-                        SET 
-                            tag = %s, 
-                            league = %s, 
-                            updated_at = CURRENT_TIMESTAMP 
-                        WHERE clan_id = %s;
-                    """
-                    await cur.execute(
-                        sql,[clan_data.tag, clan_data.league, clan_data.clan_id]
-                    )
-
+            await cur.execute(sql, [account_id])
             return JSONResponse.API_1000_Success
 
     @ExceptionLogger.handle_database_exception_async

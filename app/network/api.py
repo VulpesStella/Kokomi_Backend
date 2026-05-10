@@ -118,6 +118,23 @@ class DemoExternalAPI:
             return results
         
         return JSONResponse.get_success_response(results[0])
+    
+    @staticmethod
+    @ExceptionLogger.handle_program_exception_async
+    async def get_clan_users(clan_id: int) -> ResponseDict:
+        # 获取配置的端点列表
+        endpoints = EnvConfig.get_endpoints()
+        base_url = endpoints.CLAN_API
+
+        # 调用 HTTP 客户端获取用户数据
+        url = f'{base_url}/api/members/{clan_id}/'
+        response = await HttpClient.get_clan_data(url)
+
+        error, results = await record_http_metrics([response], [url])
+        if error:
+            return results
+        
+        return JSONResponse.get_success_response(results[0])
        
 
 class ExternalAPI:

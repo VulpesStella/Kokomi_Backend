@@ -3,7 +3,7 @@ from fastapi import APIRouter, Path, Query
 
 from app.apis.ranking import ClanRankingAPI, ShipRankingAPI
 
-router = APIRouter()
+router = APIRouter(prefix="/ranking")
 
 
 @router.get("/ship/{ship_id}/", summary="获取船只排行榜分页数据")
@@ -17,15 +17,15 @@ async def getShipRanking(
     return await ShipRankingAPI.get_ship_ranking(ship_id, page, size)
 
 
-@router.get("/ship/{ship_id}/users/{account_id}/", summary="获取用户在船只排行榜中的排名")
+@router.get("/ship/{ship_id}/users/{user_id}/", summary="获取用户在船只排行榜中的排名")
 async def getShipUserRanking(
     ship_id: int = Path(..., description="船只ID"),
-    account_id: int = Path(..., description="用户ID"),
+    user_id: int = Path(..., description="用户ID"),
     size: int = Query(50, ge=50, le=100, description="每页条数，只能选 50 或 100")
 ):
     if size not in (50, 100):
         raise HTTPException(status_code=422, detail="Page size must be 50 or 100")
-    return await ShipRankingAPI.get_ship_user_ranking(ship_id, account_id, size)
+    return await ShipRankingAPI.get_ship_user_ranking(ship_id, user_id, size)
 
 
 @router.get("/clan/", summary="获取工会排行榜分页数据")

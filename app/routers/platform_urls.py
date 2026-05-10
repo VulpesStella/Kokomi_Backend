@@ -5,7 +5,7 @@ from app.apis.platform import TokenAPI, SearchAPI, RefreshAPI
 from app.response import JSONResponse
 from app.utils import GameUtils
 
-router = APIRouter()
+router = APIRouter(prefix="/platform")
 
 @router.get("/search/user/", summary="搜索游戏用户")
 async def searchUser(

@@ -1,4 +1,3 @@
-from app.core import EnvConfig
 from app.loggers import ExceptionLogger
 from app.network import ExternalAPI
 from app.response import JSONResponse, ResponseDict

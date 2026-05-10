@@ -51,7 +51,7 @@ class HttpClient:
         res = await cls._client.get(url=url)
         requset_code = res.status_code
         requset_result = res.json()
-        if requset_code == 404:
+        if requset_code in [404, 503]:
             # 用户不存在或者账号删除的情况
             return JSONResponse.API_1000_Success
         elif requset_code == 200:

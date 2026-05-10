@@ -4,9 +4,9 @@ from app.response import JSONResponse
 from app.constants import Limits
 
 
-class RecentModel:
+class DemoRecentModel:
     @ExceptionLogger.handle_database_exception_async
-    async def test_set_recent_level(account_id: int, target_level: int):
+    async def set_recent_level(account_id: int, target_level: int):
         '''[DEMO] 设置用户recent功能级别
 
         只允许向上升级，数据库level低于目标level时才会修改
@@ -40,7 +40,7 @@ class RecentModel:
             return JSONResponse.API_1000_Success
 
     @ExceptionLogger.handle_database_exception_async
-    async def test_reduce_recent_level(account_id: int, target_level: int):
+    async def reduce_recent_level(account_id: int, target_level: int):
         '''[DEMO] 降低用户recent功能级别
         
         只允许向下降级，高级可降到标准或无，标准可降到无
@@ -74,3 +74,7 @@ class RecentModel:
                 await cur.execute(sql, [target_level, new_limit, account_id])
             
             return JSONResponse.API_1000_Success
+
+
+class RecentModel:
+    ...

@@ -142,6 +142,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery
             logger_obj=logger
         ):
             if not send_task(celery_app, f'{index}_refresh', update_data, 'refresh_queue'):
+                redis_client.delete(f"refresh_lock:{index}:{update_data}")
                 failed_count += 1
         logger.disable_tqdm()
         logger.info(f'Task sent completed - Success: {len_update_ids - failed_count} | Failed: {failed_count}')

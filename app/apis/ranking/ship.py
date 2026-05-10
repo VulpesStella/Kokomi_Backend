@@ -132,10 +132,10 @@ class ShipRankingAPI:
         if error:
             return ship_info
 
-        # 4. 计算分页起始和结束索引（Redis zrevrange使用0-based索引，包含stop）
+        # 4. 计算分页起始和结束索引
         ship_ranking_key = f"leaderboard:ship:{ship_id}"
         start = (page_index - 1) * page_size
-        stop = start + page_size - 1  # Redis的zrevrange包含stop索引
+        stop = start + page_size - 1
 
         # 5. 获取排行榜总人数
         error, total_users = JSONResponse.extract_data_strict(

@@ -1,8 +1,49 @@
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
-from app.core import EnvConfig
 
+
+
+class DemoClanModel:
+    @ExceptionLogger.handle_database_exception_async
+    async def read_base(clan_id: int):
+        '''
+        从数据库中获取工会的基本数据
+        '''
+        async with MySQLManager.read_only_cursor() as cur:
+            data = {
+                'clan_id': clan_id,
+                'clan_tag': None,
+                'league': 5,
+                'is_enabled': False
+            }
+            sql = """
+                SELECT
+                    tag,
+                    league
+                FROM T_clan_base
+                WHERE clan_id = %s;
+            """
+            await cur.execute(sql, [clan_id])
+            row = await cur.fetchone()
+            if not row:
+                return JSONResponse.get_success_response({'clan_id': clan_id})
+            data['clan_tag'] = row[0]
+            data['league'] = row[1]
+
+            sql = """
+                SELECT
+                    is_enabled,
+                    member_count
+                FROM T_clan_users
+                WHERE clan_id = %s;
+            """
+            await cur.execute(sql, [clan_id])
+            row = await cur.fetchone()
+            data['is_enabled'] = row[0]
+            data['member_count'] = row[1]
+
+            return JSONResponse.get_success_response(data)
 
 class ClanModel:
     @ExceptionLogger.handle_database_exception_async

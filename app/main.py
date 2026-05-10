@@ -187,15 +187,22 @@ app.include_router(dashboard_router, prefix="/dashboard", tags=['Dashboard'])
 
 app.include_router(
     demo_router, 
-    prefix="/api/demo", 
+    prefix='/api',
     tags=['Demo Interface'],
     dependencies=[Security(SecurityManager.require_root)]
 )
 
 app.include_router(
     platform_router, 
-    prefix="/api/platform", 
+    prefix='/api',
     tags=['Platform Interface'],
+    dependencies=[Security(SecurityManager.require_user)]
+)
+
+app.include_router(
+    ranking_router,
+    prefix='/api',
+    tags=['Ranking Interface'],
     dependencies=[Security(SecurityManager.require_user)]
 )
 
@@ -206,19 +213,12 @@ app.include_router(
 #     dependencies=[Security(SecurityManager.require_user)]
 # )
 
-app.include_router(
-    ranking_router,
-    prefix="/api/ranking",
-    tags=['Ranking Interface'],
-    dependencies=[Security(SecurityManager.require_user)]
-)
-
-app.include_router(
-    recent_router,
-    prefix="/api/recent",
-    tags=['Recent Interface'],
-    dependencies=[Security(SecurityManager.require_user)]
-)
+# app.include_router(
+#     recent_router,
+#     prefix="/api/recent",
+#     tags=['Recent Interface'],
+#     dependencies=[Security(SecurityManager.require_user)]
+# )
 
 # ------------------------------------------------------
 # 【该功能已弃用】

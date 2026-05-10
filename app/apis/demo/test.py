@@ -143,6 +143,29 @@ class TestAPI:
         }
 
         return JSONResponse.get_success_response(data)
+
+    @ExceptionLogger.handle_program_exception_async
+    async def get_clan_members(clan_id: int):
+        response = await DemoExternalAPI.get_clan_users(clan_id)
+        error, result = JSONResponse.extract_data_strict(response)
+        if error:
+            return result
+        
+        # 检查用户是否存在
+        if result is None:
+            return JSONResponse.API_2012_ClanNotExist
+        users = []
+        for user_info in result.get('items', []):
+            users.append([user_info['id'], user_info['name']])
+
+        data = {
+            'region': EnvConfig.REGION,
+            'clan_id': clan_id,
+            'members': len(users),
+            'datas': users
+        }
+
+        return JSONResponse.get_success_response(data)
     
     @ExceptionLogger.handle_program_exception_async
     async def set_recent(account_id: int, level: str):
