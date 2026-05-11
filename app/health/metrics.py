@@ -21,18 +21,19 @@ class ServiceMetrics:
     async def http_error_incrby(date: str, amount: int):
         await RedisClient.incrby(f"metrics:http_error:{date}", amount)
 
-    @staticmethod
-    def get_hourly_request_stats(today, log_dir) -> Tuple[int, Dict[str, int], int]:
+    def get_hourly_request_stats(today, log_dir) -> Tuple[int, Dict[str, int], int, int]:
         """统计过去24h的请求数据
         Returns:
             total_count: 总请求数
             buckets: 按小时分组的请求数 { "08:00": 100, ... }
             avg_elapsed_ms: 平均响应时间(ms)
+            status_200_count: status_code 为 200 的请求数
         """
         total_count = 0
         total_elapsed_ms = 0
+        status_200_count = 0
         buckets = defaultdict(int)
-        
+
         file = log_dir / f"metrics/{today.isoformat()}.csv"
         if file.exists():
             with open(file, newline="", encoding="utf-8") as f:
@@ -41,6 +42,7 @@ class ServiceMetrics:
                     try:
                         ts = datetime.fromisoformat(row["timestamp"])
                         es = int(row["elapsed_ms"])
+                        sc = int(row["status_code"])
                     except Exception:
                         continue
                     if ts.date() != today:
@@ -49,11 +51,12 @@ class ServiceMetrics:
                     buckets[hour_key] += 1
                     total_count += 1
                     total_elapsed_ms += es
-        
-        avg_elapsed_ms = 0 if total_count == 0 else int(total_elapsed_ms / total_count)
-        return total_count, buckets, avg_elapsed_ms
+                    if sc == 200:
+                        status_200_count += 1
 
-    @staticmethod
+        avg_elapsed_ms = 0 if total_count == 0 else int(total_elapsed_ms / total_count)
+        return total_count, buckets, avg_elapsed_ms, status_200_count
+
     def build_hourly_chart_data(now, buckets: Dict[str, int]) -> Tuple[List[str], List[Any]]:
         """构建过去24h图表数据
         
@@ -76,7 +79,6 @@ class ServiceMetrics:
         
         return hourly_keys, hourly_values
 
-    @staticmethod
     async def get_monthly_api_stats(now) -> Tuple[List[str], List[Any]]:
         """获取过去30d API调用统计数据
         Returns:
@@ -85,21 +87,51 @@ class ServiceMetrics:
         """
         monthly_keys = []
         monthly_redis_keys = []
-        
+
         for i in range(30, -1, -1):
             day = now - timedelta(days=i)
             monthly_keys.append(day.date().isoformat())
             monthly_redis_keys.append(f"metrics:api:{day.date().isoformat()}")
-        
+
         values = await RedisClient.get_by_pipe(monthly_redis_keys)
         if values['code'] != 1000:
             monthly_values = [None] * 31
         else:
             monthly_values = values['data']
-        
+
         return monthly_keys, monthly_values
 
-    @staticmethod
+    async def get_monthly_http_stats(now) -> Tuple[List[str], List[Any], List[Any]]:
+        """获取过去30d HTTP请求总量及错误量
+
+        Returns:
+            monthly_keys: 日期标签列表
+            total_values: 每日 HTTP 请求总量
+            error_values: 每日 HTTP 错误量
+        """
+        monthly_keys = []
+        total_keys = []
+        error_keys = []
+
+        for i in range(30, -1, -1):
+            day = now - timedelta(days=i)
+            date_str = day.date().isoformat()
+            monthly_keys.append(date_str)
+            total_keys.append(f"metrics:http_total:{date_str}")
+            error_keys.append(f"metrics:http_error:{date_str}")
+
+        all_keys = total_keys + error_keys
+        values = await RedisClient.get_by_pipe(all_keys)
+        if values['code'] != 1000:
+            total_values = [0] * 31
+            error_values = [0] * 31
+        else:
+            mid = len(total_keys)
+            total_values = values['data'][:mid]
+            error_values = values['data'][mid:]
+
+        return monthly_keys, total_values, error_values
+
     async def get_monthly_celery_stats(now) -> Tuple[List[str], List[Any]]:
         """获取过去30d Celery任务消费统计数据
         Returns:
@@ -122,23 +154,37 @@ class ServiceMetrics:
         
         return celery_keys, celery_values
 
-    @staticmethod
-    def get_today_error_count(today, log_dir) -> int:
-        """统计今日错误日志数"""
+    def get_hourly_error_stats(today, log_dir) -> Tuple[int, Dict[str, int]]:
+        """统计今日错误日志数及每小时分布
+        
+        Returns:
+            error_count: 总错误数
+            buckets: 按小时分组的错误数 {"08:00": 5, ...}
+        """
         error_count = 0
+        buckets = defaultdict(int)
         file = log_dir / f"error/{today.isoformat()}.txt"
         
         if file.exists():
             with open(file, "r", encoding="utf-8") as f:
                 for line in f:
-                    if line.startswith('>Platform:'):
+                    if line.startswith('>Error Time:'):
+                        # >Error Time:   2026-05-09T06:34:30+00:00
+                        current_hour = f"{line[26:28]}:00"
+                        if current_hour:
+                            buckets[current_hour] += 1
+                    elif line.startswith('>Platform:     KokomiAPI'):
                         error_count += 1
         
-        return error_count
+        return error_count, buckets
 
-    @staticmethod
-    def get_mq_pending_count(config) -> int:
-        """获取MQ待处理消息数"""
+    def get_celery_queue_stats(config) -> Dict[str, Any]:
+        """获取 Celery 队列（refresh_queue）的统计数据
+
+        Returns:
+            dict 包含 messages, consumers, consumer_utilisation,
+                 publish_total, ack_total, state 等字段
+        """
         url = f'http://{config.RABBITMQ.host}:15672/api'
         client = httpx.Client(
             base_url=url,
@@ -146,20 +192,32 @@ class ServiceMetrics:
             timeout=2,
             trust_env=False
         )
-        
+
         try:
             resp = client.get('/queues/%2F/refresh_queue')
             if resp.status_code == 200:
-                result = resp.json()
-                return result.get('messages', 0)
+                data = resp.json()
+                stats = data.get('message_stats', {})
+                return {
+                    'pending': data.get('messages', 0),
+                    'ready': data.get('messages_ready', 0),
+                    'unacknowledged': data.get('messages_unacknowledged', 0),
+                    'consumers': data.get('consumers', 0),
+                    'utilisation': data.get('consumer_utilisation', 0),
+                    'published': stats.get('publish', 0),
+                    'consumed': stats.get('ack', 0),
+                    'state': data.get('state', 'unknown'),
+                    'memory': data.get('memory', 0),
+                    'message_bytes': data.get('message_bytes', 0),
+                    'reductions': data.get('reductions', 0),
+                }
         except Exception:
             pass
         finally:
             client.close()
-        
-        return -1
 
-    @staticmethod
+        return {}
+
     async def get_services_status() -> Tuple[int, int]:
         """获取服务状态
         Returns:
@@ -167,10 +225,11 @@ class ServiceMetrics:
             total_count: 总服务数
         """
         active_count = 0
-        services = ['UserCache', 'Maintenanse', 'ClanSeason', 'ServerStats']
+        services = ['UserCache', 'Maintenanse', 'ClanSeason', 'ServerStats', 'Recent']
         for service in services:
             key = f'status:{service}'
             exists = await RedisClient.exists(key)
             if exists['code'] == 1000 and exists['data']:
                 active_count += 1
         return active_count, len(services)
+    

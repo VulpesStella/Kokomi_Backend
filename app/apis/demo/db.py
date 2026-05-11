@@ -9,11 +9,9 @@ from app.models import (
 
 # 映射：tracking_key -> tracking_type
 TRACKING_KEY_TYPE_MAP = {
-    'ship_users': 'archive_time',
-    'ship_battles': 'archive_time',
+    'table_meta': 'archive_time',
     'ship_stats': 'update_time',
-    'maintenance': 'update_time',
-    'clan_season': 'refresh_time',
+    'clan_season': 'refresh_time'
 }
 
 class MySQLAPI:

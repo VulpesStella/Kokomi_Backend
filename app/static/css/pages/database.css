@@ -1,0 +1,120 @@
+/* ========== 运维 Dashboard 容器 ========== */
+.db-dashboard-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    min-width: 1200px;
+    padding: 10px 0;
+}
+
+/* ========== 单张卡片 ========== */
+.db-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    border: 1px solid #ebeef5;
+    
+    /* 增加垂直内边距，让卡片高度增加 */
+    padding: 28px 32px; 
+    
+    display: flex;
+    flex-direction: column;
+    
+    /* 核心逻辑：
+       1. 基础宽度根据内容自适应 
+       2. flex-grow: 1 允许卡片拉伸填满行内剩余空间
+    */
+    flex: 1 1 auto; 
+    min-width: 300px; /* 保证最小宽度 */
+    min-height: 180px; /* 增加最小高度，使其看起来更宏伟 */
+}
+
+/* 针对第一行 3 个卡片的情况，
+   如果你希望第一行比例更固定，可以微调，但 flex-grow 已经能处理大部分情况 */
+
+/* ========== Header (标题区域) ========== */
+.db-card-header {
+    margin-bottom: 24px; /* 增加间距 */
+}
+
+.db-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    position: relative;
+    padding-left: 12px;
+}
+
+.db-card-title::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 16px;
+    background-color: #409eff;
+    border-radius: 2px;
+}
+
+/* ========== Content (内容区域) ========== */
+.db-card-body {
+    display: flex;
+    flex-direction: row;
+    align-items: center; /* 垂直居中指标项 */
+    flex: 1; /* 让内容区域撑满卡片高度 */
+}
+
+/* ========== 统计项子块 ========== */
+.db-kpi-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    
+    /* 关键：让每个子块在卡片内等分空间 */
+    flex: 1; 
+    
+    padding: 10px 20px;
+    border-right: 1px solid #f0f2f5;
+}
+
+.db-kpi-item:last-child {
+    border-right: none;
+}
+
+/* --- 子块内部布局 --- */
+.db-kpi-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px; /* 增加间距 */
+}
+
+.db-kpi-icon {
+    font-size: 18px;
+}
+
+.db-kpi-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #606266;
+    white-space: nowrap;
+}
+
+.db-kpi-mid {
+    font-size: 32px; /* 进一步增大数字字号 */
+    font-weight: 700;
+    color: #303133;
+    line-height: 1;
+    margin-bottom: 10px;
+}
+
+.db-kpi-bottom {
+    font-size: 13px;
+    color: #909399;
+    min-height: 1.2em; /* 保持对齐 */
+}
+
+/* 针对特定的卡片进行微调（可选） */
+/* 如果你想让第二行的 PVP Cache Stats 特别长，可以通过 nth-child 定位 */
+/* 这里 flex: 1 1 auto 已经能保证它自动填满第二行的剩余空间 */

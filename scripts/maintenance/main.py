@@ -40,10 +40,10 @@ from settings import (
     RABBITMQ_CONFIG
 )
 from db_ops import (
-    maintenance_database,
     aggregate_recent_data,
     refresh_version,
-    get_update_ids,
+    get_user_update_ids,
+    get_clan_update_ids,
     archive_statistics
 )
 
@@ -107,16 +107,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery
         mysql_connection.rollback()
         logger.error(traceback.format_exc())
 
-    # 2.检测数据库是否存在脏数据行，把待写入的recent数据写入归档表
-    try:
-        with mysql_connection.cursor() as cursor:
-            maintenance_database(cursor)
-
-        mysql_connection.commit()
-    except Exception:
-        mysql_connection.rollback()
-        logger.error(traceback.format_exc())
-
+    # 2. 把待写入的recent数据写入归档表
     try:
         with mysql_connection.cursor() as cursor:
             aggregate_recent_data(cursor)
@@ -128,11 +119,14 @@ def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery
 
     # 3.更新玩家/工会的基本数据
     for index in ['user', 'clan']:
-        update_ids = get_update_ids(mysql_connection, redis_client, index)
+        if index == 'user':
+            update_ids = get_user_update_ids(mysql_connection, redis_client)
+        else:
+            update_ids = get_clan_update_ids(mysql_connection, redis_client)
         len_update_ids = len(update_ids)
         if len_update_ids == 0:
             continue
-        logger.info(f'{index.capitalize()} update numbers: {len_update_ids}')
+        logger.info(f'Current {index} update numbers: {len_update_ids}')
 
         failed_count = 0
         logger.enable_tqdm()

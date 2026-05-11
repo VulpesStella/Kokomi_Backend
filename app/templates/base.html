@@ -63,19 +63,27 @@
             <span class="nav-icon">🎮</span>
             <span class="nav-label">Game API</span>
           </a>
-          {#
-          <div class="nav-section-title">更多</div>
-          <a href="#" class="nav-item disabled">
-            <span class="nav-icon">🌐</span>
-            <span class="nav-label">HTTP 请求</span>
-            <span class="nav-badge">不久</span>
-          </a>
-          <a href="#" class="nav-item disabled">
+          <a
+            href="/dashboard/celery"
+            class="nav-item {% if active_page == 'celery' %}active{% endif %}"
+          >
             <span class="nav-icon">⏳</span>
-            <span class="nav-label">Celery 任务</span>
-            <span class="nav-badge">不久</span>
+            <span class="nav-label">Celery Tasks</span>
           </a>
-          #}
+          <a
+            href="/dashboard/database"
+            class="nav-item {% if active_page == 'database' %}active{% endif %}"
+          >
+            <span class="nav-icon">🗄️</span>
+            <span class="nav-label">Database</span>
+          </a>
+          <a
+            href="/dashboard/user-activity"
+            class="nav-item {% if active_page == 'user-activity' %}active{% endif %}"
+          >
+            <span class="nav-icon">👤</span>
+            <span class="nav-label">User Activity</span>
+          </a>
         </nav>
 
         <!-- 底部 GitHub 链接 -->

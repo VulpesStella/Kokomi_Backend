@@ -110,16 +110,35 @@ VALUES
 INSERT INTO T_tracking_meta 
     (tracking_key, tracking_type) 
 VALUES
-    ('ship_users', 'archive_time'),
-    ('ship_battles', 'archive_time'),
+    ('table_meta', 'archive_time'),
     ('ship_stats', 'update_time'),
-    ('maintenance', 'update_time'),
     ('clan_season', 'refresh_time');
 
 INSERT INTO T_table_meta 
     (metric_key, table_name) 
 VALUES
+    ('base_users', 'user_base'),
+    ('base_clans', 'clan_base'),
+    ('base_ships', 'ship_base'),
+    ('planned_users', 'user_stats'),
+    ('planned_clans', 'clan_users'),
     ('total_users', 'user_pvp'),
     ('ship_entries', 'user_pvp'),
     ('total_battles', 'user_pvp'),
     ('leaderboard_rows', 'ship_pvp_leaderboard');
+
+INSERT INTO T_user_refresh_stats 
+    (status)
+VALUES
+    ('overdue'),
+    ('today'),
+    ('within_week'),
+    ('within_month'),
+    ('within_quarter');
+
+INSERT INTO T_user_refresh_hourly_stats
+    (planned_hour)
+VALUES
+    (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),
+    (11),(12),(13),(14),(15),(16),(17),(18),(19),(20),
+    (21),(22),(23),(24);

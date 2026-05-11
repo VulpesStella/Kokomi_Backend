@@ -95,7 +95,7 @@ class JSONResponse:
     API_2015_UserHiddenProfile = {'status': 'ok', 'code': 2015, 'message': 'UserHiddenProfile'}
     API_2016_UserNotInDB = {'status': 'ok', 'code': 2016, 'message': 'UserNotInDB'}
     API_2017_ClanNotInDB = {'status': 'ok', 'code': 2017, 'message': 'ClanNotInDB'}
-
+    API_2018_LeaderboardUnderMaintenance = {'status': 'ok', 'code': 2018, 'message': 'LeaderboardUnderMaintenance'}
 
     # 通用程序错误
     _API_3000_ProgramError = {'status': 'ok', 'code': 3000, 'message': 'ProgramError'}

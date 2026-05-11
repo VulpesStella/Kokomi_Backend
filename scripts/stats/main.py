@@ -209,7 +209,11 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
             logger.info(f'Refreshed {leaderboard_rows} rows leaderboard data')
 
             # 刷新缓存表信息
-            refresh_leaderboard_meta(cursor, leaderboard_rows)
+            try:
+                refresh_leaderboard_meta(cursor, leaderboard_rows)
+                mysql_connection.commit()
+            except Exception:
+                mysql_connection.rollback()
 
         # 更新统计表
         if ship_users != {}:

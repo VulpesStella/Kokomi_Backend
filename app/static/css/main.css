@@ -3,3 +3,5 @@
 @import url("sidebar.css");
 @import url("components.css");
 @import url("pages/overview.css");
+@import url("pages/database.css");
+@import url("pages/user-activity.css");

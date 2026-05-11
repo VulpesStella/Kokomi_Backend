@@ -115,70 +115,6 @@ def _need_update(cursor: Cursor, tracking_key: str, tracking_type: str) -> bool:
 
     return True
 
-def _verify_database(cursor: Cursor, index: str, table_names: list) -> int:
-    """校验 user 或 clan 基础表与关联子表的数据完整性
-
-    检查 T_{index}_base 中 table_count 小于应有数量的记录，
-    为缺失的子表补充初始数据行并修正 table_count
-
-    Args:
-        cursor: 数据库游标
-        index: 表类型标识，'user' 或 'clan'
-        table_names: 应存在的子表名称列表
-
-    Returns:
-        本次修复的行数
-    """
-    fixed_count = 0
-
-    # 根据类型确定主键字段名
-    if index == 'user':
-        id_str = 'account_id'
-    else:
-        id_str = 'clan_id'
-
-    # 找出 table_count 不满足应有数量的记录
-    sql = f"""
-        SELECT 
-            {id_str}
-        FROM T_{index}_base 
-        WHERE table_count < %s;
-    """
-    cursor.execute(sql, [len(table_names)])
-    broken_ids = [row[0] for row in cursor.fetchall()]
-
-    # 遍历每条脏数据，检查并补充缺失的子表行
-    for entity_id in broken_ids:
-        for table_name in table_names:
-            sql = f"""
-                SELECT 
-                    {id_str} 
-                FROM {table_name}
-                WHERE {id_str} = %s;
-            """
-            cursor.execute(sql, [entity_id])
-            result = cursor.fetchone()
-            # 子表缺失记录，插入初始数据并更新计数
-            if result is None:
-                sql = f"""
-                    INSERT INTO {table_name} (
-                        {id_str}
-                    ) VALUES (
-                        %s
-                    );
-                """
-                cursor.execute(sql, [entity_id])
-                sql = f"""
-                    UPDATE T_{index}_base 
-                    SET 
-                        table_count = table_count + 1 
-                    WHERE {id_str} = %s;
-                """
-                cursor.execute(sql, [entity_id])
-                fixed_count += 1
-    
-    return fixed_count
-
 def _verify_ship_archive(cursor: Cursor) -> int:
     """确保近期数据存档表包含最新版本下所有船只的记录
 
@@ -245,14 +181,14 @@ def _verify_ship_archive(cursor: Cursor) -> int:
     return len(missing_ids)
 
 def _archive_base_table(cursor: Cursor, index: str, today: str) -> None:
-    """归档 user 或 clan 基础表的行数到对应的 ARCH 表
+    """归档 user、clan、ship 基础表的行数到对应的 ARCH 表
 
     将当天 T_{index}_base 的行数与归档表中的历史记录比较，
     无记录则插入，有变化则更新
 
     Args:
         cursor: 数据库游标
-        index: 表类型标识，'user' 或 'clan'
+        index: 表类型标识，'user' 'clan' 或 'ship'
         today: 当天日期字符串 YYYY-MM-DD
     """
     # 查询当前数据行数
@@ -260,43 +196,51 @@ def _archive_base_table(cursor: Cursor, index: str, today: str) -> None:
     cursor.execute(sql)
     base_count = cursor.fetchone()[0]
 
-    # 查询今天是否已有用户统计记录
-    sql = f"""
-        SELECT 
-            row_count 
-        FROM ARCH_{index}_base 
-        WHERE stat_date = %s;
+    sql = """
+        UPDATE T_table_meta 
+        SET 
+            metric_value = %s 
+        WHERE metric_key = %s;
     """
-    cursor.execute(sql, [today])
-    base_result = cursor.fetchone()
+    cursor.execute(sql, [base_count, f'base_{index}s'])
 
-    # 处理用户统计
-    if base_result is None:
-        # 没有记录，插入新记录
+    if index != 'ship':
+        # 查询今天是否已有用户统计记录
         sql = f"""
-            INSERT INTO ARCH_{index}_base (
-                stat_date, row_count
-            ) VALUES (
-                %s, %s
-            );
-        """
-        cursor.execute(sql, [today, base_count])
-    elif base_result[0] != base_count:
-        # 有记录但数据有变化，更新
-        sql = f"""
-            UPDATE ARCH_{index}_base 
-            SET 
-                row_count = %s 
+            SELECT 
+                row_count 
+            FROM ARCH_{index}_base 
             WHERE stat_date = %s;
         """
-        cursor.execute(sql, [base_count, today])
+        cursor.execute(sql, [today])
+        base_result = cursor.fetchone()
+
+        # 处理用户统计
+        if base_result is None:
+            # 没有记录，插入新记录
+            sql = f"""
+                INSERT INTO ARCH_{index}_base (
+                    stat_date, row_count
+                ) VALUES (
+                    %s, %s
+                );
+            """
+            cursor.execute(sql, [today, base_count])
+        elif base_result[0] != base_count:
+            # 有记录但数据有变化，更新
+            sql = f"""
+                UPDATE ARCH_{index}_base 
+                SET 
+                    row_count = %s 
+                WHERE stat_date = %s;
+            """
+            cursor.execute(sql, [base_count, today])
 
     logger.info(f'Table archived: T_{index}_base')
 
 def _archive_ship_stats(
     cursor: Cursor, 
     today: str, 
-    refresh_time: str,
     game_version: str, 
     tracking_key: str,
     source_table: str, 
@@ -305,54 +249,18 @@ def _archive_ship_stats(
 ):
     """按需将源表数据归档到对应的 ARCH 表
 
-    判断逻辑：
-        1. 读取上次归档的 tracking_value 和归档日期
-        2. 源表 tracking_value 变化 或 上次归档不是今天 → 触发归档
-        3. 读取源表全量数据，与归档表已有记录对比
-        4. 新 ship_id 执行 INSERT，已有 ship_id 执行 UPDATE
-        5. 更新归档跟踪时间
+    读取源表全量数据，与归档表已有记录对比,
+    新 ship_id 执行 INSERT，已有 ship_id 执行 UPDATE
 
     Args:
         cursor: 数据库游标
         today: 当天日期字符串 YYYY-MM-DD
-        refresh_time: 源表当前的数据刷新时间戳
         game_version: 当前游戏版本号
         tracking_key: 追踪键，用于读取和更新 T_tracking_meta
         source_table: 源表名
         archive_table: 归档表名
         columns: 需要归档的列名列表
     """
-    # 读取上次归档时间
-    sql = """
-        SELECT 
-            UNIX_TIMESTAMP(tracking_value),
-            DATE(updated_at)
-        FROM T_tracking_meta 
-        WHERE tracking_key = %s 
-          AND tracking_type = %s;
-    """
-    cursor.execute(sql, [tracking_key, 'archive_time'])
-    row = cursor.fetchone()
-    last_tracking_value = row[0] if row else None
-    last_archive_date = str(row[1]) if row else None
-
-    # 判断是否需要归档：
-    # 1. tracking_value 不一致（源表数据有变化）
-    # 2. 上次归档日期不是今天（保证每天都有记录）
-    need_archive = False
-    if last_tracking_value is None:
-        need_archive = True
-        logger.debug(f'{source_table} changed: NULL -> {refresh_time}')
-    elif refresh_time != last_tracking_value:
-        need_archive = True
-        logger.debug(f'{source_table} changed: {last_tracking_value} -> {refresh_time}')
-    elif last_archive_date != today:
-        need_archive = True
-        logger.debug(f'{source_table} changed: {last_archive_date} -> {today}')
-
-    if not need_archive:
-        return
-
     # 读取源表全量数据
     col_names = ', '.join(columns)
     cursor.execute(f"SELECT ship_id, {col_names} FROM {source_table}")
@@ -399,19 +307,6 @@ def _archive_ship_stats(
         """
         for row in update_list:
             cursor.execute(update_sql, (*row[1:], row[0], today, game_version))
-    if insert_list or update_list:
-        logger.debug(f'Total: {len(insert_list)} inserted, {len(update_list)} updated')
-
-    # 更新跟踪时间
-    sql = """
-        UPDATE T_tracking_meta 
-        SET 
-            tracking_value = FROM_UNIXTIME(%s),
-            updated_at = CURRENT_TIMESTAMP 
-        WHERE tracking_key = %s 
-          AND tracking_type = 'archive_time';
-    """
-    cursor.execute(sql, [refresh_time, tracking_key])
 
     logger.info(f'Table archived: {archive_table}')
 
@@ -676,37 +571,6 @@ def refresh_version(cursor: Cursor, redis_client: Redis) -> None:
         f"{local_version[0] if local_version else 'NULL'} -> {latest['short']}"
     )
 
-def maintenance_database(cursor: Cursor) -> None:
-    """修复用户和公会基础表中缺失的关联数据行
-
-    遍历 T_user_base / T_clan_base 中 table_count 不满足应有数量的记录，
-    为缺失的子表补充一行初始数据并更新 table_count，
-    同时检查并补全近期数据归档表
-
-    Args:
-        cursor: 数据库游标
-    """
-    # 检测是否需要更新
-    update_sign = _need_update(cursor, 'maintenance', 'update_time')
-    if not update_sign:
-        logger.debug('Skip to maintenance database step')
-        return
-    
-    fixed_count = 0
-    # 效验user表的完整型
-    fixed_count += _verify_database(cursor, 'user', USER_INIT_TABLE_LIST)
-
-    # 效验clan表的完整型
-    fixed_count += _verify_database(cursor, 'clan', CLAN_INIT_TABLE_LIST)
-
-    # 检查并补全近期数据归档表
-    fixed_count += _verify_ship_archive(cursor)
-
-    if fixed_count != 0:
-        logger.info(f'Fixed row counts: {fixed_count}')
-    else:
-        logger.debug('No abnormal data was detected')
-
 def aggregate_recent_data(cursor: Cursor) -> None:
     # 读取所有的船只 ID
     all_ship_ids = _read_ship_ids(cursor)
@@ -814,6 +678,248 @@ def get_update_ids(conn: Connection, redis_client: Redis, index: str) -> list:
 
     return update_list
 
+def get_user_update_ids(conn: Connection, redis_client: Redis) -> list:
+    """分批查询需要更新的 ID 并通过 Redis 分布式锁去重
+
+    使用 id 范围分页，每批 10000 行，调用相应判断函数筛选 due 的 ID，
+    批量获取 Redis 锁后返回成功获取锁的 ID
+
+    Args:
+        conn: 数据库连接
+        redis_client: Redis 客户端
+
+    Returns:
+        成功获取锁的 ID 列表
+    """
+    update_list = []
+    planned_users = 0
+    refresh_stats = [0] * 5
+    refresh_hourly_stats = [0] * 24
+    total_due = 0
+    locked = 0
+
+    try:
+        with conn.cursor() as cursor:
+            # 获取最大 id
+            cursor.execute(f"SELECT MAX(id) FROM T_user_stats;")
+            max_id = cursor.fetchone()[0] or 0
+
+            # 按 id 区间循环
+            for start_id in range(1, max_id + 1, BATCH_SIZE):
+                end_id = start_id + BATCH_SIZE - 1
+                sql = """
+                    SELECT 
+                        u.account_id,
+                        u.is_enabled,
+                        F_user_next_refresh_seconds(
+                            u.is_enabled,
+                            u.updated_at,
+                            u.activity_level,
+                            IFNULL(c.user_level, 0)
+                        ) AS is_due
+                    FROM T_user_stats u
+                    LEFT JOIN T_user_config c 
+                      ON u.account_id = c.account_id
+                    WHERE u.id BETWEEN %s AND %s;
+                """
+                cursor.execute(sql, [start_id, end_id])
+                rows = cursor.fetchall()
+                if not rows:
+                    continue
+                due_ids = []
+                for row in rows:
+                    account_id, is_enabled, remaining_seconds = row
+
+                    if not is_enabled:
+                        # 不可用用户不参加后续统计
+                        continue
+
+                    planned_users += 1
+
+                    # overdue：需要立即刷新
+                    if remaining_seconds == -1:
+                        due_ids.append(account_id)
+                        refresh_stats[0] += 1
+                        # overdue 也算进 hourly_stats 的第 0 小时
+                        refresh_hourly_stats[0] += 1
+                        continue
+
+                    # 统计 refresh_stats：today / within_week / within_month / within_quarter
+                    if remaining_seconds <= 86400:
+                        refresh_stats[1] += 1  # today
+                    elif remaining_seconds <= 604800:
+                        refresh_stats[2] += 1  # within_week
+                    elif remaining_seconds <= 2592000:
+                        refresh_stats[3] += 1  # within_month
+                    elif remaining_seconds <= 7776000:
+                        refresh_stats[4] += 1  # within_quarter
+
+                    # 统计 refresh_hourly_stats：按小时分桶
+                    if remaining_seconds <= 86400:
+                        hour_index = remaining_seconds // 3600
+                        if hour_index < 24:
+                            refresh_hourly_stats[hour_index] += 1
+
+
+                total_due += len(due_ids)
+
+                if due_ids:
+                    pipe = redis_client.pipeline()
+                    keys = [f"refresh_lock:user:{uid}" for uid in due_ids]
+                    for key in keys:
+                        pipe.set(key, 1, nx=True, ex=3600)
+                    results = pipe.execute()
+                    batch_locked = [due_ids[i] for i, r in enumerate(results) if r]
+                    update_list.extend(batch_locked)
+                    locked += len(batch_locked)
+
+                start_id = end_id + 1
+
+    except Exception:
+        logger.error(f"{traceback.format_exc()}")
+        return []
+
+    skipped = total_due - locked
+    logger.debug(
+        'User update schedule - Total: %s | Locked: %s | Skipped: %s',
+        total_due, locked, skipped
+    )
+    
+    try:
+        with conn.cursor() as cursor:
+            # 1. 更新 planned_users
+            cursor.execute("""
+                UPDATE T_table_meta 
+                SET 
+                    metric_value = %s 
+                WHERE metric_key = 'planned_users';
+            """, [planned_users])
+
+            # 2. 更新 refresh_stats
+            status_names = ['overdue', 'today', 'within_week', 'within_month', 'within_quarter']
+            for status, count in zip(status_names, refresh_stats):
+                cursor.execute("""
+                    UPDATE T_user_refresh_stats
+                    SET 
+                        user_count = %s,
+                        updated_at = NOW()
+                    WHERE status = %s;
+                """, (count, status))
+
+            # 3. 更新 refresh_hourly_stats（planned_hour 对应 1~24）
+            for hour_index, count in enumerate(refresh_hourly_stats):
+                planned_hour = hour_index + 1
+                cursor.execute("""
+                    UPDATE T_user_refresh_hourly_stats
+                    SET 
+                        planned_count = %s,
+                        updated_at = NOW()
+                    WHERE planned_hour = %s;
+                """, (count, planned_hour))
+
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        logger.error(traceback.format_exc())
+
+    logger.info('Planned user updates within today: %s', refresh_stats[1])
+
+    return update_list
+
+def get_clan_update_ids(conn: Connection, redis_client: Redis) -> list:
+    """分批查询需要更新的 ID 并通过 Redis 分布式锁去重
+
+    使用 id 范围分页，每批 10000 行，调用相应判断函数筛选 due 的 ID，
+    批量获取 Redis 锁后返回成功获取锁的 ID
+
+    Args:
+        conn: 数据库连接
+        redis_client: Redis 客户端
+
+    Returns:
+        成功获取锁的 ID 列表
+    """
+    update_list = []
+    planned_clans = 0
+    total_due = 0
+    locked = 0
+
+    try:
+        with conn.cursor() as cursor:
+            # 获取最大 id
+            cursor.execute(f"SELECT MAX(id) FROM T_clan_users;")
+            max_id = cursor.fetchone()[0] or 0
+
+            # 按 id 区间循环
+            for start_id in range(1, max_id + 1, BATCH_SIZE):
+                end_id = start_id + BATCH_SIZE - 1
+                sql = """
+                    SELECT 
+                        c.clan_id,
+                        c.is_enabled,
+                        F_is_clan_update_due(
+                            c.is_enabled,
+                            c.updated_at
+                        ) AS is_due
+                    FROM T_clan_users c
+                    WHERE c.id BETWEEN %s AND %s;
+                """
+                cursor.execute(sql, [start_id, end_id])
+                rows = cursor.fetchall()
+                if not rows:
+                    continue
+                due_ids = []
+                for row in rows:
+                    if row[1]:
+                        planned_clans += 1
+                    else:
+                        # 不可用工会不参加后续统计
+                        continue
+                    # 提取 due 的 ID
+                    if row[2]:
+                        due_ids.append(row[0])
+                total_due += len(due_ids)
+
+                if due_ids:
+                    pipe = redis_client.pipeline()
+                    keys = [f"refresh_lock:clan:{uid}" for uid in due_ids]
+                    for key in keys:
+                        pipe.set(key, 1, nx=True, ex=3600)
+                    results = pipe.execute()
+                    batch_locked = [due_ids[i] for i, r in enumerate(results) if r]
+                    update_list.extend(batch_locked)
+                    locked += len(batch_locked)
+
+                start_id = end_id + 1
+
+    except Exception:
+        logger.error(f"{traceback.format_exc()}")
+        return []
+
+    skipped = total_due - locked
+    logger.debug(
+        'Clan update schedule - Total: %s | Locked: %s | Skipped: %s',
+        total_due, locked, skipped
+    )
+
+    
+    try:
+        with conn.cursor() as cursor:
+            # 更新 planned_clans
+            cursor.execute("""
+                UPDATE T_table_meta 
+                SET 
+                    metric_value = %s 
+                WHERE metric_key = 'planned_clans';
+            """, [planned_clans])
+
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        logger.error(traceback.format_exc())
+
+    return update_list
+
 def archive_statistics(cursor: Cursor) -> None:
     """归档用户/公会数量和船只统计数据到对应的 ARCH 表
 
@@ -825,10 +931,14 @@ def archive_statistics(cursor: Cursor) -> None:
     Args:
         cursor: 数据库游标
     """
+    if not _need_update(cursor, 'table_meta', 'archive_time'):
+        logger.debug('Archive time not yet reached')
+        return
+
     today = get_current_iso_time()[:10]
     
     # 归档基础表中的用户和工会数量
-    for index in ['user', 'clan']:
+    for index in ['user', 'clan', 'ship']:
         _archive_base_table(cursor, index, today)
     
     # 获取当前游戏版本号
@@ -846,7 +956,6 @@ def archive_statistics(cursor: Cursor) -> None:
     _archive_ship_stats(
         cursor=cursor,
         today=today,
-        refresh_time=current_tracking_value,
         game_version=game_version,
         tracking_key='ship_users',
         source_table='T_ship_stats_by_users',
@@ -859,7 +968,6 @@ def archive_statistics(cursor: Cursor) -> None:
     _archive_ship_stats(
         cursor=cursor,
         today=today,
-        refresh_time=current_tracking_value,
         game_version=game_version,
         tracking_key='ship_battles',
         source_table='T_ship_stats_by_battles',

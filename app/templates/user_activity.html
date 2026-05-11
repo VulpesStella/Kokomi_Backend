@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}User Activity - KokomiAPI Dashboard{% endblock %}
+{% block page_title %}User Activity &amp; Update Plans{% endblock %}
+
+{% block content %}
+<!-- Row 1: Planned Users/Clans 卡片 + User Level 饼图 + Refresh Plan 饼图 -->
+<div class="ua-row1">
+    <!-- 卡片: Planned Users / Planned Clans -->
+    <div class="db-card ua-planned-card">
+        <div class="db-card-header">
+            <span class="db-card-title">Update Plan Coverage</span>
+        </div>
+        <div class="db-card-body" style="flex-direction: column; gap: 12px;">
+            <div class="db-kpi-item" style="border-right: none;">
+                <div class="db-kpi-top">
+                    <span class="db-kpi-icon">👤</span>
+                    <span class="db-kpi-label">Planned Users</span>
+                </div>
+                <div class="db-kpi-mid">{{ planned_users }}</div>
+                <div class="db-kpi-bottom">&nbsp;</div>
+            </div>
+            <div class="db-kpi-item" style="border-right: none;">
+                <div class="db-kpi-top">
+                    <span class="db-kpi-icon">🏠</span>
+                    <span class="db-kpi-label">Planned Clans</span>
+                </div>
+                <div class="db-kpi-mid">{{ planned_clans }}</div>
+                <div class="db-kpi-bottom">&nbsp;</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 饼图1: User Level Distribution -->
+    <div class="db-card ua-pie-card">
+        <div class="db-card-header">
+            <span class="db-card-title">User Level Distribution</span>
+        </div>
+        <div class="db-card-body ua-pie-body">
+            <div id="user-level-pie" class="ua-pie-chart"></div>
+        </div>
+    </div>
+
+    <!-- 饼图2: Refresh Plan Distribution -->
+    <div class="db-card ua-pie-card">
+        <div class="db-card-header">
+            <span class="db-card-title">Refresh Plan Distribution</span>
+        </div>
+        <div class="db-card-body ua-pie-body">
+            <div id="refresh-plan-pie" class="ua-pie-chart"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 2: User Activity Distribution 柱状图 -->
+<div class="chart-panel-full">
+    <div class="chart-header">
+        <span class="chart-title-text">User Activity Level Distribution (0-9)</span>
+    </div>
+    <div id="activity-bar-chart" class="chart-container" style="height: 350px;"></div>
+</div>
+
+<!-- Row 3: 24h Scheduled Refresh 柱状图 -->
+<div class="chart-panel-full">
+    <div class="chart-header">
+        <span class="chart-title-text">24-Hour Scheduled Refresh</span>
+    </div>
+    <div id="hourly-bar-chart" class="chart-container" style="height: 350px;"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Pie 1: User Level Distribution
+(function() {
+    var chartData = JSON.parse('{{ user_level_chart_json | safe }}');
+    var chart = echarts.init(document.getElementById('user-level-pie'));
+    chart.setOption({
+        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+        legend: {
+            orient: 'vertical',
+            right: 5,
+            top: 'center',
+            data: chartData.legend,
+            textStyle: { fontSize: 11 }
+        },
+        series: [{
+            type: 'pie',
+            radius: ['45%', '72%'],
+            center: ['35%', '50%'],
+            label: { show: false },
+            emphasis: {
+                label: { show: true, fontSize: 14, fontWeight: 'bold' },
+                scaleSize: 8
+            },
+            data: chartData.data,
+            itemStyle: {
+                borderRadius: 4,
+                borderColor: '#fff',
+                borderWidth: 2
+            }
+        }]
+    });
+    window.addEventListener('resize', function() { chart.resize(); });
+})();
+
+// Pie 2: Refresh Plan Distribution
+(function() {
+    var chartData = JSON.parse('{{ refresh_plan_chart_json | safe }}');
+    var chart = echarts.init(document.getElementById('refresh-plan-pie'));
+    chart.setOption({
+        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+        legend: {
+            orient: 'vertical',
+            right: 5,
+            top: 'center',
+            data: chartData.legend,
+            textStyle: { fontSize: 10 }
+        },
+        series: [{
+            type: 'pie',
+            radius: ['45%', '72%'],
+            center: ['35%', '50%'],
+            label: { show: false },
+            emphasis: {
+                label: { show: true, fontSize: 14, fontWeight: 'bold' },
+                scaleSize: 8
+            },
+            data: chartData.data,
+            itemStyle: {
+                borderRadius: 4,
+                borderColor: '#fff',
+                borderWidth: 2
+            }
+        }]
+    });
+    window.addEventListener('resize', function() { chart.resize(); });
+})();
+
+// Bar: User Activity Distribution (0-9)
+(function() {
+    var chartData = JSON.parse('{{ activity_chart_json | safe }}');
+    var chart = echarts.init(document.getElementById('activity-bar-chart'));
+    chart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '3%', right: '4%', bottom: '16%', top: '5%', containLabel: true },
+        xAxis: {
+            type: 'category',
+            data: chartData.labels,
+            name: 'Activity Level',
+            nameLocation: 'center',
+            nameGap: 35,
+            axisLabel: { fontSize: 12 }
+        },
+        yAxis: {
+            type: 'value',
+            name: 'Users'
+        },
+        series: [{
+            data: chartData.values,
+            type: 'bar',
+            barMaxWidth: 50,
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: '#83bff6' },
+                    { offset: 1, color: '#188df0' }
+                ]),
+                borderRadius: [4, 4, 0, 0]
+            }
+        }]
+    });
+    window.addEventListener('resize', function() { chart.resize(); });
+})();
+
+// Bar: 24h Scheduled Refresh
+(function() {
+    var chartData = JSON.parse('{{ hourly_chart_json | safe }}');
+    var chart = echarts.init(document.getElementById('hourly-bar-chart'));
+    chart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+        xAxis: {
+            type: 'category',
+            data: chartData.labels,
+            name: 'Hour',
+            axisLabel: { rotate: 30, fontSize: 11, interval: 0 }
+        },
+        yAxis: {
+            type: 'value',
+            name: 'Planned Count'
+        },
+        series: [{
+            data: chartData.values,
+            type: 'bar',
+            barMaxWidth: 40,
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: '#a8edea' },
+                    { offset: 1, color: '#2dd4bf' }
+                ]),
+                borderRadius: [4, 4, 0, 0]
+            }
+        }]
+    });
+    window.addEventListener('resize', function() { chart.resize(); });
+})();
+</script>
+{% endblock %}

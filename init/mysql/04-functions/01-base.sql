@@ -165,3 +165,51 @@ BEGIN
       AND r_val >= threshold;
     RETURN result;
 END;
+
+CREATE FUNCTION F_user_next_refresh_seconds(
+    p_is_enabled     BOOLEAN,
+    p_updated_at     TIMESTAMP,
+    p_activity_level TINYINT,
+    p_user_level     TINYINT
+) RETURNS INT
+    READS SQL DATA
+    DETERMINISTIC
+BEGIN
+    DECLARE v_interval INT;
+    DECLARE v_next_refresh_at TIMESTAMP;
+    DECLARE v_remaining_seconds INT;
+
+    -- 新用户需要立即刷新
+    IF p_updated_at IS NULL THEN
+        RETURN -1;
+    END IF;
+
+    -- 不可用用户不需要刷新，返回一个很大的值表示无需刷新
+    IF p_is_enabled IS FALSE THEN
+        RETURN 10000000;
+    END IF;
+
+    -- 查询更新间隔策略
+    SELECT interval_seconds
+    INTO v_interval
+    FROM D_user_activity_strategy
+    WHERE activity_level = p_activity_level
+      AND user_level = p_user_level
+    LIMIT 1;
+
+    -- 默认 1 天
+    SET v_interval = IFNULL(v_interval, 86400);
+
+    -- 计算下次刷新时间
+    SET v_next_refresh_at = p_updated_at + INTERVAL v_interval SECOND;
+
+    -- 计算剩余秒数
+    SET v_remaining_seconds = TIMESTAMPDIFF(SECOND, NOW(), v_next_refresh_at);
+
+    -- 如果已经到期，返回 -1 表示需要立即刷新
+    IF v_remaining_seconds <= 0 THEN
+        RETURN -1;
+    END IF;
+
+    RETURN v_remaining_seconds;
+END;

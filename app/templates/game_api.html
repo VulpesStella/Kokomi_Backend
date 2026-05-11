@@ -4,10 +4,135 @@
 {% block page_title %}Game API{% endblock %}
 
 {% block content %}
-<div class="chart-panel-full" style="display: flex; align-items: center; justify-content: center; min-height: 400px;">
-    <p style="color: var(--text-secondary); font-size: 16px;">🚧 Page construction in progress...</p>
+<!-- 30日 API 调用量折线图 -->
+<div class="chart-panel-full">
+    <div class="chart-header">
+        <span class="chart-title-text">30-Day API Call Volume</span>
+    </div>
+    <div id="api-volume-chart" class="chart-container"></div>
+</div>
+
+<!-- 30日 API 错误率折线图 -->
+<div class="chart-panel-full">
+    <div class="chart-header">
+        <span class="chart-title-text">30-Day API Error Rate</span>
+    </div>
+    <div id="api-error-rate-chart" class="chart-container"></div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
+<script>
+// 30-Day API Call Volume 折线图
+(function() {
+    var chartData = JSON.parse('{{ http_total_chart_json | safe }}');
+    var chart = echarts.init(document.getElementById('api-volume-chart'));
+    var option = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross' }
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '10%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: chartData.labels,
+            axisLabel: {
+                rotate: 30,
+                fontSize: 11,
+                interval: 0
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: chartData.yAxisName || 'Requests'
+        },
+        series: [{
+            data: chartData.values,
+            type: 'line',
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            lineStyle: {
+                color: '#667eea',
+                width: 2
+            },
+            itemStyle: {
+                color: '#667eea'
+            },
+            areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(102, 126, 234, 0.3)' },
+                    { offset: 1, color: 'rgba(102, 126, 234, 0.02)' }
+                ])
+            }
+        }]
+    };
+    chart.setOption(option);
+    window.addEventListener('resize', function() { chart.resize(); });
+})();
+
+// 30-Day API Error Rate 折线图
+(function() {
+    var chartData = JSON.parse('{{ http_error_rate_chart_json | safe }}');
+    var chart = echarts.init(document.getElementById('api-error-rate-chart'));
+    var option = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross' },
+            valueFormatter: function(value) {
+                return value !== null ? value + '%' : '-';
+            }
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '10%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: chartData.labels,
+            axisLabel: {
+                rotate: 30,
+                fontSize: 11,
+                interval: 0
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: chartData.yAxisName || 'Error Rate (%)',
+            axisLabel: {
+                formatter: '{value}%'
+            }
+        },
+        series: [{
+            data: chartData.values,
+            type: 'line',
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            lineStyle: {
+                color: '#fa709a',
+                width: 2
+            },
+            itemStyle: {
+                color: '#fa709a'
+            },
+            areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(250, 112, 154, 0.25)' },
+                    { offset: 1, color: 'rgba(250, 112, 154, 0.02)' }
+                ])
+            }
+        }]
+    };
+    chart.setOption(option);
+    window.addEventListener('resize', function() { chart.resize(); });
+})();
+</script>
 {% endblock %}

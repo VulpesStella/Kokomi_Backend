@@ -17,38 +17,37 @@
     {% endfor %}
 </div>
 
-<!-- 请求量趋势图（24h / 30d 切换） -->
+<!-- 24h Requests / Errors 切换 -->
 <div class="chart-panel-full overview-chart">
     <div class="chart-header">
-        <span class="chart-title-text">API Request Trend</span>
+        <span class="chart-title-text">24-Hour API Requests & Errors</span>
         <div class="chart-toggle">
-            <button class="toggle-btn active" data-period="24h">24h</button>
-            <button class="toggle-btn" data-period="30d">30d</button>
+            <button class="toggle-btn active" data-series="requests">Requests</button>
+            <button class="toggle-btn" data-series="errors">Errors</button>
         </div>
     </div>
     <div id="request-trend-chart" class="chart-container"></div>
 </div>
 
-<!-- Celery 任务消费趋势 -->
+<!-- 30日 API 调用趋势折线图 -->
 <div class="chart-panel-full overview-chart">
     <div class="chart-header">
-        <span class="chart-title-text">Celery Task Consumption (30d)</span>
+        <span class="chart-title-text">30-Day API Call Trend</span>
     </div>
-    <div id="celery-trend-chart" class="chart-container"></div>
+    <div id="monthly-line-chart" class="chart-container"></div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-// API Request Trend 图表
+// 24h Requests / Errors 切换柱状图
 (function() {
     var chart24h = JSON.parse('{{ overview_chart_json | safe }}');
-    var chart30d = JSON.parse('{{ monthly_chart_json | safe }}');
-    var currentPeriod = '24h';
+    var currentSeries = 'requests';
 
     var chart = echarts.init(document.getElementById('request-trend-chart'));
 
-    function render24h() {
+    function renderRequests() {
         chart.setOption({
             tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
             grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
@@ -57,9 +56,10 @@
                 data: chart24h.labels,
                 axisLabel: { rotate: 30, fontSize: 11, interval: 0 }
             },
-            yAxis: { type: 'value', name: chart24h.yAxisName || 'Requests' },
+            yAxis: { type: 'value', name: 'Requests' },
             series: [{
-                data: chart24h.values,
+                name: 'Requests',
+                data: chart24h.request_values,
                 type: 'bar',
                 itemStyle: {
                     color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -74,92 +74,101 @@
         }, true);
     }
 
-    function render30d() {
+    function renderErrors() {
         chart.setOption({
             tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
             grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
             xAxis: {
                 type: 'category',
-                data: chart30d.labels,
+                data: chart24h.labels,
                 axisLabel: { rotate: 30, fontSize: 11, interval: 0 }
             },
-            yAxis: { type: 'value', name: chart30d.yAxisName || 'Requests' },
+            yAxis: { type: 'value', name: 'Errors' },
             series: [{
-                data: chart30d.values,
+                name: 'Errors',
+                data: chart24h.error_values,
                 type: 'bar',
                 itemStyle: {
                     color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                        { offset: 0, color: '#f093fb' },
-                        { offset: 1, color: '#f5576c' }
+                        { offset: 0, color: '#fca5a5' },
+                        { offset: 1, color: '#ef4444' }
                     ]),
                     borderRadius: [4, 4, 0, 0]
                 },
-                barMaxWidth: 30,
+                barMaxWidth: 50,
                 animationDuration: 300
             }]
         }, true);
     }
 
-    render24h();
+    renderRequests();
 
     var buttons = document.querySelectorAll('.toggle-btn');
     buttons.forEach(function(btn) {
         btn.addEventListener('click', function() {
-            var period = this.getAttribute('data-period');
-            if (period === currentPeriod) return;
+            var series = this.getAttribute('data-series');
+            if (series === currentSeries) return;
             buttons.forEach(function(b) { b.classList.remove('active'); });
             this.classList.add('active');
-            if (period === '24h') {
-                render24h();
+            if (series === 'requests') {
+                renderRequests();
             } else {
-                render30d();
+                renderErrors();
             }
-            currentPeriod = period;
+            currentSeries = series;
         });
     });
 
     window.addEventListener('resize', function() { chart.resize(); });
 })();
 
-// Celery Task Consumption 图表
+// 30-Day API Call Trend 折线图
 (function() {
-    var chartData = JSON.parse('{{ celery_chart_json | safe }}');
-    var chart = echarts.init(document.getElementById('celery-trend-chart'));
+    var chartData = JSON.parse('{{ monthly_line_chart_json | safe }}');
+    var chart = echarts.init(document.getElementById('monthly-line-chart'));
     var option = {
-        tooltip: { 
+        tooltip: {
             trigger: 'axis',
-            axisPointer: { type: 'shadow' }
+            axisPointer: { type: 'cross' }
         },
-        grid: { 
-            left: '3%', 
-            right: '4%', 
-            bottom: '10%', 
-            containLabel: true 
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '10%',
+            containLabel: true
         },
         xAxis: {
             type: 'category',
             data: chartData.labels,
-            axisLabel: { 
-                rotate: 30, 
+            axisLabel: {
+                rotate: 30,
                 fontSize: 11,
                 interval: 0
             }
         },
-        yAxis: { 
+        yAxis: {
             type: 'value',
-            name: chartData.yAxisName || 'Tasks'
+            name: chartData.yAxisName || 'Call Count'
         },
         series: [{
             data: chartData.values,
-            type: 'bar',
-            itemStyle: {
-                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                    { offset: 0, color: '#a8edea' },
-                    { offset: 1, color: '#2dd4bf' }
-                ]),
-                borderRadius: [4, 4, 0, 0]
+            type: 'line',
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            lineStyle: {
+                color: '#667eea',
+                width: 2
             },
-            barMaxWidth: 30
+            itemStyle: {
+                color: '#667eea'
+            },
+            areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(102, 126, 234, 0.3)' },
+                    { offset: 1, color: 'rgba(102, 126, 234, 0.02)' }
+                ])
+            }
         }]
     };
     chart.setOption(option);

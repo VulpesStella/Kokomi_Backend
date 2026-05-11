@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Celery - KokomiAPI Dashboard{% endblock %}
+{% block page_title %}Celery Task Consumer{% endblock %}
+
+{% block content %}
+<!-- Row 1 -->
+<div class="cards-row">
+    {% for card in cards_row1 %}
+    <div class="metric-card" style="border-top: 3px solid {{ card.color }};">
+        <div class="card-header">
+            <span class="card-icon">{{ card.icon }}</span>
+            <span class="card-title">{{ card.title }}</span>
+        </div>
+        <div class="card-value">{{ card.value }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Row 2 -->
+<div class="cards-row">
+    {% for card in cards_row2 %}
+    <div class="metric-card" style="border-top: 3px solid {{ card.color }};">
+        <div class="card-header">
+            <span class="card-icon">{{ card.icon }}</span>
+            <span class="card-title">{{ card.title }}</span>
+        </div>
+        <div class="card-value">{{ card.value }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 30日 Celery 任务消费趋势折线图 -->
+<div class="chart-panel-full">
+    <div class="chart-header">
+        <span class="chart-title-text">30-Day Celery Task Consumption</span>
+    </div>
+    <div id="celery-trend-chart" class="chart-container"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// 30-Day Celery Task Consumption 折线图
+(function() {
+    var chartData = JSON.parse('{{ celery_chart_json | safe }}');
+    var chart = echarts.init(document.getElementById('celery-trend-chart'));
+    var option = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross' }
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '10%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: chartData.labels,
+            axisLabel: {
+                rotate: 30,
+                fontSize: 11,
+                interval: 0
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: chartData.yAxisName || 'Tasks'
+        },
+        series: [{
+            data: chartData.values,
+            type: 'line',
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            lineStyle: {
+                color: '#2dd4bf',
+                width: 2
+            },
+            itemStyle: {
+                color: '#2dd4bf'
+            },
+            areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(45, 212, 191, 0.3)' },
+                    { offset: 1, color: 'rgba(45, 212, 191, 0.02)' }
+                ])
+            }
+        }]
+    };
+    chart.setOption(option);
+    window.addEventListener('resize', function() { chart.resize(); });
+})();
+</script>
+{% endblock %}

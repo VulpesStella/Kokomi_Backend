@@ -11,7 +11,7 @@ from app.apis.demo import (
 router = APIRouter(prefix="/demo")
 
 
-ALLOWED_TRACKING_KEYS = Literal['ship_users', 'ship_battles', 'ship_stats', 'maintenance', 'clan_season']
+ALLOWED_TRACKING_KEYS = Literal['table_meta', 'ship_stats', 'clan_season']
 
 
 @router.get("/raise_error/", summary="测试生成错误日志功能")

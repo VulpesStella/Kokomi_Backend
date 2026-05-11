@@ -113,6 +113,7 @@ class ShipRankingAPI:
         Returns:
             ResponseDict
         """
+
         # 1. 获取并验证符合条件的船只ID列表
         error, ship_ids = await cls._get_ship_ids()
         if error:
@@ -136,6 +137,17 @@ class ShipRankingAPI:
         ship_ranking_key = f"leaderboard:ship:{ship_id}"
         start = (page_index - 1) * page_size
         stop = start + page_size - 1
+        
+        # 检测是否处于维护状态
+        maintenance_key = 'leaderboard:maintenance'
+        error, maintenance = JSONResponse.extract_data_strict(
+            response=await RedisClient.get(maintenance_key)
+        )
+        if error:
+            return maintenance
+        
+        if maintenance:
+            return JSONResponse.API_2018_LeaderboardUnderMaintenance
 
         # 5. 获取排行榜总人数
         error, total_users = JSONResponse.extract_data_strict(
@@ -209,6 +221,17 @@ class ShipRankingAPI:
 
         if ship_id not in ship_ids:
             return JSONResponse.API_1000_Success
+        
+        # 检测是否处于维护状态
+        maintenance_key = 'leaderboard:maintenance'
+        error, maintenance = JSONResponse.extract_data_strict(
+            response=await RedisClient.get(maintenance_key)
+        )
+        if error:
+            return maintenance
+        
+        if maintenance:
+            return JSONResponse.API_2018_LeaderboardUnderMaintenance
 
         # 2. 获取用户排名
         ship_ranking_key = f"leaderboard:ship:{ship_id}"

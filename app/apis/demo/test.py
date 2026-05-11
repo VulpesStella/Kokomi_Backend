@@ -5,7 +5,7 @@ from app.constants import ClanColor
 from app.loggers import ExceptionLogger
 from app.network import DemoExternalAPI
 from app.response import JSONResponse, ResponseDict
-from app.models import RecentModel
+from app.models import DemoRecentModel
 from app.middlewares import RedisClient
 
 
@@ -178,7 +178,7 @@ class TestAPI:
         if target_level is None:
             return JSONResponse.API_1000_Success
         
-        return await RecentModel.test_set_recent_level(account_id, target_level)
+        return await DemoRecentModel.set_recent_level(account_id, target_level)
 
     @ExceptionLogger.handle_program_exception_async
     async def del_recent(account_id: int, level: str):
@@ -191,7 +191,7 @@ class TestAPI:
         if target_level is None:
             return JSONResponse.API_1000_Success
         
-        result = await RecentModel.test_reduce_recent_level(account_id, target_level)
+        result = await DemoRecentModel.reduce_recent_level(account_id, target_level)
         if result['code'] != 1000:
             return result
         
