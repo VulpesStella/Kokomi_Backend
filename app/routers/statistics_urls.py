@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query, Path
 
-from app.apis.statistics import StatsAPI, RankingAPI
+from app.apis.statistics import StatsAPI
 from app.schemas import PVPField
 from app.response import JSONResponse
 from app.utils import GameUtils

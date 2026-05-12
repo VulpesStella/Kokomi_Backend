@@ -31,7 +31,7 @@ MYSQL_CONFIG = {
 REDIS_CONFIG = {
     "host": os.getenv("REDIS_HOST"),
     "port": int(os.getenv("REDIS_PORT", 6379)),
-    "db": 0,
+    "db": int(os.getenv("REDIS_DATABASE", 0)),
     "password": os.getenv("REDIS_PASSWORD"),
     "decode_responses": True
 }

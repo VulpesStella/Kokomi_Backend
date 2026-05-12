@@ -1,6 +1,18 @@
+"""
+工具函数模块
+
+提供时间戳生成和船只综合 PR 值计算等通用工具函数。
+PR 值基于玩家数据与服务器均值的比值，经过归一化后得出的综合评分。
+"""
+
 from datetime import datetime, timezone
 
 from settings import DATE_FMT
+
+
+def get_formatted_date() -> str:
+    """获取当前日期格式化字符串，用于日志输出"""
+    return datetime.now().strftime(DATE_FMT)
 
 def get_current_timestamp() -> int:
     """获取当前 UTC 时间的 int 类型时间戳（秒）"""
@@ -14,11 +26,7 @@ def get_current_utc_hour() -> str:
     """获取当前 UTC 小时数 (0-23)"""
     return datetime.now(timezone.utc).hour
 
-def get_formatted_date() -> str:
-    """获取当前日期格式化字符串，用于日志输出"""
-    return datetime.now().strftime(DATE_FMT)
-
-def calc_ship_rating(player_stats: list, benchmark_stats: list):
+def calc_ship_rating(player_stats: list, benchmark_stats: list) -> float:
     """计算单艘船的个人 Rating
 
     Args:

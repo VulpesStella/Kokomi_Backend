@@ -2,25 +2,38 @@
 # -*- coding: utf-8 -*-
 
 """
-用户PVP数据缓存更新系统
+用户 PvP 数据缓存更新系统 —— 主调度模块
 
-定期更新玩家的PVP战斗数据缓存，包括个人统计、船只数据、排行榜排名等信息。
-该服务作为后台维护进程，持续监控需要更新的用户列表，并通过调用外部API获取最新数据，
-将处理后的数据存储到MySQL数据库和Redis缓存中。
+# 功能概述：
+以后台常驻进程方式运行，周期性拉取待更新用户的 PvP 战斗数据，计算个人统计、
+船只 Rating、排行榜排名等信息，并将结果持久化到 MySQL 和 Redis。
 
-工作流程：
-    1. 初始化异步HTTP客户端、Redis、MySQL连接
-    2. 获取需要更新的用户ID列表
-    3. 并发处理每个用户的数据更新
-    4. 异常恢复与资源清理
-    5. 检测维护模式，必要时等待
-    6. 计算循环耗时，调整sleep时间
+# 模块分工：
+- main.py   （本文件）—— 主调度循环、连接管理、维护模式检测
+- api.py               —— 外部 WoWS API 异步请求封装
+- syncer.py            —— 用户基础信息（T_user_base / T_user_stats）同步
+- updater.py           —— PvP 缓存、极值记录、排行榜的计算与写入
+- db_ops.py            —— 数据库查询操作（待更新列表、基准数据）
+- utils.py             —— 时间工具、Rating 计算
+- logger.py            —— tqdm 兼容日志器
+- settings.py          —— 环境变量加载与全局配置常量
 
-维护模式流程：
-    - 主循环正常运行
-    - 若检测到'leaderboard:maintenance' key则抛出MaintenanceInterrupt异常
-    - 进入维护等待循环，每30秒检查一次
-    - 最多等待10分钟，10分钟后无论如何都会退出
+# 主循环流程：
+    1. 建立 Redis / MySQL / httpx 连接
+    2. 写入服务状态 key（status:{CLIENT_NAME}），供外部监控探活
+    3. 调用 worker()：
+        a. 从 MySQL 加载待更新用户列表 & 船只基准数据 & 极值记录
+        b. 检查维护模式（leaderboard:maintenance），必要时等待（最长 10 分钟）
+        c. 遍历用户列表，逐个调用 UserCacheUpdater.main() 更新缓存
+    4. 写入 ship_update_time 时间戳，标记本轮完成
+    5. finally 块释放所有连接并 gc.collect()，减少空闲资源占用
+    6. 计算本轮耗时，按 REFRESH_INTERVAL 补齐 sleep
+
+# 维护模式：
+    - 排行榜数据库全表更新期间会锁全表，为避免写冲突，检测到 Redis key
+      'leaderboard:maintenance' 时进入等待循环
+    - 每 30 秒轮询一次，key 消失后立即退出等待
+    - 硬超时 10 分钟，防止因异常导致永久阻塞
 """
 
 import os
@@ -92,7 +105,17 @@ def progress_iterable(
             yield item
 
 async def worker(mysql_connection: Connection, redis_client: Redis, async_client: AsyncClient) -> None:
-    # 1. 加载循环需要的一些船只数据
+    """单轮缓存更新执行体
+
+    加载待更新用户列表和船只基准数据，经过维护模式检测后遍历用户列表，
+    对每个用户调用 UserCacheUpdater.main() 完成数据拉取与写入。
+
+    Args:
+        mysql_connection: MySQL 数据库连接
+        redis_client: Redis 客户端
+        async_client: httpx 异步 HTTP 客户端
+    """
+    # 加载待更新用户列表、船只基准数据和极值记录
     try:
         with mysql_connection.cursor() as cursor:
             update_ids = get_update_ids(cursor)
@@ -156,6 +179,12 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
     logger.disable_tqdm()
 
 async def main():
+    """主调度循环
+
+    无限循环执行：建立连接 → worker() 更新缓存 → 写入完成时间戳 →
+    释放连接资源 → 按 REFRESH_INTERVAL 补齐 sleep。
+    异常不会中断循环，但会清理服务状态 key 以便外部监控感知。
+    """
     async_client = None
     redis_client = None
     mysql_connection = None
@@ -214,7 +243,7 @@ async def main():
 def handler(*_):
     """信号处理器，退出"""
     logger.info('The process is closing')
-    exit(0)
+    os._exit(0)
 
 if __name__ == '__main__':
     logger.info('Start running service: %s', CLIENT_NAME)

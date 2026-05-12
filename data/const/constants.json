@@ -51,14 +51,6 @@
     "T_clan_users",
     "T_clan_stats"
   ],
-  "RANKING_BATTLES_LIMIT": {
-    "6": 40,
-    "7": 40,
-    "8": 40,
-    "9": 50,
-    "10": 60,
-    "11": 60
-  },
   "METRIC_RATING_THRESHOLDS": {
     "damage": [
       0.8,

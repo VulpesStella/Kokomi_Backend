@@ -1,3 +1,11 @@
+"""
+用户 PvP 缓存数据更新模块
+
+负责从外部 API 拉取用户 PvP 数据，提取各项统计指标并计算 Rating，
+将处理结果写入 MySQL 各表（用户缓存、最高记录、船只极值、排行榜），
+同时计算近期增量写入暂存表并同步 Redis 排行榜有序集合。
+"""
+
 import json
 import uuid
 import traceback
@@ -258,7 +266,7 @@ class UserCacheUpdater:
         - 相同用户重复平记录：忽略
 
         Args:
-            ship_pvp_cache: {ship_id: [exp, frags, planes, damage, scouting, potential]}
+            ship_pvp_record: {ship_id: [exp, frags, planes, damage, scouting, potential]}
             account_id: 当前用户 ID
 
         Returns:
@@ -564,30 +572,6 @@ class UserCacheUpdater:
         cursor.execute(sql, [str(uuid.uuid4()), version[0], account_id, json.dumps(diff_data)])
         return
 
-    @staticmethod
-    def _update_redis_leaderboard(
-        redis_client: Redis, 
-        ship_ranking_cache: dict, 
-        account_id: int
-    ) -> None:
-        """更新 Redis 中的船只排行榜数据
-
-        使用 pipeline 批量写入有序集合，提高性能
-
-        Args:
-            redis_client: Redis 客户端
-            ship_ranking_cache: 排行榜缓存数据
-            account_id: 用户 ID
-        """
-        if not ship_ranking_cache:
-            return
-        
-        pipe = redis_client.pipeline()
-        for ship_id, values in ship_ranking_cache.items():
-            key = f"leaderboard:ship:{ship_id}"
-            pipe.zadd(key, {str(account_id): values[1]})
-        pipe.execute()
-
     async def main(
         self,
         mysql_connection: Connection,
@@ -637,9 +621,9 @@ class UserCacheUpdater:
             
             # 处理隐藏战绩或无数据的用户
             if self._is_invalid_or_hidden_profile(basic_data):
-                handel_result = self._handle_hidden_profile(mysql_connection, account_id)
-                if handel_result:
-                    logger.error(f'{account_id} | Refresh failed: {refresh_result}')
+                handle_result = self._handle_hidden_profile(mysql_connection, account_id)
+                if handle_result:
+                    logger.error(f'{account_id} | Handle hidden profile failed: {handle_result}')
                 return
             
             # 提取统计数据

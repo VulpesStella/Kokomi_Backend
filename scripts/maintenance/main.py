@@ -2,19 +2,37 @@
 # -*- coding: utf-8 -*-
 
 """
-数据更新调度服务主程序
+数据更新调度服务 —— 主调度模块
 
-定期检测游戏版本变化、修复数据库脏数据、聚合暂存数据，
-并根据用户和公会的活跃度策略，通过 Celery 向消息队列分发数据刷新任务，
-最后将当前统计数据归档留存
+=== 功能概述 ===
+以后台常驻进程方式运行，周期性检测游戏版本更新、聚合暂存数据、
+根据活跃度策略筛选需刷新的用户/公会，通过 Celery + RabbitMQ 向消息队列
+分发异步刷新任务，最后将当前统计数据归档到 ARCH 表。
 
-工作流程：
-    1. 检测游戏版本是否更新，同步最新版本信息
-    2. 修复基础表中缺失的关联数据行，聚合暂存中的 Recent 数据
-    3. 分批扫描用户和公会基础表，筛选需要刷新的 ID
-    4. 通过 Celery 将刷新任务发送到消息队列，由 Worker 异步执行
-    5. 归档用户/公会数量和船只统计数据到 ARCH 表
-    6. 等待下一个刷新周期
+=== 模块分工 ===
+- main.py    （本文件）—— 主调度循环、连接管理、Celery 任务分发
+- api.py                —— 外部 API 请求封装（游戏版本拉取）
+- db_ops.py             —— 数据库读写（版本同步、暂存聚合、ID 筛选、统计归档）
+- utils.py              —— 时间工具函数
+- logger.py             —— tqdm 兼容日志器
+- settings.py           —— 环境变量加载与全局配置常量
+
+=== 主循环流程 ===
+    1. 建立 Redis / MySQL / Celery 连接，写入服务状态 key
+    2. 调用 worker()：
+        a. 每小时检测游戏版本变化，同步最新版本信息
+        b. 聚合 STAGING_ship_recent_data 中的 pending 数据到归档表
+        c. 分批扫描 T_user_stats / T_clan_users，按活跃度策略筛选 due 的 ID
+        d. 通过 Redis 分布式锁（refresh_lock:*:）去重，避免重复分发
+        e. 对获取到锁的 ID，通过 Celery send_task 发送到 refresh_queue
+        f. 发送失败的 ID 删除 Redis 锁，允许下次重试
+        g. 归档用户 / 公会数量和船只统计数据到 ARCH 表
+    3. finally 块释放连接并 gc.collect()
+    4. 计算耗时，按 REFRESH_INTERVAL 补齐 sleep
+
+=== 信号处理 ===
+    - Linux:  注册 SIGTERM 处理器，接收信号后调用 os._exit(0)
+    - Windows: 无法捕获 SIGTERM，通过 KeyboardInterrupt 模拟
 """
 
 import os
@@ -97,6 +115,16 @@ def progress_iterable(
             yield item
 
 def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery) -> None:
+    """单轮维护调度执行体
+
+    执行版本同步、暂存数据聚合、用户/公会刷新 ID 筛选与 Celery 任务分发、
+    以及统计数据归档共四个阶段的维护操作。
+
+    Args:
+        mysql_connection: MySQL 数据库连接
+        redis_client: Redis 客户端
+        celery_app: Celery 应用实例
+    """
     # 1.每小时检测游戏版本是否更新
     try:
         with mysql_connection.cursor() as cursor:
@@ -152,6 +180,12 @@ def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery
         logger.error(traceback.format_exc())
 
 def main():
+    """主调度循环
+
+    初始化 Celery 应用后进入无限循环：建立连接 → worker() 执行维护任务 →
+    释放连接资源 → 按 REFRESH_INTERVAL 补齐 sleep。
+    异常不会中断循环，但会清理服务状态 key 以便外部监控感知。
+    """
     redis_client = None
     mysql_connection = None
     broker_url = f"pyamqp://{RABBITMQ_CONFIG['user']}:{RABBITMQ_CONFIG['password']}@{RABBITMQ_CONFIG['host']}/"
@@ -178,7 +212,8 @@ def main():
             logger.error(traceback.format_exc())
             # 严重错误导致的循环中断，删除用于标记服务状态的key
             try:
-                redis_client.delete(f'status:{CLIENT_NAME}')
+                if redis_client:
+                    redis_client.delete(f'status:{CLIENT_NAME}')
             except Exception as e:
                 logger.error(f'Failed to delete status key: {e}')
         finally:
@@ -205,7 +240,7 @@ def main():
 def handler(*_):
     """信号处理器，退出"""
     logger.info('The process is closing')
-    exit(0)
+    os._exit(0)
 
 if __name__ == '__main__':
     logger.info('Start running service: %s', CLIENT_NAME)

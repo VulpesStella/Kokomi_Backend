@@ -1,3 +1,13 @@
+"""
+数据库读写操作模块
+
+封装维护调度服务所需的 MySQL 查询与写入操作，包括：
+- 游戏版本同步（refresh_version）
+- 暂存数据聚合与清理（aggregate_recent_data）
+- 用户 / 公会刷新 ID 筛选与 Redis 分布式锁（get_user_update_ids / get_clan_update_ids）
+- 统计数据归档（archive_statistics → ARCH 表）
+"""
+
 import json
 import traceback
 from redis import Redis
@@ -8,12 +18,10 @@ from typing import Optional
 
 from logger import logger
 from api import fetch_latest_version
-from utils import get_current_iso_time
+from utils import get_current_iso_time, get_seconds_until_end_of_day
 from settings import (
     BATCH_SIZE,
-    STAGING_DELETE_DELAY_ENABLED,
-    USER_INIT_TABLE_LIST,
-    CLAN_INIT_TABLE_LIST
+    STAGING_DELETE_DELAY_ENABLED
 )
 
 
@@ -239,24 +247,22 @@ def _archive_base_table(cursor: Cursor, index: str, today: str) -> None:
     logger.info(f'Table archived: T_{index}_base')
 
 def _archive_ship_stats(
-    cursor: Cursor, 
-    today: str, 
-    game_version: str, 
-    tracking_key: str,
-    source_table: str, 
-    archive_table: str, 
+    cursor: Cursor,
+    today: str,
+    game_version: str,
+    source_table: str,
+    archive_table: str,
     columns: list[str]
 ):
     """按需将源表数据归档到对应的 ARCH 表
 
-    读取源表全量数据，与归档表已有记录对比,
+    读取源表全量数据，与归档表已有记录对比，
     新 ship_id 执行 INSERT，已有 ship_id 执行 UPDATE
 
     Args:
         cursor: 数据库游标
         today: 当天日期字符串 YYYY-MM-DD
         game_version: 当前游戏版本号
-        tracking_key: 追踪键，用于读取和更新 T_tracking_meta
         source_table: 源表名
         archive_table: 归档表名
         columns: 需要归档的列名列表
@@ -502,7 +508,7 @@ def refresh_version(cursor: Cursor, redis_client: Redis) -> None:
         return
     
     # 版本未变，更新 full_name 和 updated_at
-    if local_version or local_version[0] == latest['short']:
+    if local_version and local_version[0] == latest['short']:
         # 确保永远只有一个version是latest
         sql = """
             UPDATE T_game_version 
@@ -588,96 +594,6 @@ def aggregate_recent_data(cursor: Cursor) -> None:
         processed, deleted
     )
 
-def get_update_ids(conn: Connection, redis_client: Redis, index: str) -> list:
-    """分批查询需要更新的 ID 并通过 Redis 分布式锁去重
-
-    使用 id 范围分页（TABLE 自增主键连续且不删除），每批 10000 行，
-    调用相应判断函数筛选 due 的 ID，批量获取 Redis 锁后返回成功获取锁的 ID
-
-    Args:
-        conn: 数据库连接
-        redis_client: Redis 客户端
-        index: 查询类型，'user' 或 'clan'
-
-    Returns:
-        成功获取锁的 ID 列表
-    """
-    update_list = []
-    total_due = 0
-    locked = 0
-
-    try:
-        with conn.cursor() as cursor:
-            # 根据类型确定表名、id 字段和判断函数
-            if index == 'user':
-                table_name = 'T_user_stats'
-                select_sql = """
-                    SELECT 
-                        u.account_id,
-                        F_is_user_update_due(
-                            u.is_enabled,
-                            u.updated_at,
-                            u.activity_level,
-                            IFNULL(c.user_level, 0)
-                        ) AS is_due
-                    FROM T_user_stats u
-                    LEFT JOIN T_user_config c 
-                      ON u.account_id = c.account_id
-                    WHERE u.id BETWEEN %s AND %s;
-                """
-            else:  # clan
-                table_name = 'T_clan_users'
-                select_sql = """
-                    SELECT 
-                        c.clan_id,
-                        F_is_clan_update_due(
-                            c.is_enabled,
-                            c.updated_at
-                        ) AS is_due
-                    FROM T_clan_users c
-                    WHERE c.id BETWEEN %s AND %s;
-                """
-
-            # 获取最大 id
-            cursor.execute(f"SELECT MAX(id) FROM {table_name};")
-            max_id = cursor.fetchone()[0] or 0
-
-            # 按 id 区间循环
-            for start_id in range(1, max_id + 1, BATCH_SIZE):
-                end_id = start_id + BATCH_SIZE - 1
-                cursor.execute(select_sql, [start_id, end_id])
-                rows = cursor.fetchall()
-                if not rows:
-                    continue
-
-                # 提取 due 的 ID
-                due_ids = [row[0] for row in rows if row[1]]
-                total_due += len(due_ids)
-
-                if due_ids:
-                    pipe = redis_client.pipeline()
-                    keys = [f"refresh_lock:{index}:{uid}" for uid in due_ids]
-                    for key in keys:
-                        pipe.set(key, 1, nx=True, ex=3600)
-                    results = pipe.execute()
-                    batch_locked = [due_ids[i] for i, r in enumerate(results) if r]
-                    update_list.extend(batch_locked)
-                    locked += len(batch_locked)
-
-                start_id = end_id + 1
-
-    except Exception:
-        logger.error(f"{traceback.format_exc()}")
-        return []
-
-    skipped = total_due - locked
-    logger.debug(
-        '%s update schedule - Total: %s | Locked: %s | Skipped: %s',
-        index.capitalize(), total_due, locked, skipped
-    )
-
-    return update_list
-
 def get_user_update_ids(conn: Connection, redis_client: Redis) -> list:
     """分批查询需要更新的 ID 并通过 Redis 分布式锁去重
 
@@ -695,6 +611,7 @@ def get_user_update_ids(conn: Connection, redis_client: Redis) -> list:
     planned_users = 0
     refresh_stats = [0] * 5
     refresh_hourly_stats = [0] * 24
+    today_remained_users = 0
     total_due = 0
     locked = 0
 
@@ -703,6 +620,8 @@ def get_user_update_ids(conn: Connection, redis_client: Redis) -> list:
             # 获取最大 id
             cursor.execute(f"SELECT MAX(id) FROM T_user_stats;")
             max_id = cursor.fetchone()[0] or 0
+
+            seconds_until_end_of_day = get_seconds_until_end_of_day()
 
             # 按 id 区间循环
             for start_id in range(1, max_id + 1, BATCH_SIZE):
@@ -730,11 +649,14 @@ def get_user_update_ids(conn: Connection, redis_client: Redis) -> list:
                 for row in rows:
                     account_id, is_enabled, remaining_seconds = row
 
-                    if not is_enabled:
+                    if is_enabled:
                         # 不可用用户不参加后续统计
                         continue
 
                     planned_users += 1
+
+                    if remaining_seconds < seconds_until_end_of_day:
+                        today_remained_users += 1
 
                     # overdue：需要立即刷新
                     if remaining_seconds == -1:
@@ -822,7 +744,7 @@ def get_user_update_ids(conn: Connection, redis_client: Redis) -> list:
         conn.rollback()
         logger.error(traceback.format_exc())
 
-    logger.info('Planned user updates within today: %s', refresh_stats[1])
+    logger.info('Planned user updates within today: %s', today_remained_users)
 
     return update_list
 
@@ -957,10 +879,9 @@ def archive_statistics(cursor: Cursor) -> None:
         cursor=cursor,
         today=today,
         game_version=game_version,
-        tracking_key='ship_users',
         source_table='T_ship_stats_by_users',
         archive_table='ARCH_ship_stats_by_users',
-        columns=['users', 'battles', 'win_rate', 'avg_damage', 'avg_frags', 
+        columns=['users', 'battles', 'win_rate', 'avg_damage', 'avg_frags',
                 'avg_exp', 'survived_rate', 'avg_scouting_damage', 'avg_potential_damage']
     )
 
@@ -969,9 +890,8 @@ def archive_statistics(cursor: Cursor) -> None:
         cursor=cursor,
         today=today,
         game_version=game_version,
-        tracking_key='ship_battles',
         source_table='T_ship_stats_by_battles',
         archive_table='ARCH_ship_stats_by_battles',
-        columns=['battles', 'win_rate', 'avg_damage', 'avg_frags', 
+        columns=['battles', 'win_rate', 'avg_damage', 'avg_frags',
                 'avg_exp', 'survived_rate', 'avg_scouting_damage', 'avg_potential_damage']
     )

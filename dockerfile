@@ -9,8 +9,7 @@ WORKDIR /app
 # 安装 Python 依赖
 COPY requirements.txt .
 RUN pip install --root-user-action=ignore --upgrade pip
-RUN pip install --root-user-action=ignore --no-cache-dir -r requirements.txt
-
+RUN pip install --root-user-action=ignore --no-cache-dir  -r requirements.txt
 # 拷贝项目代码
 COPY . .
 

@@ -1,3 +1,12 @@
+"""
+日志模块
+
+提供 TqdmAwareLogger —— 一个兼容 tqdm 进度条的 Logger 子类。
+在 tqdm 模式下，日志通过 tqdm.write() 输出以避免打乱进度条显示；
+标准模式下则使用 logging.StreamHandler 输出到控制台。
+同时将 WARNING 及以上级别的日志写入文件。
+"""
+
 import sys
 import logging
 from tqdm import tqdm

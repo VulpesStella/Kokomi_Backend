@@ -53,7 +53,6 @@ class EndpointsConfig:
 class ConstantsConfig:
     USER_INIT_TABLE_LIST: list[str]
     CLAN_INIT_TABLE_LIST: list[str]
-    RANKING_BATTLES_LIMIT: dict[str, int]
 
 class EnvConfig:
     PLATFORM: Optional[str] = None
@@ -187,8 +186,7 @@ class EnvConfig:
         
         cls._constants = ConstantsConfig(
             USER_INIT_TABLE_LIST=data['USER_INIT_TABLE_LIST'],
-            CLAN_INIT_TABLE_LIST=data['CLAN_INIT_TABLE_LIST'],
-            RANKING_BATTLES_LIMIT=data['RANKING_BATTLES_LIMIT']
+            CLAN_INIT_TABLE_LIST=data['CLAN_INIT_TABLE_LIST']
         )
 
     @classmethod

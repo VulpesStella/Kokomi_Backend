@@ -26,12 +26,17 @@ def rebuild_db():
     cursor.execute(f"CREATE DATABASE `{DATABASE}`;")
     cursor.execute(f"USE `{DATABASE}`;")
     sql_files = [
-        ROOT_DIR / "init/mysql/01-schemas.sql",
-        ROOT_DIR / "init/mysql/02-functions.sql",
-        ROOT_DIR / "init/mysql/03-views.sql",
-        ROOT_DIR / "init/mysql/04-datas.sql"
+        ROOT_DIR / "init/mysql/01-schemas/01-base.sql",
+        ROOT_DIR / "init/mysql/01-schemas/02-user.sql",
+        ROOT_DIR / "init/mysql/01-schemas/03-clan.sql",
+        ROOT_DIR / "init/mysql/01-schemas/04-ship.sql",
+        ROOT_DIR / "init/mysql/01-schemas/05-recent.sql",
+        ROOT_DIR / "init/mysql/02-data/01-base.sql",
+        ROOT_DIR / "init/mysql/03-views/01-base.sql",
+        ROOT_DIR / "init/mysql/04-functions/01-base.sql"
     ]
     for sql_file in sql_files:
+        print(f'Executing...   {sql_file}')
         with sql_file.open("r", encoding="utf-8") as f:
             sql = f.read()
             cursor.execute(sql)
@@ -40,15 +45,9 @@ def rebuild_db():
     print(f'Success: {DATABASE}')
 
 if __name__ == '__main__':
-    """用于在本地开发环境中，删除并重建数据库。
-
-    注意：严禁在开发环境下使用！！！
+    """用于在数据库初始化，删除并重建数据库
 
     使用示例：
-    python tests/rebuild_db.py
+    python init/rebuild_db.py
     """
-    # 仅允许在 Windows 环境执行
-    if os.name != 'nt':
-        print("❌ This script can only be run on Windows environment.")
-        exit(1)
     rebuild_db()

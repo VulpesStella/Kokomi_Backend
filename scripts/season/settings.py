@@ -1,3 +1,11 @@
+"""
+全局配置模块
+
+负责加载环境变量（开发环境从 env.dev 文件，生产环境由 Docker Compose 注入），
+初始化 MySQL / Redis 连接配置、Clan API 地址以及公会战相关的赛季窗口、
+联赛分段列表等常量。所有模块级变量在 import 时即完成初始化，加载失败会直接 exit(1)。
+"""
+
 import os
 import sys
 import json
@@ -8,13 +16,9 @@ from datetime import datetime
 CLIENT_NAME = 'ClanSeason'
 REFRESH_INTERVAL = 60
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
-USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
+USE_TQDM = sys.stdout.isatty()  # 只有在交互式终端中才使用 tqdm 显示进度条
 
-# 通过api获取season数据
-# 更新SeasonID同时要创建对应的表
-# https://developers.wargaming.net/reference/all/wows/clans/season/?language=en&r_realm=asia
-
-# 生产环境下的环境变量由Docker Compose注入env.prod，开发环境下则通过加载env.dev文件来设置
+# 生产环境下的环境变量由 Docker Compose 注入 env.prod，开发环境下则通过加载 env.dev 文件来设置
 if not os.getenv('PLATFORM') or not os.getenv('PLATFORM').startswith('KokomiAPI'):
     # 关闭代理，避免请求外部API时被本地环境变量干扰
     os.environ['NO_PROXY'] = '127.0.0.1,localhost'
@@ -41,7 +45,7 @@ MYSQL_CONFIG = {
 REDIS_CONFIG = {
     "host": os.getenv("REDIS_HOST"),
     "port": int(os.getenv("REDIS_PORT", 6379)),
-    "db": 0,
+    "db": int(os.getenv("REDIS_DATABASE", 0)),
     "password": os.getenv("REDIS_PASSWORD"),
     "decode_responses": True
 }

@@ -43,3 +43,4 @@ charset-normalizer==3.4.4
 requests==2.32.5 
 urllib3==2.6.3
 cffi==2.0.0
+tqdm==4.67.3

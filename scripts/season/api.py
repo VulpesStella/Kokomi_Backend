@@ -1,3 +1,10 @@
+"""
+外部 API 请求模块
+
+封装对 WoWS Clan API 的 HTTP 调用，支持公会排行榜（ladder）数据拉取、
+单公会详情查询和请求指标记录。
+"""
+
 import requests
 import traceback
 from redis import Redis
@@ -6,7 +13,7 @@ from typing import Optional, Union
 from logger import logger
 from settings import CLAN_API
 from utils import (
-    get_current_iso_time, 
+    get_current_iso_time,
     formtime_to_timestamp
 )
 
@@ -34,12 +41,13 @@ def record_http_metrics(
     urls: list[str]
 ) -> Optional[str]:
     """记录 HTTP 请求指标到 Redis
-    
-    如果有多个Error则返回最后一个Error的信息
+
+    如果有多个 Error 则返回最后一个 Error 的信息
 
     Args:
         redis_client: Redis 客户端
         responses: fetch_data 返回结果列表
+        urls: 对应请求的 URL 列表，用于日志输出
 
     Returns:
         错误字符串，全部成功则返回 None
@@ -106,15 +114,14 @@ def fetch_clan_leagues(
         logger.error(traceback.format_exc())
 
 def fetch_clan_season(redis_client: Redis, clan_id: int) -> Optional[dict]:
-    """从 API 获取最新的游戏版本信息
+    """获取指定公会的当前赛季详情数据
 
     Args:
         redis_client: Redis 客户端，用于记录请求指标
-        clan_id: 工会 ID
+        clan_id: 公会 ID
 
     Returns:
-        工会的当前赛季的工会战数据
-        失败时返回 None
+        公会当前赛季的 clanview 数据（含阶梯赛详情），失败时返回 None
     """
     try:
         url = f'{CLAN_API}/api/clanbase/{clan_id}/claninfo/'

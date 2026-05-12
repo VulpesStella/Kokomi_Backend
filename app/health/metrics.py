@@ -225,7 +225,7 @@ class ServiceMetrics:
             total_count: 总服务数
         """
         active_count = 0
-        services = ['UserCache', 'Maintenanse', 'ClanSeason', 'ServerStats', 'Recent']
+        services = ['UserCache', 'Maintenance', 'ClanSeason', 'ServerStats', 'Recent']
         for service in services:
             key = f'status:{service}'
             exists = await RedisClient.exists(key)

@@ -1,3 +1,11 @@
+"""
+全局配置模块
+
+负责加载环境变量（开发环境从 env.dev 文件，生产环境由 Docker Compose 注入），
+初始化 MySQL / Redis / RabbitMQ 连接配置以及任务分发的各项参数常量。
+所有模块级变量在 import 时即完成初始化，加载失败会直接 exit(1)。
+"""
+
 import os
 import sys
 import json
@@ -5,7 +13,7 @@ from pathlib import Path
 from datetime import datetime
 
 
-CLIENT_NAME = 'Maintenanse'
+CLIENT_NAME = 'Maintenance'
 REFRESH_INTERVAL = 60
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
 USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
@@ -40,7 +48,7 @@ MYSQL_CONFIG = {
 REDIS_CONFIG = {
     "host": os.getenv("REDIS_HOST"),
     "port": int(os.getenv("REDIS_PORT", 6379)),
-    "db": 0,
+    "db": int(os.getenv("REDIS_DATABASE", 0)),
     "password": os.getenv("REDIS_PASSWORD"),
     "decode_responses": True
 }

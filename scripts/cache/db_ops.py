@@ -1,6 +1,14 @@
+"""
+数据库读取操作模块
+
+封装缓存更新流程中所需的 MySQL 查询操作，包括：
+- 获取待更新用户 ID 列表
+- 读取船只排行榜基准数据（最低场次、服务器均值）
+- 读取船只 PvP 极值记录
+"""
+
 import json
 from pymysql.cursors import Cursor
-from typing import Union
 
 from settings import METRIC_ID_TO_INDEX
 
@@ -57,7 +65,7 @@ def read_ship_record(cursor: Cursor) -> dict:
     
     return result
 
-def read_ship_data(cursor: Cursor) -> Union[str, dict]:
+def read_ship_data(cursor: Cursor) -> dict:
     """加载船只排行榜基准数据
 
     从视图读取每艘船的最低场次要求和服务器场均指标，

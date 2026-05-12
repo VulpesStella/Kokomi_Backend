@@ -1,3 +1,10 @@
+"""
+外部 API 请求模块
+
+封装对 WoWS Vortex API 的 HTTP 调用，用于拉取最新游戏版本信息
+并记录请求指标到 Redis。
+"""
+
 import random
 import requests
 import traceback
@@ -9,14 +16,14 @@ from settings import VORTEX_API
 from utils import get_current_iso_time
 
 
-def fetch_data(url):
-    """发送 GraphQL 查询到指定 URL，获取游戏版本数据
+def fetch_data(url: str) -> Union[dict, str]:
+    """发送 POST 请求获取最新游戏版本号
 
     Args:
         url: 完整的 API 地址
 
     Returns:
-        成功时返回 JSON 解析后的字典
+        成功时返回 JSON 解析后的字典，失败时返回错误标识字符串
     """
     try:
         body = [{"query":"query Version {\n  version\n}"}]
@@ -33,12 +40,13 @@ def record_http_metrics(
     urls: list[str]
 ) -> Optional[str]:
     """记录 HTTP 请求指标到 Redis
-    
-    如果有多个Error则返回最后一个Error的信息
+
+    如果有多个 Error 则返回最后一个 Error 的信息
 
     Args:
         redis_client: Redis 客户端
         responses: fetch_data 返回结果列表
+        urls: 对应请求的 URL 列表，用于日志输出
 
     Returns:
         错误字符串，全部成功则返回 None

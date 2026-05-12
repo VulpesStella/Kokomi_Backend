@@ -2,18 +2,34 @@
 # -*- coding: utf-8 -*-
 
 """
-舰船数据统计服务主程序
+舰船数据统计服务 —— 主调度模块
 
-定期从 MySQL 读取用户 PvP 缓存数据，聚合计算服务器场均统计、用户场均统计和 Rating 分布
-并将结果写回 MySQL 和 Redis，用于排行榜展示和数据分析
+# 功能概述：
+以后台常驻进程方式运行，周期性从 MySQL 读取用户 PvP 缓存数据，聚合计算三类
+统计数据（服务器场次平均、用户场均表现、Rating 百分位分布），并将结果写入
+MySQL 统计表和 Redis 排行榜有序集合。
 
-工作流程：
-    1. 分析数据库文件状态
-    2. 从 MySQL 读取原始缓存数据
-    3. 聚合计算三类统计数据（场次平均、用户平均、Rating 分布）
-    4. 更新 MySQL 统计表
-    5. 刷新排行榜（MySQL + Redis）
-    6. 等待下一个刷新周期
+# 模块分工：
+- main.py       （本文件）—— 主调度循环、连接管理、进度展示
+- analytics.py             —— 数据聚合引擎（ShipStatsAggregator + HistogramBins）
+- db_ops.py                —— 数据库读写操作（缓存读取、统计写入、排行榜刷新）
+- utils.py                 —— 时间工具、Rating 计算
+- logger.py                —— tqdm 兼容日志器
+- settings.py              —— 环境变量加载与全局配置常量
+
+# 主循环流程：
+    1. 建立 Redis / MySQL 连接，写入服务状态 key
+    2. 调用 worker()：
+        a. 检查 need_update 追踪状态（UTC 23 点为强制更新时间）
+        b. 分析 SQLite 数据库文件状态
+        c. 分批次读取 T_user_pvp.ship_cache，喂入 ShipStatsAggregator
+        d. 聚合计算后批量写入 T_ship_stats_by_battles / _by_users / _rating_distribution
+           及 T_ship_pvp_stats / T_table_meta
+        e. 设置维护锁 → 刷新每条船的 MySQL 排行榜 + Redis 排行榜 → 释放锁
+           （维护锁防止刷新期间外部读取到不完整数据，有效期 1 小时）
+        f. 写入 leaderboard:users 哈希表（上榜用户数）
+    3. finally 块释放连接并 gc.collect()
+    4. 计算耗时，按 REFRESH_INTERVAL 补齐 sleep
 """
 
 import os
@@ -286,7 +302,7 @@ def main():
 def handler(*_):
     """信号处理器，退出"""
     logger.info('The process is closing')
-    exit(0)
+    os._exit(0)
 
 if __name__ == '__main__':
     logger.info('Start running service: %s', CLIENT_NAME)

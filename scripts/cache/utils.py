@@ -1,10 +1,21 @@
+"""
+工具函数模块
+
+提供时间戳生成、Rating 等级计算和船只综合 PR 值计算等通用工具函数。
+Rating 计算基于玩家数据与服务器均值的比值，经过归一化后得出 0-700+ 的综合评分。
+"""
+
 from datetime import datetime, timezone
 
 from settings import (
-    DATE_FMT, 
+    DATE_FMT,
     METRIC_RATING_THRESHOLDS
 )
 
+
+def get_formatted_date() -> str:
+    """获取当前日期格式化字符串，用于日志输出"""
+    return datetime.now().strftime(DATE_FMT)
 
 def get_current_timestamp() -> int:
     """获取当前 UTC 时间的 int 类型时间戳（秒）"""
@@ -13,10 +24,6 @@ def get_current_timestamp() -> int:
 def get_current_iso_time() -> str:
     """获取当前 UTC 时间的 ISO 格式字符串"""
     return datetime.now(timezone.utc).isoformat(timespec='seconds')
-
-def get_formatted_date() -> str:
-    """获取当前日期格式化字符串，用于日志输出"""
-    return datetime.now().strftime(DATE_FMT)
 
 def _get_rating_level(
     value: float,

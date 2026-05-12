@@ -1,10 +1,24 @@
+"""
+舰船统计数据聚合模块
+
+提供 ShipStatsAggregator 聚合器和 HistogramBins 直方图管理器。
+
+ShipStatsAggregator 从用户 PvP 缓存数据中聚合四类统计：
+  1. 服务器场次平均 —— 所有用户原始数据累加后求均值
+  2. 服务器用户平均 —— 有效用户（battles > 10）的场均表现均值
+  3. Rating 分布直方图 —— 用于计算各百分位数阈值
+  4. 船只持有统计 —— 每艘船的用户数和总场次
+
+HistogramBins 提供固定桶宽直方图的落桶与百分位数反算。
+"""
+
 import json
 from collections import defaultdict
 
 from logger import logger
 from utils import calc_ship_rating
 from settings import (
-    BUCKETS, 
+    BUCKETS,
     MIN_SAMPLES
 )
 
@@ -299,8 +313,12 @@ class ShipStatsAggregator:
                 ship[IDX_USER_SCOUT_DMG] += avgs[6]      # 累加场均侦查伤害
                 ship[IDX_USER_POTENTIAL_DMG] += avgs[7]  # 累加场均潜在伤害
                 # 只有 rating >= 0 才累加到总和（保持与直方图一致）
+                # sentinel 值为 -1，第一个有效 rating 需直接赋值以跳过 sentinel
                 if avgs[8] >= 0:
-                    ship[IDX_USER_RATING_SUM] += avgs[8]
+                    if ship[IDX_USER_RATING_SUM] == -1:
+                        ship[IDX_USER_RATING_SUM] = avgs[8]
+                    else:
+                        ship[IDX_USER_RATING_SUM] += avgs[8]
 
     def compute_battle_averages(self, ship_ids: list[int]) -> dict:
         """计算每艘船的服务器场次平均数据
@@ -432,14 +450,14 @@ class ShipStatsAggregator:
         
         return update_data
 
-    def aggregation_stats(self) -> tuple[int, int]:
-        """输出聚合统计信息到日志，并更新 T_table_meta 表
-    
-        Args:
-            cursor: 数据库游标对象
-            
+    def aggregation_stats(self) -> tuple[int, int, int]:
+        """输出聚合统计概要到日志
+
+        将本轮聚合处理的用户数、船只条目数和总战斗场次写入 INFO 日志，
+        并以元组形式返回，供 refresh_table_meta 写入 T_table_meta 表。
+
         Returns:
-            tuple: (self.total_users, total_ship_entries, total_ship_battles)
+            (total_users, total_ship_entries, total_ship_battles)
         """
         logger.info(
             "Users: %s | "

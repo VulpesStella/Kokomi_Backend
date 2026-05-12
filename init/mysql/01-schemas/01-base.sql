@@ -3,7 +3,7 @@
 CREATE TABLE IF NOT EXISTS D_user_activity_strategy (
     id               INT          AUTO_INCREMENT,
 
-    user_level       TINYINT      NOT NULL DEFAULT 0,
+    user_level       TINYINT      DEFAULT 0,
     activity_level   TINYINT      NOT NULL,
     interval_seconds INT          NOT NULL,
     description      VARCHAR(10)  NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS D_user_activity_strategy (
 CREATE TABLE IF NOT EXISTS D_clan_activity_strategy (
     id               INT          AUTO_INCREMENT,
 
-    clan_level       TINYINT      NOT NULL DEFAULT 0,
+    clan_level       TINYINT      DEFAULT 0,
     activity_level   TINYINT      NOT NULL,
     interval_seconds INT          NOT NULL,
     description      VARCHAR(10)  NOT NULL,

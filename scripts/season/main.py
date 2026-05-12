@@ -2,21 +2,35 @@
 # -*- coding: utf-8 -*-
 
 """
-公会战数据刷新服务主程序
+公会战数据刷新服务 —— 主调度模块
 
-定期从游戏 API 拉取各联赛分段的所有公会列表，
-根据赛季活跃期和数据变化判断是否需要拉取详细数据，
-更新公会联赛段位和战斗统计，并将最新排行榜缓存到 Redis
+# 功能概述：
+以后台常驻进程方式运行，周期性从 WoWS Clan API 拉取各联赛分段（共 13 个）
+的公会排行榜列表，根据赛季活跃状态和数据变化判断是否需要拉取详细数据，
+更新公会联赛段位和战斗统计，并将最新排行榜缓存到 Redis 有序集合。
 
-工作流程：
-    1. 读取当前赛季配置并确保赛季战表已创建
-    2. 判断赛季是否活跃或上次刷新是否超过一天
-    3. 从 API 拉取全部 13 个联赛分段的公会列表
-    4. 全量刷新公会 league 字段
-    5. 比较排行榜数据与数据库记录，筛选需要更新的公会
-    6. 逐公会拉取详细数据并写入 MySQL
-    7. 全量刷新 Redis 公会排行榜缓存
-    8. 等待下一个刷新周期
+# 模块分工：
+- main.py    （本文件）—— 主调度循环、连接管理、进度展示
+- api.py                —— 外部 Clan API 请求封装（排行榜列表 + 单公会详情）
+- updater.py            —— 单公会赛季数据解析、对战记录增量计算
+- db_ops.py             —— 数据库读写（赛季表创建、缓存读写、联赛刷新、排行榜同步）
+- utils.py              —— 时间工具、赛季配置读取、活动窗口判断
+- logger.py             —— tqdm 兼容日志器
+- settings.py           —— 环境变量加载与全局配置常量
+
+# 主循环流程：
+    1. 建立 Redis / MySQL 连接，写入服务状态 key
+    2. 调用 worker()：
+        a. 读取赛季配置，确保赛季战表 S_clan_battle_{id} 已创建
+        b. 检查 need_update（最低每天一次）或 is_cb_active（赛季活跃期）
+        c. 遍历 13 个联赛分段，拉取公会排行榜列表
+        d. 处理赛季切换（season_id 变化时重新确定赛季）
+        e. 全部 13 个分段拉取成功后，全量刷新公会 league 字段
+        f. 对比排行数据与数据库记录，筛选需更新的公会
+        g. 逐公会拉取详细数据 → 写入 MySQL → 更新 Redis 排行
+        h. 全量重建 Redis 公会排行榜有序集合（防脏数据残留）
+    3. finally 块释放连接并 gc.collect()
+    4. 计算耗时，按 REFRESH_INTERVAL 补齐 sleep
 """
 
 import os
@@ -57,7 +71,7 @@ from settings import (
 
 
 SECONDS_PER_DAY = 24 * 60 * 60
-EXPECTED_LEAGUE_COUNT = 13
+EXPECTED_LEAGUE_COUNT = 13  # 联赛分段的预期数量（League 1-4 + Division 1-3 + League 4 Division 1 = 3*4 + 1 = 13）
 
 def progress_iterable(
     items: list[Any], desc: str, logger_obj: TqdmAwareLogger
@@ -85,6 +99,16 @@ def progress_iterable(
             yield item
 
 def worker(mysql_connection: Connection, redis_client: Redis) -> None:
+    """单轮公会赛季数据刷新执行体
+
+    读取赛季配置，确保赛季战表存在后，从 API 拉取全部 13 个联赛分段的公会列表，
+    全量刷新 league 字段，对比筛选需更新的公会后逐条拉取详情写入 MySQL，
+    最后全量重建 Redis 排行榜缓存。
+
+    Args:
+        mysql_connection: MySQL 数据库连接
+        redis_client: Redis 客户端
+    """
     # 1. 读取当前赛季信息
     season_data = read_season_data()
     season_id = season_data.get('id', 0)
@@ -145,7 +169,7 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
                 total_list.extend(league_data)
         logger.disable_tqdm()
 
-        logger.info('Current active clans: 1(%d), 2(%d), 3(%d), 4(%d)', league_count["1"], league_count["2"], league_count["3"], league_count["4"])
+        logger.info('Current active clans: 0(%d), 1(%d), 2(%d), 3(%d), 4(%d)', league_count["0"], league_count["1"], league_count["2"], league_count["3"], league_count["4"])
         if success_count == EXPECTED_LEAGUE_COUNT:
             # 成功读取全部13个 league 数据后，更新所有工会的league字段
             refresh_clan_league(mysql_connection, total_list)
@@ -172,6 +196,12 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         logger.info(f'Update time not yet reached')
 
 def main():
+    """主调度循环
+
+    无限循环执行：建立连接 → worker() 更新公会赛季数据 →
+    释放连接资源 → 按 REFRESH_INTERVAL 补齐 sleep。
+    异常不会中断循环，但会清理服务状态 key 以便外部监控感知。
+    """
     redis_client = None
     mysql_connection = None
     
@@ -192,7 +222,8 @@ def main():
             logger.error(traceback.format_exc())
             # 严重错误导致的循环中断，删除用于标记服务状态的key
             try:
-                redis_client.delete(f'status:{CLIENT_NAME}')
+                if redis_client:
+                    redis_client.delete(f'status:{CLIENT_NAME}')
             except Exception as e:
                 logger.error(f'Failed to delete status key: {e}')
         finally:
@@ -219,7 +250,7 @@ def main():
 def handler(*_):
     """信号处理器，退出"""
     logger.info('The process is closing')
-    exit(0)
+    os._exit(0)
 
 if __name__ == '__main__':
     logger.info('Start running service: %s', CLIENT_NAME)

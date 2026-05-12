@@ -56,22 +56,6 @@ class PlatformModel:
             data = {}
             for row in rows:
                 data[row[0]] = row[1]
-            '''
-            数据示例：
-            user clan ship 的总体数量
-            base_users	9094
-            base_clans	200
-            base_ships	996
-            纳入更新序列的user clan 数量（除去已删号的用户）
-            planned_users	9094
-            planned_clans	200
-            用户pvp有效缓存数据 （除去没有战斗数据或者隐藏战绩的用户）
-            total_users	8756         总计缓存的有效用户数量
-            ship_entries	1702021  总计缓存的船只条目数量
-            total_battles	72863271 总计缓存的船只战斗场次
-            基于用户有效缓存数据计算得出的玩家排行榜中行数
-            leaderboard_rows	324581
-            '''
             return JSONResponse.get_success_response(data)
 
     @ExceptionLogger.handle_database_exception_async

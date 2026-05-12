@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS T_clan_users (
     id               INT          AUTO_INCREMENT,
 
     clan_id          BIGINT       NOT NULL,        -- 10位的非连续数字
-    is_enabled       BOOLEAN      DEFAULT FALSE,   -- 工会是否有效
+    is_enabled       BOOLEAN      DEFAULT TRUE,    -- 工会是否有效
     member_count     INT          DEFAULT 0,       -- 成员数量
     member_ids       JSON         DEFAULT NULL,    -- 成员 ID 列表
 

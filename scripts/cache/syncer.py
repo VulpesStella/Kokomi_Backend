@@ -1,3 +1,10 @@
+"""
+用户基础信息同步模块
+
+负责从 API 响应中提取用户基础数据（昵称、注册时间、场次、Karma 等），
+并根据账号状态（正常/隐藏战绩/无效）更新 T_user_base 和 T_user_stats 表。
+"""
+
 import traceback
 from pymysql import Connection
 from pymysql.cursors import Cursor
@@ -6,9 +13,16 @@ from logger import logger
 from settings import REGION
 
 
+# 中国服主播体验账号的特殊等级点数偏移量（1,000,000）
+# 国服 API 返回的 leveling_points 包含了此偏移，需减去以得到真实场次
 CSSLP = 1_000_000
 
 class UserStatsSyncer:
+    """用户基础信息同步器
+
+    从外部 API 返回的账号数据中提取用户基础信息、Dog Tag 标识和
+    各模式战斗场次统计，并同步写入 MySQL 的 T_user_base 和 T_user_stats 表。
+    """
     @staticmethod
     def _get_insignias(data: dict) -> str:
         """从 DogTag 数据中生成标识字符串"""
@@ -101,12 +115,21 @@ class UserStatsSyncer:
         return user_data
 
     @staticmethod
-    def _is_existing(cursor: Cursor, account_id: int) -> tuple | None:
+    def _fetch_user_base_row(cursor: Cursor, account_id: int) -> tuple | None:
+        """从 T_user_base 表查询用户基本信息行
+
+        Args:
+            cursor: 数据库游标
+            account_id: 用户 ID
+
+        Returns:
+            (username, updated_at_unix_timestamp) 或 None
+        """
         sql = """
-            SELECT 
-                username, 
-                UNIX_TIMESTAMP(updated_at) 
-            FROM T_user_base 
+            SELECT
+                username,
+                UNIX_TIMESTAMP(updated_at)
+            FROM T_user_base
             WHERE account_id = %s;
         """
         cursor.execute(sql, [account_id])
@@ -140,7 +163,7 @@ class UserStatsSyncer:
                 WHERE account_id = %s;
             """
             cursor.execute(
-                sql,[user_data['username'], user_data['register_time'], user_data['insignias'], account_id]
+                sql, [user_data['username'], user_data['register_time'], user_data['insignias'], account_id]
             )
         
         # 检测昵称变更
@@ -224,7 +247,7 @@ class UserStatsSyncer:
         try:
             with conn.cursor() as cursor:
                 # 从数据库中读取用户的username
-                existing = cls._is_existing(cursor, account_id)
+                existing = cls._fetch_user_base_row(cursor, account_id)
                 
                 if not existing:
                     return "UserNotInDB"  # 账号不存在，跳过

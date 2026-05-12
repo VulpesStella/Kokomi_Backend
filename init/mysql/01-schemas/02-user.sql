@@ -23,8 +23,8 @@ CREATE TABLE IF NOT EXISTS T_user_stats (
     id               INT          AUTO_INCREMENT,
 
     account_id       BIGINT       NOT NULL,        -- 1-11位的非连续数字
-    is_enabled       BOOLEAN      DEFAULT FALSE,   -- 用户是否有效
-    is_public        BOOLEAN      DEFAULT FALSE,   -- 用户是否公开战绩
+    is_enabled       BOOLEAN      DEFAULT TRUE,    -- 用户是否有效
+    is_public        BOOLEAN      DEFAULT TRUE,    -- 用户是否公开战绩
     activity_level   TINYINT      DEFAULT 0,       -- 用户活跃等级
     total_battles    INT          DEFAULT 0,       -- 总战斗场次
     pve_battles      INT          DEFAULT 0,       -- PvE 场次

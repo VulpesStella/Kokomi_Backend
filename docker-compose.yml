@@ -41,7 +41,6 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
 
   api:
-    # 主API服务器
     image: myapp:latest
     volumes:
       - ./data:/app/data
@@ -60,12 +59,12 @@ services:
         max-file: "5"
 
   celery:
-    # 负责消费MQ中的任务，更新用户的基本信息
     image: myapp:latest
     volumes:
       - ./logs:/app/logs
     container_name: backend-celery
-    command: celery --app tasks.main:celery_app worker -Q refresh_queue --loglevel=info --concurrency=4
+    # command: celery --app tasks.main:celery_app worker -Q refresh_queue --loglevel=info --concurrency=4
+    command: celery --app tasks.main:celery_app worker -Q refresh_queue -P solo --loglevel=info --concurrency=1
     env_file:
       - env.prod
     restart: on-failure:1
@@ -76,10 +75,6 @@ services:
         max-file: "5"
 
   maintenance:
-    # 维护进程，负责
-    # 1.更新游戏版本
-    # 2.维护用户/工会活跃信息
-    # 3.统计服务器数据
     image: myapp:latest
     volumes:
       - ./data:/app/data
@@ -97,7 +92,6 @@ services:
         max-file: "5"
 
   cache:
-    # 更新用户的船只缓存数据，主要负责更新排行榜数据
     image: myapp:latest
     volumes:
       - ./logs:/app/logs
@@ -113,30 +107,45 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  # recent: # Recent功能
+  season:
+    image: myapp:latest
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    container_name: backend-season
+    command: python scripts/season/main.py
+    env_file:
+      - env.prod
+    restart: on-failure:1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  stats:
+    image: myapp:latest
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    container_name: backend-stats
+    command: python scripts/stats/main.py
+    env_file:
+      - env.prod
+    restart: on-failure:1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # recent:
   #   image: myapp:latest
   #   volumes:
   #     - ./data:/app/data
   #     - ./logs:/app/logs
   #   container_name: backend-recent
   #   command: python scripts/recent/main.py
-  #   env_file:
-  #     - .env.prod
-  #   restart: on-failure:1
-  #   logging:
-  #     driver: "json-file"
-  #     options:
-  #       max-size: "10m"
-  #       max-file: "5"
-
-  # ranking: # Ranking功能
-  #   image: myapp:latest
-  #   volumes:
-  #     - ./data:/app/data
-  #     - ./logs:/app/logs
-  #     - ./temp:/app/temp
-  #   container_name: leaderboard
-  #   command: python scripts/leaderboard/main.py
   #   env_file:
   #     - .env.prod
   #   restart: on-failure:1

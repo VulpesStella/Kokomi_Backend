@@ -104,9 +104,9 @@ vim env.prod
 
 ### 环境配置
 
-> 项目中生成环境使用到的模块：`fastapi` `uvicorn` `httpx` `aiomysql` `redis` `celery` `jinja2` `python-dotenv` `dbutils` `requests`
+> 项目中生成环境使用到的模块：`fastapi` `uvicorn` `httpx` `aiomysql` `redis` `celery` `jinja2` `python-dotenv` `dbutils` `requests` `tqdm`
 
-> 项目中测试环境使用到的模块：`polib` `pandas` `numpy` `msgpack` `tqdm`
+> 项目中测试环境使用到的模块：`polib` `pandas` `numpy` `msgpack`
 
 ```bash
 # 更新系统包索引并安装必要组件

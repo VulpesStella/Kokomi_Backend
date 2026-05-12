@@ -1,3 +1,15 @@
+"""
+数据库读写操作模块
+
+封装公会赛季数据所需的 MySQL 查询与写入操作，包括：
+- 数据追踪状态检查（need_update）
+- 赛季战表创建（ensure_clan_battle_table）
+- 缓存读写与增量更新（read_clan_cache / update_clan_cache）
+- 排行榜 ID 筛选（get_update_ids）
+- 联赛字段刷新（refresh_clan_league）
+- Redis 排行榜全量同步（refresh_clan_cache）
+"""
+
 import traceback
 from redis import Redis
 from pymysql import Connection
@@ -53,6 +65,7 @@ def need_update(conn: Connection, tracking_key: str, tracking_type: str) -> bool
     except Exception:
         conn.rollback()
         logger.error(traceback.format_exc())
+        return False
 
     return True
 
@@ -169,7 +182,7 @@ def ensure_clan_battle_table(conn: Connection, season_id: int) -> Optional[bool]
             existing = cursor.fetchone()
             
             # 不存在则创建
-            if existing and existing[0] == table_name:
+            if not existing:
                 sql = f"""
                 CREATE TABLE IF NOT EXISTS {table_name} (
                     id               INT          AUTO_INCREMENT,
@@ -331,11 +344,13 @@ def refresh_clan_cache(
 ) -> None:
     """全量刷新 Redis 中的公会排行榜缓存
 
+    从 T_clan_stats 读取当前赛季所有公会的公开评分和晋级赛数据，
+    加权计算 Rating 后全量写入 Redis 有序集合 leaderboard:clan。
+
     Args:
         redis_client: Redis 客户端
         conn: 数据库连接
         season_id: 当前赛季 ID
-        now_ts: 当前时间戳，用于记录缓存更新时间
     """
     try:
         with conn.cursor() as cursor:

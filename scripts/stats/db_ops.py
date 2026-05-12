@@ -1,3 +1,14 @@
+"""
+数据库读写操作模块
+
+封装统计服务所需的 MySQL 查询与写入操作，包括：
+- 数据追踪状态检查（need_update）
+- SQLite 文件分析（analyze_db_files）
+- 原始缓存数据读取（get_max_id / get_ship_ids / get_ship_data / get_pvp_cache）
+- 统计结果批量写入（update_battles_stats_table / update_users_stats_table / ...）
+- 排行榜数据刷新（MySQL + Redis）
+"""
+
 import json
 import traceback
 from redis import Redis
@@ -65,9 +76,9 @@ def need_update(conn: Connection, tracking_key: str, tracking_type: str) -> bool
             # 检查 tracking_value
             sql = """
                 SELECT 
-                    CASE 
+                    CASE
                         WHEN tracking_value IS NULL THEN TRUE
-                        WHEN UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(tracking_value) > 108000 THEN TRUE
+                        WHEN UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(tracking_value) > 108000 THEN TRUE  -- 30 小时
                         ELSE FALSE
                     END AS need_update
                 FROM T_tracking_meta 
@@ -91,7 +102,8 @@ def need_update(conn: Connection, tracking_key: str, tracking_type: str) -> bool
     except Exception:
         conn.rollback()
         logger.error(traceback.format_exc())
-        
+        return False
+
     return True
 
 def get_max_id(cursor: Cursor) -> int:
@@ -450,11 +462,11 @@ def clear_leaderboard_redis(redis_client: Redis, ranking_ship_ids: list[int]) ->
         redis_client.delete(*keys_to_delete)
 
 def delete_leaderboard_redis(redis_client: Redis, ship_id: int) -> None:
-    """删除 Redis 中指定 ID 列表中的排行榜 key
-    
+    """删除 Redis 中指定船只的排行榜 key
+
     Args:
         redis_client: Redis 客户端实例
-        ship_id: int: 船只 ID
+        ship_id: 船只 ID
     """
     
     # 删除 key

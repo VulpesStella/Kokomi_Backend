@@ -1,3 +1,10 @@
+"""
+外部 API 请求模块
+
+封装对 WoWS Vortex API 的异步 HTTP 调用，支持 token 鉴权、
+多接口并发请求和请求指标记录。
+"""
+
 import random
 import asyncio
 import traceback
@@ -14,6 +21,7 @@ async def fetch_data(async_client: AsyncClient, url: str):
     """发送 GET 请求并解析 JSON 响应
 
     Args:
+        async_client: HTTP 异步客户端
         url: 请求地址
 
     Returns:
@@ -21,14 +29,14 @@ async def fetch_data(async_client: AsyncClient, url: str):
     """
     try:
         res = await async_client.get(url)
-        requset_code = res.status_code
-        requset_result = res.json()
-        if requset_code == 200:
-            return requset_result['data']
+        request_code = res.status_code
+        request_result = res.json()
+        if request_code == 200:
+            return request_result['data']
         # 处理用户不存在的特殊情况
-        if requset_code == 404:
+        if request_code == 404:
             return {}
-        return f'HTTP_STATUS_{requset_code}'
+        return f'HTTP_STATUS_{request_code}'
     except Exception as e:
         return f'ERROR_{type(e).__name__}'
 
@@ -38,12 +46,13 @@ def record_http_metrics(
     urls: list[str]
 ) -> Optional[str]:
     """记录 HTTP 请求指标到 Redis
-    
-    如果有多个Error则返回最后一个Error的信息
+
+    如果有多个 Error 则返回最后一个 Error 的信息
 
     Args:
         redis_client: Redis 客户端
         responses: fetch_data 返回结果列表
+        urls: 对应请求的 URL 列表，用于日志输出
 
     Returns:
         错误字符串，全部成功则返回 None
