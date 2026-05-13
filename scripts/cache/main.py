@@ -50,9 +50,9 @@ from httpx import AsyncClient
 from pymysql import Connection
 from typing import Any, Iterator
 
-from logger import TqdmAwareLogger, get_formatted_date, logger
+from logger import TqdmAwareLogger, logger
 from updater import UserCacheUpdater
-from utils import get_current_timestamp
+from utils import get_current_timestamp, get_formatted_date
 from db_ops import (
     get_update_ids,
     read_ship_data,

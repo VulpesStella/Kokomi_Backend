@@ -5,9 +5,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
-load_dotenv('env.dev')
+load_dotenv('env.prod')
 DB_CONFIG = {
-    "host": os.getenv("MYSQL_HOST"),
+    "host": 'localhost',
     "port": int(os.getenv("MYSQL_PORT", 3306)),
     "user": 'root',
     "password": os.getenv("MYSQL_ROOT_PASSWORD"),

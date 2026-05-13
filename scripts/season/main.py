@@ -122,9 +122,9 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
     if table_status is None:
         logger.warning(f'Failed to check if Table T_clan_battle_s{season_id} exists')
     if table_status:
-        logger.debug(f'Table T_clan_battle_s{season_id} is already exists')
-    else:
         logger.info(f'New table T_clan_battle_s{season_id} has been successfully created.')
+    else:
+        logger.debug(f'Table T_clan_battle_s{season_id} is already exists')
     
     # 3. 为确保首次运行时能立即获取数据，最低每天刷新一次
     if (

@@ -46,11 +46,11 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
     container_name: backend-api
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level debug
+    command: uvicorn app.main:app --host 0.0.0.0 --port 80 --log-level debug
     env_file:
       - env.prod
     ports:
-      - "127.0.0.1:8000:8000"
+      - "0.0.0.0:80:80"
     restart: on-failure:1
     logging:
       driver: "json-file"
@@ -63,8 +63,7 @@ services:
     volumes:
       - ./logs:/app/logs
     container_name: backend-celery
-    # command: celery --app tasks.main:celery_app worker -Q refresh_queue --loglevel=info --concurrency=4
-    command: celery --app tasks.main:celery_app worker -Q refresh_queue -P solo --loglevel=info --concurrency=1
+    command: celery --app tasks.main:celery_app worker -Q refresh_queue --loglevel=info --concurrency=2
     env_file:
       - env.prod
     restart: on-failure:1

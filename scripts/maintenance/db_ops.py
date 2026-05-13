@@ -649,7 +649,7 @@ def get_user_update_ids(conn: Connection, redis_client: Redis) -> list:
                 for row in rows:
                     account_id, is_enabled, remaining_seconds = row
 
-                    if is_enabled:
+                    if not is_enabled:
                         # 不可用用户不参加后续统计
                         continue
 
@@ -689,13 +689,11 @@ def get_user_update_ids(conn: Connection, redis_client: Redis) -> list:
                     pipe = redis_client.pipeline()
                     keys = [f"refresh_lock:user:{uid}" for uid in due_ids]
                     for key in keys:
-                        pipe.set(key, 1, nx=True, ex=3600)
+                        pipe.set(key, 1, nx=True, ex=4*3600)
                     results = pipe.execute()
                     batch_locked = [due_ids[i] for i, r in enumerate(results) if r]
                     update_list.extend(batch_locked)
                     locked += len(batch_locked)
-
-                start_id = end_id + 1
 
     except Exception:
         logger.error(f"{traceback.format_exc()}")
@@ -806,13 +804,11 @@ def get_clan_update_ids(conn: Connection, redis_client: Redis) -> list:
                     pipe = redis_client.pipeline()
                     keys = [f"refresh_lock:clan:{uid}" for uid in due_ids]
                     for key in keys:
-                        pipe.set(key, 1, nx=True, ex=3600)
+                        pipe.set(key, 1, nx=True, ex=4*3600)
                     results = pipe.execute()
                     batch_locked = [due_ids[i] for i, r in enumerate(results) if r]
                     update_list.extend(batch_locked)
                     locked += len(batch_locked)
-
-                start_id = end_id + 1
 
     except Exception:
         logger.error(f"{traceback.format_exc()}")

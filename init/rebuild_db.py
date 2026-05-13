@@ -5,9 +5,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
-load_dotenv('env.dev')
+load_dotenv('env.prod')
 DB_CONFIG = {
-    "host": os.getenv("MYSQL_HOST"),
+    "host": 'localhost',
     "port": int(os.getenv("MYSQL_PORT", 3306)),
     "user": 'root',
     "password": os.getenv("MYSQL_ROOT_PASSWORD"),
@@ -30,7 +30,6 @@ def rebuild_db():
         ROOT_DIR / "init/mysql/01-schemas/02-user.sql",
         ROOT_DIR / "init/mysql/01-schemas/03-clan.sql",
         ROOT_DIR / "init/mysql/01-schemas/04-ship.sql",
-        ROOT_DIR / "init/mysql/01-schemas/05-recent.sql",
         ROOT_DIR / "init/mysql/02-data/01-base.sql",
         ROOT_DIR / "init/mysql/03-views/01-base.sql",
         ROOT_DIR / "init/mysql/04-functions/01-base.sql"

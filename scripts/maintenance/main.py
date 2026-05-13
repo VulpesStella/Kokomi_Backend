@@ -146,7 +146,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery
         logger.error(traceback.format_exc())
 
     # 3.更新玩家/工会的基本数据
-    for index in ['user', 'clan']:
+    for index in ['clan', 'user']:
         if index == 'user':
             update_ids = get_user_update_ids(mysql_connection, redis_client)
         else:
