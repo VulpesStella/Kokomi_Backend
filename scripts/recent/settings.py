@@ -10,6 +10,8 @@ REFRESH_INTERVAL = 60
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
 USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
 
+SERVER_RESET_OFFSET = 5
+
 # 生产环境下的环境变量由Docker Compose注入env.prod，开发环境下则通过加载env.dev文件来设置
 if not os.getenv('PLATFORM') or not os.getenv('PLATFORM').startswith('KokomiAPI'):
     # 关闭代理，避免请求外部API时被本地环境变量干扰
@@ -26,10 +28,10 @@ else:
 LOG_LEVEL = os.getenv("LOG_LEVEL")
 LOG_DIR = Path(os.getenv("LOG_DIR"))
 DATA_DIR = Path(os.getenv("DATA_DIR"))
-if os.getenv("SQLITE_PATH") == "":
-    SQLITE_PATH = DATA_DIR / 'db'
+if os.getenv("SQLITE_DIR") == "":
+    SQLITE_DIR = DATA_DIR / 'db'
 else:
-    SQLITE_PATH = Path(os.getenv("SQLITE_PATH"))
+    SQLITE_DIR = Path(os.getenv("SQLITE_DIR"))
 
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST"),
@@ -54,9 +56,12 @@ with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     REGION: str = data['region']
     TIMEZOEN: int = data['timezone']
-file_path = DATA_DIR / 'json/endpoints.json'
+file_path = DATA_DIR / 'const/endpoints.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     VORTEX_API: list = data[REGION]['vortex_api']
+file_path = DATA_DIR / 'const/recent.sql'
+with open(file_path, "r", encoding="utf-8") as f:
+    CREATE_SQL = f.read()
     
 print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Configuration data loading complete")

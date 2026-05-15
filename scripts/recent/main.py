@@ -16,16 +16,20 @@ from pymysql import Connection
 from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
-from update import update_user_recent
-from utils import (
-    get_recent_update_ids,
-    get_private_update_ids,
-    update_user_private,
-    get_token_update_ids,
-    update_user_token,
-    db_stats
-)
+from updater import UserConfig, UserStats, UserRecentUpdater
+from db_ops import get_recent_users
+from utils import get_current_timestamp
+# from update import update_user_recent
+# from utils import (
+#     get_recent_update_ids,
+#     get_private_update_ids,
+#     update_user_private,
+#     get_token_update_ids,
+#     update_user_token,
+#     db_stats
+# )
 from settings import (
+    LOG_LEVEL,
     CLIENT_NAME, 
     REGION,
     USE_TQDM,
@@ -64,27 +68,86 @@ def progress_iterable(
             yield item
 
 async def worker(mysql_connection: Connection, redis_client: Redis, async_client: AsyncClient):
-    update_ids = get_recent_update_ids(mysql_connection)
-    len_update_ids = len(update_ids)
-    logger.info(f'Recent Update Numbers: {len_update_ids}')
-    for index, update_id in enumerate(update_ids, 1):
-        result = await update_user_recent(
-            mysql_connection,redis_client,async_client,update_id[0],update_id[1]
-        )
-        logger.info(f"[{index}/{len_update_ids}] {REGION}-{update_id[0]} | {result}")
-    update_ids = get_private_update_ids(mysql_connection, redis_client)
-    len_update_ids = len(update_ids)
-    logger.info(f'Private Update Numbers: {len_update_ids}')
-    for index, update_id in enumerate(update_ids, 1):
-        result = await update_user_private(mysql_connection,redis_client,async_client,update_id[0],update_id[1])
-        logger.info(f'[{index}/{len_update_ids}] {REGION}-{update_id[0]} | {result}')
-    update_ids = get_token_update_ids(mysql_connection, redis_client)
-    len_update_ids = len(update_ids)
-    logger.info(f'Token Update Numbers: {len_update_ids}')
-    for index, update_id in enumerate(update_ids, 1):
-        result = await update_user_token(redis_client, update_id[0],update_id[1],update_id[2])
-        logger.info(f'[{index}/{len_update_ids}] {update_id[0]}-{update_id[1]} | {result}')
-    db_stats()
+    update_list = []
+    try:
+        with mysql_connection.cursor() as cursor:
+            rows = get_recent_users(cursor)
+            for row in rows:
+                if row[3] == 0:
+                    continue
+                user_config = UserConfig(
+                    level=row[1],
+                    limit=row[2]
+                )
+                if row[10] is None:
+                    update_list.append([row[0],user_config,None,None])
+                else:
+                    user_stats = UserStats(
+                        is_public=row[4],
+                        total_battles=row[5],
+                        pve_battles=row[6],
+                        pvp_battles=row[7],
+                        ranked_battles=row[8],
+                        karma=row[9]
+                    )
+                    update_list.append([row[0],user_config,user_stats,row[10]])
+                    
+                # 测试用代码
+                break
+    except Exception:
+        logger.error(traceback.format_exc())
+        return
+    
+    for account_id, user_config, user_stats, update_time in update_list:
+        lock_key = f"refresh_lock:recent:{account_id}"
+        lock_acquired = redis_client.set(lock_key, 1, nx=True, ex=60)
+
+        if not lock_acquired:
+            logger.info(f'{account_id} | Failed to acquire lock')
+            continue
+        
+        try:
+            current_timestamp = get_current_timestamp()
+            result = UserRecentUpdater.need_update(
+                account_id=account_id,
+                current_timestamp=current_timestamp,
+                user_latest_stats=user_stats,
+                user_update_time=update_time
+            )
+            if True:
+                await UserRecentUpdater.main(
+                    mysql_connection=mysql_connection,
+                    redis_client=redis_client,
+                    async_client=async_client,
+                    account_id=account_id,
+                    user_config=user_config,
+                    current_timestamp=current_timestamp
+                )
+        except Exception:
+            logger.error(traceback.format_exc())
+
+        redis_client.delete(lock_key)
+    # update_ids = get_recent_update_ids(mysql_connection)
+    # len_update_ids = len(update_ids)
+    # logger.info(f'Recent Update Numbers: {len_update_ids}')
+    # for index, update_id in enumerate(update_ids, 1):
+    #     result = await update_user_recent(
+    #         mysql_connection,redis_client,async_client,update_id[0],update_id[1]
+    #     )
+    #     logger.info(f"[{index}/{len_update_ids}] {REGION}-{update_id[0]} | {result}")
+    # update_ids = get_private_update_ids(mysql_connection, redis_client)
+    # len_update_ids = len(update_ids)
+    # logger.info(f'Private Update Numbers: {len_update_ids}')
+    # for index, update_id in enumerate(update_ids, 1):
+    #     result = await update_user_private(mysql_connection,redis_client,async_client,update_id[0],update_id[1])
+    #     logger.info(f'[{index}/{len_update_ids}] {REGION}-{update_id[0]} | {result}')
+    # update_ids = get_token_update_ids(mysql_connection, redis_client)
+    # len_update_ids = len(update_ids)
+    # logger.info(f'Token Update Numbers: {len_update_ids}')
+    # for index, update_id in enumerate(update_ids, 1):
+    #     result = await update_user_token(redis_client, update_id[0],update_id[1],update_id[2])
+    #     logger.info(f'[{index}/{len_update_ids}] {update_id[0]}-{update_id[1]} | {result}')
+    # db_stats()
 
 async def main():
     redis_client = None
@@ -128,6 +191,10 @@ async def main():
             redis_client = None
             mysql_connection = None
             gc.collect()
+
+        if LOG_LEVEL == 'debug':
+            logger.debug('The process is closing')
+            break
 
         # 计算本次循环的实际运行时间，并根据刷新间隔决定是否需要sleep
         elapsed = time.monotonic() - start

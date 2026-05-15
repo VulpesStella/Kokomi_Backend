@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS ship_latest_cache (
     id               INTEGER      PRIMARY KEY,
 
     ship_id          INT          UNIQUE,                     -- 船只ID（唯一）
-    snapshot_date    INT          NOT NULL,                   -- 该船最新快照所在日期
     battles          INT          DEFAULT 0,                  -- 该船总战斗场次
+    snapshot_date    INT          NOT NULL,                   -- 该船最新快照所在日期
 
     created_at       DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updated_at       DATETIME     DEFAULT CURRENT_TIMESTAMP
@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS daily_snapshot_index (
     id               INTEGER      PRIMARY KEY,
 
     snapshot_date     INT          UNIQUE,                    -- 快照日期，格式：YYYYMMDD（唯一）
-    ship_map          TEXT         NOT NULL,                  -- JSON对象，存储 ship_id -> snapshot_date 的映射
-    last_refreshed_at DATETIME     NOT NULL,                  -- 该映射刷新时间
+    ship_count        INT          DEFAULT 0,                 -- 该映射刷新时间
+    ship_map          TEXT         NOT NULL,                  -- 该映射刷新时间
 
     updated_at       DATETIME     DEFAULT CURRENT_TIMESTAMP
 );
@@ -52,12 +52,13 @@ CREATE TABLE IF NOT EXISTS user_daily_summary (
     snapshot_date    INT          UNIQUE,                     -- 快照日期，格式：YYYYMMDD（唯一）
     is_public        BOOLEAN      NOT NULL,                   -- 用户是否公开战绩
     total_battles    INT          DEFAULT 0,                  -- 总战斗场次
+    pve_battles      INT          DEFAULT 0,                  -- PvE战斗场次
     pvp_battles      INT          DEFAULT 0,                  -- PvP战斗场次
     ranked_battles   INT          DEFAULT 0,                  -- 排位战斗场次
     karma            INT          DEFAULT 0,                  -- 业力值
-    index_table      TEXT         NOT NULL,                   -- 固定值 'daily_snapshot_index'，指向映射表
+    index_table      TEXT         DEFAULT NULL,               -- 固定值 'daily_snapshot_index'，指向映射表
 
-    updated_at       DATETIME     DEFAULT CURRENT_TIMESTAMP
+    updated_at       INT          DEFAULT NULL
 );
 
 
@@ -72,17 +73,17 @@ CREATE TABLE IF NOT EXISTS user_recent_stats (
     battles          INT          DEFAULT 0,                  -- 战斗场次变化
     wins             INT          DEFAULT 0,                  -- 胜利场次变化
     losses           INT          DEFAULT 0,                  -- 失败场次变化
-    damage_dealt     INT          DEFAULT 0,                  -- 造成伤害变化
+    damage           INT          DEFAULT 0,                  -- 造成伤害变化
     frags            INT          DEFAULT 0,                  -- 击毁数变化
-    survived         INT          DEFAULT 0,                  -- 幸存场次变化
+    original_exp     INT          DEFAULT 0,                  -- 原始经验变化
     scouting_damage  INT          DEFAULT 0,                  -- 侦查伤害变化
     art_agro         INT          DEFAULT 0,                  -- 潜在伤害变化
-    original_exp     INT          DEFAULT 0,                  -- 原始经验变化
     planes_killed    INT          DEFAULT 0,                  -- 击落飞机变化
+    survived         INT          DEFAULT 0,                  -- 存活场次
     hit_rate         REAL         DEFAULT 0,                  -- 主炮命中率 (hits / shots)
 
-    created_at       DATETIME     DEFAULT CURRENT_TIMESTAMP,
-    
-    -- 为时间范围查询建立索引
-    INDEX idx_window_end (created_at)
+    created_at       DATETIME     DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 为时间范围查询建立索引
+CREATE INDEX idx_create_time ON user_recent_stats(created_at);

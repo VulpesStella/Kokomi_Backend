@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS T_ship_pvp_stats (
     id               INT          AUTO_INCREMENT,
 
     ship_id            BIGINT      NOT NULL,
-    ship_users        INT         DEFAULT 0,
+    ship_users         INT         DEFAULT 0,
     total_battles      BIGINT      DEFAULT 0,
 
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,

@@ -51,6 +51,12 @@
     "T_clan_users",
     "T_clan_stats"
   ],
+  "SHIP_INIT_TABLE_LIST": [
+    "T_ship_pvp_stats",
+    "T_ship_stats_by_battles",
+    "T_ship_stats_by_users",
+    "T_ship_rating_distribution"
+  ],
   "METRIC_RATING_THRESHOLDS": {
     "damage": [
       0.8,
