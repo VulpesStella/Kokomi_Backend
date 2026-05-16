@@ -204,8 +204,22 @@ class UserCacheUpdater:
         """
         sql = """
             SELECT 
+                short_name,
+                UNIX_TIMESTAMP(created_at) 
+            FROM T_game_version 
+            WHERE is_latest = TRUE 
+            LIMIT 1;
+        """
+        cursor.execute(sql)
+        version = cursor.fetchone()
+        if not version:
+            return None, None
+        
+        sql = """
+            SELECT 
                 battles, 
-                ship_cache 
+                ship_cache, 
+                UNIX_TIMESTAMP(updated_at)
             FROM T_user_pvp 
             WHERE account_id = %s;
         """
@@ -214,9 +228,9 @@ class UserCacheUpdater:
             [account_id]
         )
         data = cursor.fetchone()
-        if data and data[0] != 0:
-            return json.loads(data[1])
-        return None
+        if data and data[0] != 0 and version[1] < data[2]:
+            return version[0], json.loads(data[1])
+        return version[0], None
 
     @staticmethod
     def _handle_hidden_profile(
@@ -537,8 +551,9 @@ class UserCacheUpdater:
     @staticmethod
     def _insert_recent_diff_data(
         cursor: Cursor, 
-        diff_data: dict, 
-        account_id: int
+        account_id: int,
+        game_version: str,
+        diff_data: dict
     ) -> None:
         """将船只近期数据变化写入暂存表
 
@@ -551,25 +566,13 @@ class UserCacheUpdater:
             return
         
         sql = """
-            SELECT 
-                short_name 
-            FROM T_game_version 
-            WHERE is_latest = TRUE 
-            LIMIT 1;
-        """
-        cursor.execute(sql)
-        version = cursor.fetchone()
-        if not version:
-            return
-        
-        sql = """
             INSERT INTO STAGING_ship_recent_data (
                 uuid, game_version, account_id, payload
             ) VALUES (
                 %s, %s, %s, %s
             );
         """
-        cursor.execute(sql, [str(uuid.uuid4()), version[0], account_id, json.dumps(diff_data)])
+        cursor.execute(sql, [str(uuid.uuid4()), game_version, account_id, json.dumps(diff_data)])
         return
 
     async def main(
@@ -651,7 +654,7 @@ class UserCacheUpdater:
             with mysql_connection.cursor() as cursor:
             
                 # 获取本地缓存
-                local_cache = self._get_local_cache(cursor, account_id)
+                game_version, local_cache = self._get_local_cache(cursor, account_id)
                 
                 # 更新各项数据
                 self._update_user_pvp(cursor, account_id, overall, ship_pvp_cache)
@@ -660,9 +663,9 @@ class UserCacheUpdater:
                 self._upsert_leaderboard(cursor, ship_ranking_cache, account_id)
                 
                 # 处理近期数据变化
-                if local_cache:
+                if game_version and local_cache:
                     diff_data = self._calc_recent_diff(local_cache, ship_pvp_cache)
-                    self._insert_recent_diff_data(cursor, diff_data, account_id)
+                    self._insert_recent_diff_data(cursor, account_id, game_version, diff_data)
             
             mysql_connection.commit()
         except Exception as e:
