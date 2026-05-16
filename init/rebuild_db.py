@@ -1,11 +1,29 @@
 import os
+import logging
 import pymysql
 from pymysql.constants import CLIENT
 from pathlib import Path
 from dotenv import load_dotenv
 
 
-load_dotenv('env.prod')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+
+ROOT_DIR = Path(os.getcwd())
+
+if (ROOT_DIR / 'env.dev').exists():
+    logger.info('Loading environment file: env.dev')
+    load_dotenv('env.dev')
+elif (ROOT_DIR / 'env.prod').exists():
+    logger.info('Loading environment file: env.pros')
+    load_dotenv('env.prod')
+else:
+    raise FileNotFoundError('No environment file found')
+
 DB_CONFIG = {
     "host": 'localhost',
     "port": int(os.getenv("MYSQL_PORT", 3306)),
@@ -14,9 +32,8 @@ DB_CONFIG = {
     'autocommit': False
 }
 DATABASE = os.getenv("MYSQL_DATABASE")
-ROOT_DIR = Path(__file__).resolve().parent.parent
 
-def rebuild_db():
+def main():
     conn = pymysql.connect(
         **DB_CONFIG,
         client_flag=CLIENT.MULTI_STATEMENTS
@@ -35,13 +52,13 @@ def rebuild_db():
         ROOT_DIR / "init/mysql/04-functions/01-base.sql"
     ]
     for sql_file in sql_files:
-        print(f'Executing...   {sql_file}')
         with sql_file.open("r", encoding="utf-8") as f:
             sql = f.read()
             cursor.execute(sql)
+        logger.info(f'Executed: {sql_file}')
     conn.commit()
     conn.close()
-    print(f'Success: {DATABASE}')
+    logger.info(f'Success: {DATABASE}')
 
 if __name__ == '__main__':
     """用于在数据库初始化，删除并重建数据库
@@ -49,4 +66,9 @@ if __name__ == '__main__':
     使用示例：
     python init/rebuild_db.py
     """
-    rebuild_db()
+    try:
+        main()
+    except KeyboardInterrupt:
+        logger.info("Interrupted by user")
+    except Exception as e:
+        logger.error(e)

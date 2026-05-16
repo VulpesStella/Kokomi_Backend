@@ -106,6 +106,16 @@ def need_update(conn: Connection, tracking_key: str, tracking_type: str) -> bool
 
     return True
 
+def reset_tracking_time(cursor: Cursor, tracking_key: str, tracking_type: str):
+    sql = f"""
+        UPDATE T_tracking_meta 
+        SET 
+            tracking_value = NULL 
+        WHERE tracking_key = %s 
+            AND tracking_type = %s;
+    """
+    cursor.execute(sql, [tracking_key, tracking_type])
+
 def get_max_id(cursor: Cursor) -> int:
     """
     获取 T_user_pvp 表中最大的 id 值
@@ -141,53 +151,37 @@ def get_ship_ids(cursor: Cursor) -> list[int]:
     """
     cursor.execute(sql)
     return [row[0] for row in cursor.fetchall()]
+  
+def read_ship_data(cursor: Cursor) -> dict:
+    """加载船只排行榜基准数据
 
-def get_ranking_ship_ids(cursor: Cursor) -> list[int]:
-    """加载用于刷新排行榜的船只 ID 列表
-    
-    从视图 V_ship_ranking_stats 中获取所有需要进行排行榜计算的 ship_id
-    
+    从视图读取每艘船的最低场次要求和服务器场均指标，
+    用于计算玩家 Rating 的基准值
+
     Args:
-        cursor: 数据库游标对象
-        
+        cursor: 数据库游标
+
     Returns:
-        需要刷新排行榜的 ship_id 列表
+        字典，键为 ship_id，值为 [min_battles, [win_rate, avg_damage, avg_frags]]
     """
+    ship_info = {}
     sql = """
         SELECT 
-            ship_id 
+            ship_id, 
+            stats_battles, 
+            win_rate, 
+            avg_damage, 
+            avg_frags
         FROM V_ship_ranking_stats;
     """
     cursor.execute(sql)
     rows = cursor.fetchall()
-    return [row[0] for row in rows]
-    
-def get_ship_data(cursor: Cursor) -> dict[int, list[float]]:
-    """获取所有启用船只的统计指标数据
-    
-    Args:
-        cursor: 数据库游标对象
-        
-    Returns:
-        字典，键为 ship_id，值为 [win_rate, avg_damage, avg_frags] 列表
-    """
-    ship_metrics = {}
-    sql = """
-        SELECT 
-            b.ship_id, 
-            s.win_rate, 
-            s.avg_damage, 
-            s.avg_frags
-        FROM T_ship_base b
-        INNER JOIN T_ship_stats_by_battles s ON b.ship_id = s.ship_id
-        WHERE b.is_enabled = 1 
-          AND s.battles >= 1000; 
-    """
-    cursor.execute(sql)
-    rows = cursor.fetchall()
     for row in rows:
-        ship_metrics[row[0]] = [row[1], row[2], row[3]]
-    return ship_metrics
+        if row[1] < 1000:
+            ship_info[str(row[0])] = None
+        else:
+            ship_info[str(row[0])] = [row[2], row[3], row[4]]
+    return ship_info
 
 def get_pvp_cache(cursor: Cursor, offset: int, batch_size: int):
     """分页获取 T_user_pvp 表中的 ship_cache 字段数据

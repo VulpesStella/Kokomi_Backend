@@ -1,11 +1,34 @@
 import os
 import csv
+import json
+import logging
 import pymysql
+from pymysql import Connection
+from tqdm import tqdm
 from pathlib import Path
 from dotenv import load_dotenv
 
 
-load_dotenv('env.prod')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+
+ROOT_DIR = Path(os.getcwd())
+
+if (ROOT_DIR / 'env.dev').exists():
+    logger.info('Loading environment file: env.dev')
+    load_dotenv('env.dev')
+elif (ROOT_DIR / 'env.prod').exists():
+    logger.info('Loading environment file: env.prod')
+    load_dotenv('env.prod')
+else:
+    raise FileNotFoundError('No environment file found')
+
+DATA_DIR = Path(os.getenv("DATA_DIR"))
+
 DB_CONFIG = {
     "host": 'localhost',
     "port": int(os.getenv("MYSQL_PORT", 3306)),
@@ -15,90 +38,100 @@ DB_CONFIG = {
     'autocommit': False
 }
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
+file_path = DATA_DIR / 'const/constants.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    CLAN_INIT_TABLE_LIST: list = data['CLAN_INIT_TABLE_LIST']
 
+def read_clans_from_csv(filepath: Path) -> list[dict]:
+    """读取CSV，返回 members_count > 0 的公会列表"""
+    if not filepath.exists():
+        logger.error(f"CSV file not found: {filepath}")
+        return []
 
-def init_clan_data():
-    """从CSV文件初始化公会相关表
-    
-    流程：
-    1. 读取CSV文件中 members_count > 0 的公会数据
-    2. 向 T_clan_base 插入 clan_id, tag, updated_at
-    3. 向 T_clan_users 和 T_clan_stats 插入 clan_id
-    """
-    # 读取CSV数据
-    clans_to_insert = []
-    CSV_FILE_PATH = ROOT_DIR / 'temp/clan_data.csv'
+    clans = []
     try:
-        with open(CSV_FILE_PATH, 'r', encoding='utf-8-sig') as f:
+        with open(filepath, 'r', encoding='utf-8-sig') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                members_count = int(row['members_count'])
-                if members_count > 0:
-                    clans_to_insert.append({
+                members = int(row['members_count'])
+                if members > 0:
+                    clans.append({
                         'clan_id': int(row['clan_id']),
-                        'tag': row['tag']
+                        'tag': row.get('tag', 'N/A'),     # 防止缺失
+                        'league': row.get('league', 5)    # 默认0
                     })
-        print(f'Found {len(clans_to_insert)} clans with members > 0')
-    except FileNotFoundError:
-        print(f'Error: CSV file not found at {CSV_FILE_PATH}')
-        return
     except Exception as e:
-        print(f'Error reading CSV file: {e}')
-        return
-    
-    if not clans_to_insert:
-        print('No clans to insert. Exiting.')
-        return
-    
-    # 数据库操作
-    conn = pymysql.connect(**DB_CONFIG)
-    conn.begin()
-    try:
-        with conn.cursor() as cursor:
-            for clan in clans_to_insert:
-                # 步骤2：插入 T_clan_base 表
-                sql = """
-                    INSERT INTO T_clan_base (
-                        clan_id, 
-                        tag,  
-                        table_count, 
-                        updated_at 
-                    ) VALUES (
-                        %s, %s, 2, NOW()
-                    )
-                """
-                cursor.execute(sql, (clan['clan_id'], clan['tag']))
-            
-                sql = """
-                    INSERT INTO T_clan_users (clan_id)
-                    VALUES (%s)
-                """
-                cursor.execute(sql, (clan['clan_id'],))
-            
-                sql = """
-                    INSERT INTO T_clan_stats (clan_id)
-                    VALUES (%s)
-                """
-                cursor.execute(sql, (clan['clan_id'],))
+        logger.error(f"Failed to read CSV: {e}")
+        return []
 
-                sql = """
-                    UPDATE T_clan_base 
-                    SET 
-                        table_count = 2 
-                    WHERE clan_id = %s;
-                """
-                cursor.execute(sql, (clan['clan_id'],))
-        
+    logger.info(f"Loaded {len(clans)} valid clans from CSV")
+    return clans
+
+def insert_clan(cursor, clan: dict) -> None:
+    """插入一个公会"""
+    clan_id = clan['clan_id']
+    
+    # # [可选] 是否在插入前检查
+    # # 如果数据库为空，则可以不检查
+    # cursor.execute("SELECT 1 FROM T_clan_base WHERE clan_id = %s;", [clan_id])
+    # if cursor.fetchone():
+    #     tqdm.write(f"{clan_id} | Clan already exists, skipped")
+    #     return
+
+    # 1. 插入主表
+    sql = """
+        INSERT INTO T_clan_base (
+            clan_id, tag, league
+        ) VALUES (
+            %s, %s, %s
+        );
+    """
+    cursor.execute(sql, [clan_id, clan['tag'], clan['league']])
+
+    # 2. 为每个关联表插入 clan_id
+    for table_name in CLAN_INIT_TABLE_LIST:
+        sql = f"INSERT INTO {table_name} (clan_id) VALUES (%s);"
+        cursor.execute(sql, [clan_id])
+
+    # 3. 更新 table_count
+    sql = """
+        UPDATE T_clan_base
+        SET 
+            table_count = %s, 
+            updated_at = NOW()
+        WHERE clan_id = %s;
+    """
+    cursor.execute(sql, (len(CLAN_INIT_TABLE_LIST), clan_id))
+
+def main(filepath: Path):
+    """从CSV文件初始化公会相关表"""
+
+    # 读取CSV数据
+    clans = read_clans_from_csv(filepath)
+    if not clans:
+        logger.info("No clans to process, exiting")
+        return
+    
+    conn = pymysql.connect(**DB_CONFIG)
+
+    try:
+        conn.begin()
+        with conn.cursor() as cursor:
+            with tqdm(clans, desc="Inserting clans", total=len(clans)) as pbar:
+                for item in pbar:
+                    clan_id = item['clan_id']
+                    pbar.set_postfix_str(str(clan_id))
+                    insert_clan(cursor, item)
+
         conn.commit()
-        print(f'\nSuccess: Initialized {len(clans_to_insert)} clans!')
-        
-    except Exception as e:
+    except Exception:
         conn.rollback()
-        print(f'\nError: Initialization failed - {e}')
         raise
     finally:
         conn.close()
+    
+    logger.info("Initialization completed")
 
 
 if __name__ == '__main__':
@@ -110,5 +143,11 @@ if __name__ == '__main__':
     使用示例：
     python init/insert_clan.py
     """
-    
-    init_clan_data()
+    filepath = ROOT_DIR / 'data/trash/clans.csv'
+
+    try:
+        main(filepath)
+    except KeyboardInterrupt:
+        logger.info("Interrupted by user")
+    except Exception as e:
+        logger.error(e)

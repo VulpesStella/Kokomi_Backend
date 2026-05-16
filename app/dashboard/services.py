@@ -15,6 +15,19 @@ from app.utils import JsonUtils
 def _meta_int(meta: dict, key: str) -> int:
     return int(meta.get(key, 0))
 
+def _format_file_size(size_bytes: int) -> tuple[str, str]:
+    """
+    将字节数格式化为最合适的单位。
+    返回 (数值字符串, 单位字符串) 如 ('1.2', 'GB')
+    """
+    if size_bytes < 1024:
+        return str(size_bytes), "B"
+    elif size_bytes < 1024 ** 2:
+        return f"{size_bytes / 1024:.1f}", "KB"
+    elif size_bytes < 1024 ** 3:
+        return f"{size_bytes / (1024 ** 2):.1f}", "MB"
+    else:
+        return f"{size_bytes / (1024 ** 3):.2f}", "GB"
 
 async def get_overview_data() -> Dict[str, Any]:
     """概览页数据 - 调用ServiceMetrics的各个方法组装数据"""
@@ -228,10 +241,15 @@ async def get_database_data() -> Dict[str, Any]:
     else:
         mysql = {'table_count': 0, 'total_size': 0, 'total_rows': 0}
 
+    mysql_size_str, mysql_size_unit = _format_file_size(mysql.get('total_size', 0))
+
     # SQLite 快照库统计
     sqlite = JsonUtils.read('db_stats')
-    sqlite_total_kb = round(sqlite.get('total_size_bytes', 0) / 1024, 1)
-    sqlite_avg_kb = round(sqlite.get('avg_size_bytes', 0) / 1024, 1)
+    sqlite_total_bytes = sqlite.get('total_size_bytes', 0)
+    sqlite_avg_bytes = sqlite.get('avg_size_bytes', 0)
+
+    total_str, total_unit = _format_file_size(sqlite_total_bytes)
+    avg_str, avg_unit = _format_file_size(sqlite_avg_bytes)
 
     # Clan Season
     season = JsonUtils.read('clan_season')
@@ -278,7 +296,7 @@ async def get_database_data() -> Dict[str, Any]:
                 "title": "MySQL Main Database",
                 "kpis": [
                     {"icon": "📋", "label": "Tables", "value": f"{mysql['table_count']:,}"},
-                    {"icon": "💿", "label": "Total Size", "value": f"{mysql['total_size']:,}", "sub": "MB"},
+                    {"icon": "💿", "label": "Total Size", "value": mysql_size_str, "sub": mysql_size_unit},
                     {"icon": "📊", "label": "Total Rows", "value": f"{mysql['total_rows']:,}"},
                 ]
             },
@@ -286,8 +304,8 @@ async def get_database_data() -> Dict[str, Any]:
                 "title": "SQLite Snapshot DB",
                 "kpis": [
                     {"icon": "📁", "label": "Files", "value": f"{sqlite.get('file_count', 0):,}"},
-                    {"icon": "💿", "label": "Total Size", "value": f"{sqlite_total_kb:,}", "sub": "KB"},
-                    {"icon": "📏", "label": "Avg Size", "value": f"{sqlite_avg_kb:,}", "sub": "KB"},
+                    {"icon": "💿", "label": "Total Size", "value": total_str, "sub": total_unit},
+                    {"icon": "📏", "label": "Avg Size", "value": avg_str, "sub": avg_unit},
                 ]
             },
             {
@@ -332,7 +350,7 @@ async def get_user_activity_data() -> Dict[str, Any]:
     LEVEL_LABELS = {0: 'None', 1: 'Normal', 2: 'Advanced'}
     REFRESH_LABELS = {
         'overdue': 'Overdue',
-        'today': 'Today',
+        'within_24h': 'Within 24h',
         'within_week': 'Within Week',
         'within_month': 'Within Month',
         'within_quarter': 'Within Quarter',

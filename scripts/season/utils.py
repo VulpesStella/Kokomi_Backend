@@ -36,9 +36,19 @@ def read_season_data() -> dict:
     # 俄服clan battle在s28后被rating战所替代
     # SEASON_ID, SEASON_FINISH, SEASON_START = 28, 1739944800, 1744005600
     file_path = DATA_DIR / f'json/clan_season.json'
+    if not file_path.exists():
+        return {"id": 0,"start": None,"finish": None}
+
     with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
         return data
+
+def refresh_season_data(season_id: int) -> dict:
+    """刷新本地 JSON 文件中的当前赛季配置数据"""
+    file_path = DATA_DIR / f'json/clan_season.json'
+    data = {"id": season_id,"start": None,"finish": None}
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
 
 def is_cb_active(season_start: int, season_finish: int) -> bool:
     """判断当前时间是否处于公会战活跃窗口内
@@ -50,6 +60,10 @@ def is_cb_active(season_start: int, season_finish: int) -> bool:
     Returns:
         是否在活跃窗口内
     """
+    # 没有配置赛季时间区间
+    if not season_start or not season_finish:
+        return False
+
     # 当前时间戳
     now_ts = get_current_timestamp()
 

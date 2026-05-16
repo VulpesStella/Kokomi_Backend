@@ -68,11 +68,10 @@ with open(file_path, "r", encoding="utf-8") as f:
 
 METRIC_ID_TO_INDEX = {
     SHIP_METRIC_MAP['exp']: 0,
-    SHIP_METRIC_MAP['frags']: 1,
-    SHIP_METRIC_MAP['planes']: 2,
-    SHIP_METRIC_MAP['damage']: 3,
-    SHIP_METRIC_MAP['scouting_dmg']: 4,
-    SHIP_METRIC_MAP['potential_dmg']: 5
+    SHIP_METRIC_MAP['planes']: 1,
+    SHIP_METRIC_MAP['damage']: 2,
+    SHIP_METRIC_MAP['scouting_dmg']: 3,
+    SHIP_METRIC_MAP['potential_dmg']: 4
 }
 # 反向映射，方便从索引取 metric_id
 INDEX_TO_METRIC_ID = {v: k for k, v in METRIC_ID_TO_INDEX.items()}

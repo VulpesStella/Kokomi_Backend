@@ -1,11 +1,33 @@
 import os
 import csv
+import json
+import logging
 import pymysql
+from tqdm import tqdm
 from pathlib import Path
 from dotenv import load_dotenv
 
 
-load_dotenv('env.prod')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+
+ROOT_DIR = Path(os.getcwd())
+
+if (ROOT_DIR / 'env.dev').exists():
+    logger.info('Loading environment file: env.dev')
+    load_dotenv('env.dev')
+elif (ROOT_DIR / 'env.prod').exists():
+    logger.info('Loading environment file: env.pros')
+    load_dotenv('env.prod')
+else:
+    raise FileNotFoundError('No environment file found')
+
+DATA_DIR = Path(os.getenv("DATA_DIR"))
+
 DB_CONFIG = {
     "host": 'localhost',
     "port": int(os.getenv("MYSQL_PORT", 3306)),
@@ -15,7 +37,10 @@ DB_CONFIG = {
     'autocommit': False
 }
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
+file_path = DATA_DIR / 'const/constants.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    SHIP_INIT_TABLE_LIST: list = data['SHIP_INIT_TABLE_LIST']
 
 # 类型映射（来自 D_ship_type）
 TYPE_MAP = {
@@ -54,115 +79,110 @@ RARITY_MAP = {
 }
 
 # 需要初始化的 PvP 极值记录指标 ID
-METRIC_IDS = [3, 4, 5, 7, 8, 9]
+METRIC_IDS = [3, 5, 7, 8, 9]
 
+def parse_ship_row(row: dict) -> dict:
+    """将 CSV 行解析为用于插入的船只参数字典"""
+    ship_id = int(row['ship_id'])
+    return {
+        'ship_id': ship_id,
+        'is_old': bool(int(row.get('is_old', 0))),
+        'tier': int(row['tier']),
+        'type_id': TYPE_MAP.get(row['type'], 1),
+        'nation_id': NATION_MAP.get(row['nation'], 1),
+        'rarity_id': RARITY_MAP.get(row.get('rarity', '')),
+        'premium': bool(int(row.get('premium', 0))),
+        'special': bool(int(row.get('special', 0))),
+        'index_code': row.get('index', ''),
+        'zh_cn': row.get('zh_cn', ''),
+        'zh_sg': row.get('zh_sg', ''),
+        'zh_tw': row.get('zh_tw', ''),
+        'en_short': row.get('en_short', ''),
+        'en_full': row.get('en_full', ''),
+        'ja': row.get('ja', ''),
+        'ru': row.get('ru', ''),
+        'verify': bool(int(row.get('verify', 0))),
+    }
 
-def init_ship_data():
+def insert_ship(cursor, ship: dict) -> None:
+    """插入一条船只数据"""
+    # 基础表
+    sql = """
+        INSERT INTO T_ship_base (
+            ship_id, is_enabled, is_old, tier, type_id,
+            nation_id, rarity_id, premium, special, index_code
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+    """
+    cursor.execute(sql, [
+        ship['ship_id'], True, ship['is_old'], ship['tier'], ship['type_id'],
+        ship['nation_id'], ship['rarity_id'], ship['premium'], ship['special'],
+        ship['index_code']
+    ])
+
+    # 名称表
+    sql = """
+        INSERT INTO T_ship_name (
+            ship_id, zh_cn, zh_sg, zh_tw, en_short, en_full, ja, ru, verify
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+    """
+    cursor.execute(sql, [
+        ship['ship_id'], ship['zh_cn'], ship['zh_sg'], ship['zh_tw'],
+        ship['en_short'], ship['en_full'], ship['ja'], ship['ru'], ship['verify']
+    ])
+
+    # 统计表
+    for table_name in SHIP_INIT_TABLE_LIST:
+        sql = f"""
+            INSERT INTO {table_name} (ship_id) VALUES (%s);
+        """
+        cursor.execute(sql, [ship['ship_id']])
+
+    # PvP 极值记录
+    for metric_id in METRIC_IDS:
+        sql = """
+            INSERT INTO T_ship_pvp_record
+            (ship_id, metric_id)
+            VALUES (%s, %s);
+        """
+        cursor.execute(sql, [ship['ship_id'], metric_id])
+
+def main(filepath: Path):
     """从CSV文件初始化所有船只相关表"""
-    CSV_FILE_PATH = ROOT_DIR / 'init/data/ship_name_wg.csv'
-    
+    if not filepath.exists():
+        logger.error(f"CSV file not found: {filepath}")
+        return []
     try:
-        with open(CSV_FILE_PATH, 'r', encoding='utf-8') as f:
+        with open(filepath, 'r', encoding='utf-8-sig') as f:
             reader = csv.DictReader(f)
-            ships_data = list(reader)
-        print(f'Found {len(ships_data)} ships')
-    except FileNotFoundError:
-        print(f'Error: CSV file not found at {CSV_FILE_PATH}')
-        return
+            ships = list(reader)
+        logger.info(f'Found {len(ships)} ships in CSV')
     except Exception as e:
-        print(f'Error reading CSV file: {e}')
+        logger.error(f"Failed to read CSV: {e}")
         return
     
-    if not ships_data:
-        print('No ships to insert. Exiting.')
+    if not ships:
+        print('No ships to process, exiting')
         return
     
     # 数据库操作
     conn = pymysql.connect(**DB_CONFIG)
-    conn.begin()
     try:
+        conn.begin()
         with conn.cursor() as cursor:
-            for ship in ships_data:
-                ship_id = int(ship['ship_id'])
-                is_old = bool(int(ship.get('is_old', 0)))
-                tier = int(ship['tier'])
-                type_id = TYPE_MAP.get(ship['type'], 1)
-                nation_id = NATION_MAP.get(ship['nation'].lower(), 1)
-                rarity_id = RARITY_MAP.get(ship.get('rarity', '').strip())
-                premium = bool(int(ship.get('premium', 0)))
-                special = bool(int(ship.get('special', 0)))
-                index_code = ship.get('index', '')
-                
-                # 1. 插入 T_ship_base
-                cursor.execute("""
-                    INSERT INTO T_ship_base (
-                        ship_id, is_enabled, is_old, tier, type_id, 
-                        nation_id, rarity_id, premium, special, index_code
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    ship_id, True, is_old, tier, type_id,
-                    nation_id, rarity_id, premium, special, index_code
-                ))
-                
-                # 2. 插入 T_ship_name
-                cursor.execute("""
-                    INSERT INTO T_ship_name (
-                        ship_id, zh_cn, zh_sg, zh_tw, en_short, en_full, ja, ru, verify
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    ship_id,
-                    ship.get('zh_cn', ''),
-                    ship.get('zh_sg', ''),
-                    ship.get('zh_tw', ''),
-                    ship.get('en_short', ''),
-                    ship.get('en_full', ''),
-                    ship.get('ja', ''),
-                    ship.get('ru', ''),
-                    bool(int(ship.get('verify', 0)))
-                ))
-                
-                # 3. 插入 T_ship_pvp_stats
-                cursor.execute("""
-                    INSERT INTO T_ship_pvp_stats (ship_id)
-                    VALUES (%s)
-                """, (ship_id,))
-                
-                # 4. 插入 T_ship_stats_by_battles
-                cursor.execute("""
-                    INSERT INTO T_ship_stats_by_battles (ship_id)
-                    VALUES (%s)
-                """, (ship_id,))
-                
-                # 5. 插入 T_ship_stats_by_users
-                cursor.execute("""
-                    INSERT INTO T_ship_stats_by_users (ship_id)
-                    VALUES (%s)
-                """, (ship_id,))
-                
-                # 6. 插入 T_ship_rating_distribution
-                cursor.execute("""
-                    INSERT INTO T_ship_rating_distribution 
-                    (ship_id, top1, top5, top10, top15, top50, top75, top90)
-                    VALUES (%s, 0, 0, 0, 0, 0, 0, 0)
-                """, (ship_id,))
-                
-                # 7. 插入 T_ship_pvp_record（每个ship 6条记录）
-                for metric_id in METRIC_IDS:
-                    cursor.execute("""
-                        INSERT INTO T_ship_pvp_record 
-                        (ship_id, metric_id, metric_value, users_count)
-                        VALUES (%s, %s, 0, 0)
-                    """, (ship_id, metric_id))
-        
+            with tqdm(ships, desc="Inserting clans", total=len(ships)) as pbar:
+                for item in pbar:
+                    ship_id = int(item['ship_id'])
+                    pbar.set_postfix_str(str(ship_id))
+                    ship = parse_ship_row(item)
+                    insert_ship(cursor, ship)
         conn.commit()
-        print(f'Success: Initialized {len(ships_data)} ships!')
-        
-    except Exception as e:
+    except Exception:
         conn.rollback()
-        print(f'Error: Initialization failed - {e}')
         raise
     finally:
         conn.close()
+    
+    logger.info("Initialization completed")
 
 
 if __name__ == '__main__':
@@ -173,4 +193,11 @@ if __name__ == '__main__':
     使用示例：
     python init/insert_ship.py
     """
-    init_ship_data()
+    filepath = ROOT_DIR / 'init/data/ship_name_wg.csv'
+
+    try:
+        main(filepath)
+    except KeyboardInterrupt:
+        logger.info("Interrupted by user")
+    except Exception as e:
+        logger.error(e)

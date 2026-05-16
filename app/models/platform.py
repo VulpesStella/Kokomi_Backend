@@ -12,7 +12,7 @@ class PlatformModel:
             sql = """
                 SELECT 
                     COUNT(*),
-                    SUM(data_length + index_length) / 1024 / 1024,
+                    SUM(data_length + index_length),
                     SUM(table_rows)
                 FROM information_schema.tables
                 WHERE table_schema = %s
@@ -22,7 +22,7 @@ class PlatformModel:
             row = await cur.fetchone()
             data = {
                 'table_count': row[0],
-                'total_size': round(row[1], 2),
+                'total_size': row[1],
                 'total_rows': row[2]
             }
             return JSONResponse.get_success_response(data)
@@ -119,7 +119,7 @@ class PlatformModel:
                 ORDER BY
                     CASE status
                         WHEN 'overdue' THEN 1
-                        WHEN 'today' THEN 2
+                        WHEN 'within_24h' THEN 2
                         WHEN 'within_week' THEN 3
                         WHEN 'within_month' THEN 4
                         WHEN 'within_quarter' THEN 5

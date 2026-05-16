@@ -716,7 +716,7 @@ def get_user_update_ids(conn: Connection, redis_client: Redis) -> list:
             """, [planned_users])
 
             # 2. 更新 refresh_stats
-            status_names = ['overdue', 'today', 'within_week', 'within_month', 'within_quarter']
+            status_names = ['overdue', 'within_24h', 'within_week', 'within_month', 'within_quarter']
             for status, count in zip(status_names, refresh_stats):
                 cursor.execute("""
                     UPDATE T_user_refresh_stats

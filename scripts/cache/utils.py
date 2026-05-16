@@ -53,7 +53,7 @@ def _get_rating_level(
     # 如果 value 大于等于所有阈值，返回最高等级 8
     return 8
 
-def calc_ship_rating(ship_data: list, server_data: list):
+def calc_ship_rating(ship_data: list, server_data: list | None):
     """计算玩家在单艘船上的综合 Rating
 
     Args:
@@ -63,16 +63,22 @@ def calc_ship_rating(ship_data: list, server_data: list):
     Returns:
         (personal_rating, damage_rating, frags_rating)
     """
+    if server_data is None:
+        return -1, -1, -1
+    
     # Step 1 - ratios:
     r_wins = ship_data[0] / server_data[0]
     r_dmg = ship_data[1] / server_data[1]
     r_frags = ship_data[2] / server_data[2]
+
     # Step 2 - normalization:
     n_wins = max(0, (r_wins - 0.7) / (1 - 0.7))
     n_dmg = max(0, (r_dmg - 0.4) / (1 - 0.4))
     n_frags = max(0, (r_frags - 0.1) / (1 - 0.1))
+
     # Step 3 - PR value:
     personal_rating = round(700 * n_dmg + 300 * n_frags + 150 * n_wins, 2)
     damage_rating = _get_rating_level(r_dmg, 'damage')
     frags_rating = _get_rating_level(r_frags, 'frags')
+    
     return personal_rating, damage_rating, frags_rating

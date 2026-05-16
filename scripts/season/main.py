@@ -51,12 +51,12 @@ from db_ops import (
     need_update,
     get_update_ids,
     refresh_clan_cache,
-    refresh_clan_league,
     ensure_clan_battle_table
 )
 from utils import (
     is_cb_active,
-    read_season_data
+    read_season_data,
+    refresh_season_data
 )
 from settings import (
     CLIENT_NAME, 
@@ -162,6 +162,7 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
                         return
                     # 首次遇到新赛季，更新season_id
                     season_id = latest_season_id
+                    refresh_season_data(season_id)
                     logger.info(f"Latest Season ID: {season_id}")
 
                 success_count += 1
@@ -170,12 +171,9 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         logger.disable_tqdm()
 
         logger.info('Current active clans: 0(%d), 1(%d), 2(%d), 3(%d), 4(%d)', league_count["0"], league_count["1"], league_count["2"], league_count["3"], league_count["4"])
-        if success_count == EXPECTED_LEAGUE_COUNT:
-            # 成功读取全部13个 league 数据后，更新所有工会的league字段
-            refresh_clan_league(mysql_connection, total_list)
 
         # 比较最新数据和数据库数据，确定需要更新的工会ID列表
-        update_ids = get_update_ids(mysql_connection, season_id, total_list)
+        update_ids = get_update_ids(mysql_connection, season_id, total_list, success_count == EXPECTED_LEAGUE_COUNT)
         len_update_ids = len(update_ids)
         
         if len_update_ids > 0:

@@ -156,7 +156,6 @@ class UserCacheUpdater:
             
             ship_pvp_record[ship_id] = [
                 pvp.get('max_exp', 0),
-                pvp.get('max_frags', 0),
                 pvp.get('max_planes_killed', 0),
                 pvp.get('max_damage_dealt', 0),
                 pvp.get('max_scouting_damage', 0),
@@ -280,7 +279,7 @@ class UserCacheUpdater:
         - 相同用户重复平记录：忽略
 
         Args:
-            ship_pvp_record: {ship_id: [exp, frags, planes, damage, scouting, potential]}
+            ship_pvp_record: {ship_id: [exp, planes, damage, scouting, potential]}
             account_id: 当前用户 ID
 
         Returns:
@@ -682,6 +681,8 @@ class UserCacheUpdater:
             
             pipe = redis_client.pipeline()
             for ship_id, values in ship_ranking_cache.items():
+                if values[1] == -1:
+                    continue
                 key = f"leaderboard:ship:{ship_id}"
                 pipe.zadd(key, {str(account_id): values[1]})
             pipe.execute()

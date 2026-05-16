@@ -3,7 +3,7 @@ INSERT INTO D_user_activity_strategy
 VALUES
     -- 普通用户
     (0, 0, 90 * 86400, '90d'),
-    (0, 1, 1 * 86400 + 7200, '26h'),
+    (0, 1, 86400 + 7200, '26h'),
     (0, 2, 2 * 86400, '2d'),
     (0, 3, 3 * 86400, '3d'),
     (0, 4, 5 * 86400, '5d'),
@@ -131,7 +131,7 @@ INSERT INTO T_user_refresh_stats
     (status)
 VALUES
     ('overdue'),
-    ('today'),
+    ('within_24h'),
     ('within_week'),
     ('within_month'),
     ('within_quarter');

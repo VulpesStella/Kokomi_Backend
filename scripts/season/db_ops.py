@@ -217,7 +217,8 @@ def ensure_clan_battle_table(conn: Connection, season_id: int) -> Optional[bool]
 def get_update_ids(
     conn: Connection, 
     season_id: int, 
-    clan_data_list: list
+    clan_data_list: list,
+    need_refresh: bool
 ) -> list:
     """比较排行榜数据与数据库记录，返回需要更新的公会 ID 列表
 
@@ -257,12 +258,12 @@ def get_update_ids(
                     # 新公会：初始化基础表和统计表
                     sql = """
                         INSERT INTO T_clan_base (
-                            clan_id, tag
+                            clan_id, tag, league
                         ) VALUES (
-                            %s, %s
+                            %s, %s, %s
                         );
                     """
-                    cursor.execute(sql,[clan_id, clan_data[1]])
+                    cursor.execute(sql,[clan_id, clan_data[1], clan_data[2]])
                     for table_name in CLAN_INIT_TABLE_LIST:
                         sql = f"""
                             INSERT INTO {table_name} (
@@ -275,7 +276,8 @@ def get_update_ids(
                     sql = """
                         UPDATE T_clan_base 
                         SET 
-                            table_count = %s 
+                            table_count = %s, 
+                            updated_at = NOW() 
                         WHERE clan_id = %s;
                     """
                     cursor.execute(sql, [len(CLAN_INIT_TABLE_LIST), clan_id])
@@ -294,50 +296,32 @@ def get_update_ids(
                         # 2. last_battle_at 时间戳不同（有新战斗发生）
                         # 3. 赛季 ID 不同（新赛季首次获取数据）
                         update_ids.append(clan_id)
-
+            if need_refresh:
+                sql = """
+                    UPDATE T_clan_base 
+                    SET 
+                        league = 5, 
+                        updated_at = NOW();
+                """
+                cursor.execute(sql)
+                # 批量更新
+                update_sql = """
+                    UPDATE T_clan_base
+                    SET 
+                        tag = %s, 
+                        league = %s, 
+                        updated_at = NOW()
+                    WHERE clan_id = %s;
+                """
+                update_params = [
+                    [d[1], d[2], d[0]] for d in clan_data_list
+                ]
+                cursor.executemany(update_sql, update_params)
             conn.commit()
     except Exception:
         conn.rollback()
         logger.error(traceback.format_exc())
     return update_ids
-
-def refresh_clan_league(conn: Connection, clan_data_list: list) -> None:
-    """全量刷新公会联赛字段
-
-    先将所有公会 league 置为 5（无联赛），再根据排行榜数据更新
-
-    Args:
-        conn: 数据库连接
-        clan_data_list: 排行榜公会数据
-    """
-    try:
-        with conn.cursor() as cursor:
-            sql = """
-                UPDATE T_clan_base 
-                SET 
-                    league = 5, 
-                    updated_at = NOW();
-            """
-            cursor.execute(sql)
-            # 批量更新
-            update_sql = """
-                UPDATE T_clan_base
-                SET 
-                    tag = %s, 
-                    league = %s, 
-                    updated_at = NOW()
-                WHERE clan_id = %s;
-            """
-            update_params = [
-                [d[1], d[2], d[0]] for d in clan_data_list
-            ]
-            cursor.executemany(update_sql, update_params)
-
-            conn.commit()
-            logger.info('Clan league refreshed: %d', len(clan_data_list))
-    except Exception:
-        conn.rollback()
-        logger.error(traceback.format_exc())
 
 def refresh_clan_cache(
     redis_client: Redis, conn: Connection, season_id: int

@@ -82,6 +82,7 @@ def read_ship_data(cursor: Cursor) -> dict:
         SELECT 
             ship_id, 
             min_battles, 
+            stats_battles, 
             win_rate, 
             avg_damage, 
             avg_frags
@@ -90,10 +91,16 @@ def read_ship_data(cursor: Cursor) -> dict:
     cursor.execute(sql)
     rows = cursor.fetchall()
     for row in rows:
-        ship_info[str(row[0])] = [
-            row[1],
-            [row[2], row[3], row[4]]
-        ]
+        if row[2] < 1000:
+            ship_info[str(row[0])] = [
+                row[1],
+                None
+            ]
+        else:
+            ship_info[str(row[0])] = [
+                row[1],
+                [row[3], row[4], row[5]]
+            ]
     return ship_info
 
 def get_update_ids(cursor: Cursor) -> list:

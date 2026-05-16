@@ -6,7 +6,15 @@ from pathlib import Path
 import pymysql
 from dotenv import load_dotenv
 
-load_dotenv('env.dev')
+
+ROOT_DIR = Path(os.getcwd())
+
+if (ROOT_DIR / 'env.dev').exists():
+    load_dotenv('env.dev')
+elif (ROOT_DIR / 'env.prod').exists():
+    load_dotenv('env.prod')
+else:
+    raise FileNotFoundError('Dead env file failed')
 
 DATA_DIR = Path(os.getenv("DATA_DIR"))
 

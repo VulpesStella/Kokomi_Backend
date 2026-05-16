@@ -48,11 +48,11 @@ from analytics import ShipStatsAggregator
 from utils import get_current_utc_hour
 from db_ops import (
     need_update,
+    reset_tracking_time,
     analyze_db_files,
     get_max_id,
     get_ship_ids,
-    get_ranking_ship_ids,
-    get_ship_data,
+    read_ship_data,
     get_pvp_cache,
     update_battles_stats_table,
     update_users_stats_table,
@@ -141,7 +141,14 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
                 return
         
             # 获取服务器基准数据（用于计算 Rating）
-            ship_data = get_ship_data(cursor)
+            ship_data = read_ship_data(cursor)
+
+            # 首次运行读取不到已有的服务器数据
+            existing_stats = None
+            for row in ship_data.values():
+                if row:
+                    existing_stats = True
+                    break
             
             # 初始化聚合器
             aggregator = ShipStatsAggregator(ship_data)
@@ -164,6 +171,10 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
     # 3. 更新 MySQL 统计表
     try:
         with mysql_connection.cursor() as cursor:
+            # 如果是首次运行则先把刷新时间置空，下个更新轮次再次执行
+            if not existing_stats:
+                reset_tracking_time(cursor, 'ship_stats', 'update_time')
+
             # 更新服务器场次平均统计表
             update_battles_stats_table(cursor, aggregator.compute_battle_averages(ship_ids))
 
@@ -184,6 +195,11 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         mysql_connection.rollback()
         logger.error(traceback.format_exc())
         
+    # 没有本地统计数据
+    if not existing_stats:
+        logger.info('No local stats data, skip the ranking update process')
+        return
+
     # 4. 刷新排行榜数据
     try:
         # 设置维护锁，防止刷新期间外部读取到不完整数据
@@ -198,7 +214,10 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         leaderboard_rows = 0
 
         with mysql_connection.cursor() as cursor:
-            ranking_ship_ids = get_ranking_ship_ids(cursor)
+            ranking_ship_ids = []
+            for ship_id, ship_data in ship_data.items():
+                if ship_data:
+                    ranking_ship_ids.append(ship_id)
 
             # 清空 Redis 排行榜的无效缓存
             clear_leaderboard_redis(redis_client, ranking_ship_ids)
