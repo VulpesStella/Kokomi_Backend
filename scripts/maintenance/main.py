@@ -60,8 +60,7 @@ from settings import (
 from db_ops import (
     aggregate_recent_data,
     refresh_version,
-    get_user_update_ids,
-    get_clan_update_ids,
+    get_update_ids,
     archive_statistics
 )
 
@@ -147,10 +146,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery
 
     # 3.更新玩家/工会的基本数据
     for index in ['clan', 'user']:
-        if index == 'user':
-            update_ids = get_user_update_ids(mysql_connection, redis_client)
-        else:
-            update_ids = get_clan_update_ids(mysql_connection, redis_client)
+        update_ids = get_update_ids(mysql_connection, redis_client, index)
         len_update_ids = len(update_ids)
         if len_update_ids == 0:
             continue

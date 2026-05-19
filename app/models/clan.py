@@ -1,7 +1,7 @@
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
-
+from app.utils import TimeUtils
 
 
 class DemoClanModel:
@@ -27,14 +27,15 @@ class DemoClanModel:
             await cur.execute(sql, [clan_id])
             row = await cur.fetchone()
             if not row:
-                return JSONResponse.get_success_response({'clan_id': clan_id})
+                return JSONResponse.API_2017_ClanNotInDB
             data['clan_tag'] = row[0]
             data['league'] = row[1]
 
             sql = """
                 SELECT
                     is_enabled,
-                    member_count
+                    member_count, 
+                    next_refresh_at
                 FROM T_clan_users
                 WHERE clan_id = %s;
             """
@@ -42,6 +43,7 @@ class DemoClanModel:
             row = await cur.fetchone()
             data['is_enabled'] = row[0]
             data['member_count'] = row[1]
+            data['next_refresh_at'] = TimeUtils.fromtimestamp(row[2])
 
             return JSONResponse.get_success_response(data)
 

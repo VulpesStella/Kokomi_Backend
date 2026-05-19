@@ -2,14 +2,20 @@ import json
 from pymysql import Connection
 from pymysql.cursors import Cursor
 
-from .settings import REGION, USER_INIT_TABLE_LIST
-
-
-CSSLP = 1_000_000
+from .utils import get_current_timestamp
+from .settings import (
+    REGION, 
+    USER_INIT_TABLE_LIST,
+    USER_ACTIVITY_THRESHOLDS,
+    CLAN_ACTIVITY_THRESHOLDS
+)
 
 class UserStatsSyncer:
-    # 注意：此部分代码复制来自 scripts/cache/syncer.py
-    # 如需修改必须确保源文件代码也被修改，确保数据处理和写入逻辑一致
+    """用户基础信息同步器
+
+    从外部 API 返回的账号数据中提取用户基础信息、Dog Tag 标识和
+    各模式战斗场次统计，并同步写入 MySQL 的 T_user_base 和 T_user_stats 表。
+    """
     @staticmethod
     def _get_insignias(data: dict) -> str:
         """从 DogTag 数据中生成标识字符串"""
@@ -28,6 +34,20 @@ class UserStatsSyncer:
             return None
         
         return "-".join(str(data[k]) for k in keys)
+    
+    @staticmethod
+    def _get_activity_level(last_battle_time: int | None) -> int:
+        """根据最后战斗时间戳返回活跃等级（0-9）"""
+        if not last_battle_time or last_battle_time <= 0:
+            return 0
+
+        diff = get_current_timestamp() - last_battle_time
+
+        for threshold, level in USER_ACTIVITY_THRESHOLDS:
+            if diff <= threshold:
+                return level
+
+        return 9
 
     @classmethod
     def _extract_user_data(cls, account_id: int, api_result: dict) -> dict:
@@ -38,6 +58,7 @@ class UserStatsSyncer:
             'insignias': None,
             'is_enabled': 1,
             'is_public': 1,
+            'activity_level': 0,
             'total_battles': 0,
             'pve_battles': 0,
             'pvp_battles': 0,
@@ -72,21 +93,25 @@ class UserStatsSyncer:
         basic_data = statistics.get('basic', {})
         leveling_points = basic_data.get('leveling_points', 0)
         
-        # 处理中国服的主播体验账号的特殊情况
-        if REGION == 'cn' and leveling_points >= CSSLP:
-            leveling_points -= CSSLP
+        # 中国服主播体验账号的特殊等级点数偏移量（1,000,000）
+        # 国服 API 返回的 leveling_points 包含了此偏移，需减去以得到真实场次
+        if leveling_points >= 1_000_000:
+            leveling_points -= 1_000_000
         
         # 处理时间戳字段
         register_time = int(user_info.get('created_at', 0))
         last_battle_time = basic_data.get('last_battle_time', 0)
+        if last_battle_time == 0:
+            last_battle_time = None
         
         user_data.update({
             'username': user_info['name'],
             'register_time': register_time if register_time not in (0, None) else None,
             'insignias': cls._get_insignias(user_info.get('dog_tag')),
+            'activity_level': cls._get_activity_level(last_battle_time),
             'total_battles': leveling_points,
             'karma': basic_data.get('karma', 0),
-            'last_battle_at': last_battle_time if last_battle_time not in (0, None) else None,
+            'last_battle_at': last_battle_time,
             'pve_battles': statistics.get('pve', {}).get('battles_count', 0),
             'pvp_battles': statistics.get('pvp', {}).get('battles_count', 0),
             'ranked_battles': statistics.get('rank_solo', {}).get('battles_count', 0),
@@ -102,13 +127,25 @@ class UserStatsSyncer:
         return user_data
 
     @staticmethod
-    def _is_existing(cursor: Cursor, account_id: int) -> tuple | None:
+    def _fetch_user_base_row(cursor: Cursor, account_id: int) -> tuple | None:
+        """从 T_user_base 表查询用户基本信息行
+
+        Args:
+            cursor: 数据库游标
+            account_id: 用户 ID
+
+        Returns:
+            (username, updated_at_unix_timestamp) 或 None
+        """
         sql = """
-            SELECT 
-                username, 
-                UNIX_TIMESTAMP(updated_at) 
-            FROM T_user_base 
-            WHERE account_id = %s;
+            SELECT
+                b.username,
+                UNIX_TIMESTAMP(b.updated_at),
+                c.user_level
+            FROM T_user_base b
+            LEFT JOIN T_user_config c
+              ON b.account_id = c.account_id
+            WHERE b.account_id = %s;
         """
         cursor.execute(sql, [account_id])
         return cursor.fetchone()
@@ -125,7 +162,7 @@ class UserStatsSyncer:
                 UPDATE T_user_base 
                 SET 
                     username = %s, 
-                    updated_at = CURRENT_TIMESTAMP 
+                    updated_at = NOW() 
                 WHERE account_id = %s;
             """
             cursor.execute(sql, [user_data['username'], account_id])
@@ -137,11 +174,11 @@ class UserStatsSyncer:
                     username = %s, 
                     register_time = FROM_UNIXTIME(%s), 
                     insignias = %s, 
-                    updated_at = CURRENT_TIMESTAMP 
+                    updated_at = NOW() 
                 WHERE account_id = %s;
             """
             cursor.execute(
-                sql,[user_data['username'], user_data['register_time'], user_data['insignias'], account_id]
+                sql, [user_data['username'], user_data['register_time'], user_data['insignias'], account_id]
             )
         
         # 检测昵称变更
@@ -157,7 +194,7 @@ class UserStatsSyncer:
             cursor.execute(sql, [account_id, old_username])
 
     @staticmethod
-    def _update_user_stats(cursor: Cursor, account_id: int, user_data: dict) -> None:
+    def _update_user_stats(cursor: Cursor, account_id: int, user_level: int, user_data: dict) -> None:
         """更新 T_user_stats 表"""
         if user_data['is_enabled'] == 0:
             # 账号不存在
@@ -166,7 +203,8 @@ class UserStatsSyncer:
                 SET 
                     is_enabled = 0, 
                     activity_level = 0, 
-                    updated_at = CURRENT_TIMESTAMP 
+                    next_refresh_at = NULL,
+                    updated_at = NOW() 
                 WHERE account_id = %s;
             """
             cursor.execute(sql, [account_id])
@@ -178,17 +216,18 @@ class UserStatsSyncer:
                     is_enabled = 1, 
                     is_public = 0, 
                     activity_level = 0, 
-                    updated_at = CURRENT_TIMESTAMP 
+                    next_refresh_at = F_user_next_refresh_at(%s, 0), 
+                    updated_at = NOW() 
                 WHERE account_id = %s;
             """
-            cursor.execute(sql, [account_id])
+            cursor.execute(sql, [user_level, account_id])
         else:
             sql = """
                 UPDATE T_user_stats 
                 SET 
                     is_enabled = 1,  
                     is_public = 1, 
-                    activity_level = F_user_activity_level(%s),
+                    activity_level = %s,
                     total_battles = %s, 
                     pve_battles = %s, 
                     pvp_battles = %s, 
@@ -196,14 +235,16 @@ class UserStatsSyncer:
                     rating_battles = %s, 
                     karma = %s, 
                     last_battle_at = FROM_UNIXTIME(%s), 
-                    updated_at = CURRENT_TIMESTAMP 
+                    next_refresh_at = F_user_next_refresh_at(%s, %s), 
+                    updated_at = NOW() 
                 WHERE account_id = %s;
             """
             cursor.execute(
                 sql,
-                [user_data['last_battle_at'], user_data['total_battles'], user_data['pve_battles'], 
+                [user_data['activity_level'], user_data['total_battles'], user_data['pve_battles'], 
                 user_data['pvp_battles'], user_data['ranked_battles'], user_data['rating_battles'], 
-                user_data['karma'], user_data['last_battle_at'], account_id]
+                user_data['karma'], user_data['last_battle_at'], user_level, user_data['activity_level'], 
+                account_id]
             )
 
     @classmethod
@@ -224,18 +265,21 @@ class UserStatsSyncer:
         try:
             with conn.cursor() as cursor:
                 # 从数据库中读取用户的username
-                existing = cls._is_existing(cursor, account_id)
+                existing = cls._fetch_user_base_row(cursor, account_id)
                 
                 if not existing:
                     return "UserNotInDB"  # 账号不存在，跳过
                 
-                old_username, old_timestamp = existing
+                old_username, old_timestamp, user_level = existing
+
+                if not user_level:
+                    user_level = 0
 
                 # 更新 T_user_base
                 cls._update_user_base(cursor, account_id, user_data, old_username, old_timestamp)
                 
                 # 更新 T_user_stats
-                cls._update_user_stats(cursor, account_id, user_data)
+                cls._update_user_stats(cursor, account_id, user_level, user_data)
             
             conn.commit()
             return None
@@ -244,6 +288,18 @@ class UserStatsSyncer:
             return type(e).__name__
         
 class ClanUsersSyncer:
+    @staticmethod
+    def _get_activity_level(members: int | None) -> int:
+        """根据工会返回活跃等级（0-3）"""
+        if not members or members <= 0:
+            return 0
+
+        for threshold, level in CLAN_ACTIVITY_THRESHOLDS:
+            if members <= threshold:
+                return level
+
+        return 0
+    
     @staticmethod
     def _get_existing_members(cursor: Cursor, clan_id: int) -> tuple:
         """获取公会当前的成员列表和更新时间
@@ -277,6 +333,7 @@ class ClanUsersSyncer:
             UPDATE T_clan_users 
             SET 
                 is_enabled = 0, 
+                activity_level = 0, 
                 member_count = 0, 
                 member_ids = NULL, 
                 updated_at = CURRENT_TIMESTAMP 
@@ -325,10 +382,9 @@ class ClanUsersSyncer:
             sql = """
                 INSERT INTO T_user_base (
                     account_id, 
-                    username,
-                    updated_at 
+                    username
                 ) VALUES (
-                    %s, %s, CURRENT_TIMESTAMP
+                    %s, %s
                 );
             """
             cursor.execute(sql, [account_id, users[account_id]])
@@ -346,7 +402,8 @@ class ClanUsersSyncer:
             sql = """
                 UPDATE T_user_base 
                 SET 
-                    table_count = %s 
+                    table_count = %s,
+                    updated_at = NOW()  
                 WHERE account_id = %s;
             """
             cursor.execute(sql, [len(USER_INIT_TABLE_LIST), account_id])
@@ -373,7 +430,7 @@ class ClanUsersSyncer:
                     UPDATE T_user_clan 
                     SET 
                         clan_id = NULL, 
-                        updated_at = CURRENT_TIMESTAMP 
+                        updated_at = NOW() 
                     WHERE account_id = %s;
                 """
                 cursor.execute(sql, [row[0]])
@@ -392,13 +449,13 @@ class ClanUsersSyncer:
             UPDATE T_user_clan 
             SET 
                 clan_id = %s, 
-                updated_at = CURRENT_TIMESTAMP 
+                updated_at = NOW() 
             WHERE account_id IN ({placeholders});
         """
         cursor.execute(sql, [clan_id] + user_ids)
 
     @staticmethod
-    def _update_clan_users(cursor: Cursor, clan_id: int, user_ids: list) -> None:
+    def _update_clan_users(cursor: Cursor, clan_id: int, activity_level: int, user_ids: list) -> None:
         """更新公会成员统计信息
 
         Args:
@@ -410,12 +467,14 @@ class ClanUsersSyncer:
             UPDATE T_clan_users 
             SET 
                 is_enabled = 1, 
+                activity_level = %s,
                 member_count = %s, 
                 member_ids = %s, 
-                updated_at = CURRENT_TIMESTAMP 
+                next_refresh_at = F_clan_next_refresh_at(%s), 
+                updated_at = NOW()
             WHERE clan_id = %s;
         """
-        cursor.execute(sql, [len(user_ids), json.dumps(user_ids), clan_id])
+        cursor.execute(sql, [activity_level, len(user_ids), json.dumps(user_ids), activity_level, clan_id])
 
     @staticmethod
     def _record_member_changes(cursor: Cursor, clan_id: int, old_data: dict, user_ids: list) -> None:
@@ -493,13 +552,14 @@ class ClanUsersSyncer:
                     cursor.execute(sql, user_ids)
                     existing_ids = {row[0] for row in cursor.fetchall()}
                     missing_ids = [uid for uid in user_ids if uid not in existing_ids]
+                    activity_level = cls._get_activity_level(len(user_ids))
 
                     if missing_ids:
                         cls._init_new_users(cursor, missing_ids, users)
 
                     cls._remove_left_members(cursor, clan_id, set(user_ids))
                     cls._update_member_relations(cursor, clan_id, user_ids)
-                    cls._update_clan_users(cursor, clan_id, user_ids)
+                    cls._update_clan_users(cursor, clan_id, activity_level, user_ids)
                     cls._record_member_changes(cursor, clan_id, old_data, user_ids)
 
             conn.commit()

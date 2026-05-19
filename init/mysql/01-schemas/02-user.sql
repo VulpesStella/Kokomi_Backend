@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS T_user_stats (
     rating_battles   INT          DEFAULT 0,       -- 评分战场次
     karma            INT          DEFAULT 0,       -- 业力值
     last_battle_at   TIMESTAMP    DEFAULT NULL,    -- 最后战斗时间
+    next_refresh_at  TIMESTAMP    DEFAULT NULL,    -- 最低下次更新时间
 
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP    DEFAULT NULL,
@@ -140,34 +141,6 @@ CREATE TABLE IF NOT EXISTS T_user_config (
     PRIMARY KEY (id),
 
     UNIQUE INDEX idx_rid_aid (account_id)
-);
-
-CREATE TABLE T_user_refresh_stats (
-    id               INT          AUTO_INCREMENT,
-
-    status           VARCHAR(50)  NOT NULL, -- '状态标识: overdue/today/within_week/within_month/within_quarter',
-    user_count       INT NOT NULL DEFAULT 0,
-
-    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    DEFAULT NULL,
-
-    PRIMARY KEY (id),
-
-    UNIQUE INDEX idx_status (status)
-);
-
-CREATE TABLE T_user_refresh_hourly_stats (
-    id               INT          AUTO_INCREMENT,
-
-    planned_hour     TINYINT       NOT NULL,
-    planned_count    INT           DEFAULT 0,
-
-    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    DEFAULT NULL,
-
-    PRIMARY KEY (id),
-
-    UNIQUE INDEX idx_hour (planned_hour)
 );
 
 -- 用户基础数据归档表

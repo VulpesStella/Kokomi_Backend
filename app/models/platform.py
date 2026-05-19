@@ -108,14 +108,15 @@ class PlatformModel:
         """读取用户刷新计划分布
 
         Returns:
-            success → {code: 1000, data: [(status, user_count), ...]}
+            success → {code: 1000, data: [(status, user_count, clan_count), ...]}
         """
         async with MySQLManager.read_only_cursor() as cur:
             sql = """
                 SELECT
                     status,
-                    user_count
-                FROM T_user_refresh_stats
+                    user_count,
+                    clan_count
+                FROM T_refresh_stats
                 ORDER BY
                     CASE status
                         WHEN 'overdue' THEN 1
@@ -127,7 +128,7 @@ class PlatformModel:
             """
             await cur.execute(sql)
             rows = await cur.fetchall()
-            data = [(row[0], row[1]) for row in rows]
+            data = [(row[0], row[1], row[2]) for row in rows]
             return JSONResponse.get_success_response(data)
 
     @ExceptionLogger.handle_database_exception_async
@@ -155,19 +156,20 @@ class PlatformModel:
         """读取未来24h刷新计划每小时分布
 
         Returns:
-            success → {code: 1000, data: [(planned_hour, planned_count), ...]}
+            success → {code: 1000, data: [(planned_hour, planned_users, planned_clans), ...]}
         """
         async with MySQLManager.read_only_cursor() as cur:
             sql = """
                 SELECT
                     planned_hour,
-                    planned_count
-                FROM T_user_refresh_hourly_stats
+                    planned_users,
+                    planned_clans
+                FROM T_refresh_hourly_stats
                 ORDER BY planned_hour;
             """
             await cur.execute(sql)
             rows = await cur.fetchall()
-            data = [(row[0], row[1]) for row in rows]
+            data = [(row[0], row[1], row[2]) for row in rows]
             return JSONResponse.get_success_response(data)
 
     @ExceptionLogger.handle_database_exception_async

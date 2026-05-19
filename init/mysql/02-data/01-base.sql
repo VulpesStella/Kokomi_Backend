@@ -40,7 +40,9 @@ INSERT INTO D_clan_activity_strategy
 VALUES
     -- 普通用户
     (0, 0, 30 * 86400, '30d'),
-    (0, 1, 6 * 3600, '6h');
+    (0, 1, 6 * 3600,   '6h'),
+    (0, 2, 12 * 3600,  '12h'),
+    (0, 3, 26 * 3600,  '26h');
 
 INSERT INTO D_ranking_battles_limit 
     (tier, battles_limit) 
@@ -127,7 +129,7 @@ VALUES
     ('total_battles', 'user_pvp'),
     ('leaderboard_rows', 'ship_pvp_leaderboard');
 
-INSERT INTO T_user_refresh_stats 
+INSERT INTO T_refresh_stats 
     (status)
 VALUES
     ('overdue'),
@@ -136,7 +138,7 @@ VALUES
     ('within_month'),
     ('within_quarter');
 
-INSERT INTO T_user_refresh_hourly_stats
+INSERT INTO T_refresh_hourly_stats
     (planned_hour)
 VALUES
     (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),

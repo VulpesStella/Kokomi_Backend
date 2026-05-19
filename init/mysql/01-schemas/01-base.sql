@@ -125,3 +125,33 @@ CREATE TABLE IF NOT EXISTS T_metric_level_thresholds (
 
     INDEX idx_mid (metric_id)
 );
+
+CREATE TABLE T_refresh_stats (
+    id               INT          AUTO_INCREMENT,
+
+    status           VARCHAR(50)  NOT NULL, -- '状态标识: overdue/today/within_week/within_month/within_quarter',
+    user_count       INT NOT NULL DEFAULT 0,
+    clan_count       INT NOT NULL DEFAULT 0,
+
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT NULL,
+
+    PRIMARY KEY (id),
+
+    UNIQUE INDEX idx_status (status)
+);
+
+CREATE TABLE T_refresh_hourly_stats (
+    id               INT          AUTO_INCREMENT,
+
+    planned_hour     TINYINT       NOT NULL,
+    planned_users    INT           DEFAULT 0,
+    planned_clans    INT           DEFAULT 0,
+
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT NULL,
+
+    PRIMARY KEY (id),
+
+    UNIQUE INDEX idx_hour (planned_hour)
+);

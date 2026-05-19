@@ -1,21 +1,15 @@
-import os
 import random
 import requests
-from datetime import datetime, timezone
 
-from .exception import handle_program_exception_sync
 from .middlewares import redis_client, db_pool
 from .syncer import UserStatsSyncer, ClanUsersSyncer
+from .utils import get_current_iso_time
+from .exception import handle_program_exception_sync
 from .settings import (
     VORTEX_API, 
     CLAN_API
 )
 
-
-os.environ['NO_PROXY'] = '127.0.0.1,localhost'
-
-def now_utc_date() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")[0:10]
 
 def fetch_data(url: str, params: dict = None):
     try:
@@ -31,7 +25,7 @@ def fetch_data(url: str, params: dict = None):
 
 @handle_program_exception_sync
 def refresh_user(account_id: int):
-    now_date = now_utc_date()
+    now_date = get_current_iso_time()[:10]
     redis_client.incr(f'metrics:celery:{now_date}')
     # 删除redis的key
     key = f"refresh_lock:user:{account_id}"
@@ -59,7 +53,7 @@ def refresh_user(account_id: int):
 @handle_program_exception_sync
 def refresh_clan(clan_id: int):
     # metrics
-    now_date = now_utc_date()
+    now_date = get_current_iso_time()[:10]
     redis_client.incr(f'metrics:celery:{now_date}')
     # 先删除redis的key
     key = f"refresh_lock:clan:{clan_id}"

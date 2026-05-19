@@ -36,7 +36,8 @@ class DemoPlayerModel:
                 SELECT
                     is_enabled,
                     is_public,
-                    activity_level
+                    activity_level,
+                    UNIX_TIMESTAMP(next_refresh_at)
                 FROM T_user_stats
                 WHERE account_id = %s;
             """
@@ -48,6 +49,7 @@ class DemoPlayerModel:
             if not data['is_enabled'] or not data['is_public']:
                 return JSONResponse.get_success_response(data)
             data['activity_level'] = row[2]
+            data['next_refresh_at'] = TimeUtils.fromtimestamp(row[3])
             # 读user_config库
             sql = """
                 SELECT

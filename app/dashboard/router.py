@@ -57,6 +57,6 @@ async def database_stats(request: Request):
     return _render(request, "database.html", "database", await get_database_data())
 
 
-@router.get("/user-activity")
-async def user_activity(request: Request):
-    return _render(request, "user_activity.html", "user-activity", await get_user_activity_data())
+@router.get("/update-plans")
+async def update_plans(request: Request):
+    return _render(request, "update_plans.html", "update-plans", await get_user_activity_data())

@@ -373,15 +373,15 @@ async def get_user_activity_data() -> Dict[str, Any]:
             level_legend.append(label)
             level_data.append({'name': label, 'value': cnt})
 
-    # 刷新计划分布
+    # 刷新计划分布（合并 user + clan）
     refresh_resp = await PlatformModel.read_user_refresh_stats()
     refresh_legend = []
     refresh_data = []
     if refresh_resp['code'] == 1000:
-        for status, cnt in refresh_resp['data']:
+        for status, uc, cc in refresh_resp['data']:
             label = REFRESH_LABELS.get(status, status)
             refresh_legend.append(label)
-            refresh_data.append({'name': label, 'value': cnt})
+            refresh_data.append({'name': label, 'value': uc + cc})
 
     # 活跃度分布 (0-9)
     activity_resp = await PlatformModel.read_user_activity_distribution()
@@ -392,14 +392,16 @@ async def get_user_activity_data() -> Dict[str, Any]:
             activity_labels.append(str(lv))
             activity_values.append(cnt)
 
-    # 24h 刷新计划分布
+    # 24h 刷新计划分布（user + clan 堆叠）
     hourly_resp = await PlatformModel.read_user_refresh_hourly_stats()
     hourly_labels = []
-    hourly_values = []
+    hourly_users = []
+    hourly_clans = []
     if hourly_resp['code'] == 1000:
-        for hour, cnt in hourly_resp['data']:
+        for hour, pu, pc in hourly_resp['data']:
             hourly_labels.append(f'H{hour}')
-            hourly_values.append(cnt)
+            hourly_users.append(pu)
+            hourly_clans.append(pc)
 
     return {
         "planned_users": _meta_int(meta, 'planned_users'),
@@ -424,6 +426,7 @@ async def get_user_activity_data() -> Dict[str, Any]:
             "title": "24-Hour Scheduled Refresh",
             "yAxisName": "Planned Count",
             "labels": hourly_labels,
-            "values": hourly_values,
+            "user_values": hourly_users,
+            "clan_values": hourly_clans,
         }),
     }

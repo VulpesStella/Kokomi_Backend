@@ -3,7 +3,6 @@ import csv
 import json
 import logging
 import pymysql
-from pymysql import Connection
 from tqdm import tqdm
 from pathlib import Path
 from dotenv import load_dotenv

@@ -57,4 +57,6 @@ file_path = DATA_DIR / 'const/constants.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     USER_INIT_TABLE_LIST: list = data['USER_INIT_TABLE_LIST']
+    CLAN_ACTIVITY_THRESHOLDS: list = data['CLAN_ACTIVITY_THRESHOLDS']
+    USER_ACTIVITY_THRESHOLDS: list = data['USER_ACTIVITY_THRESHOLDS']
 print("[INIT] Configuration data loading complete")

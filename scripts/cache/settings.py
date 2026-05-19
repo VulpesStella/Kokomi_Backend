@@ -64,6 +64,7 @@ file_path = DATA_DIR / 'const/constants.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     SHIP_METRIC_MAP: dict = data['SHIP_METRIC_MAP']
+    USER_ACTIVITY_THRESHOLDS: list = data['USER_ACTIVITY_THRESHOLDS']
     METRIC_RATING_THRESHOLDS: list = data['METRIC_RATING_THRESHOLDS']
 
 METRIC_ID_TO_INDEX = {

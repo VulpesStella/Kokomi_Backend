@@ -6,8 +6,8 @@ from app.constants import ClanColor
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
+from app.utils import TimeUtils
 
-CSSLP = 1_000_000
 
 class UserStatsSyncer:
     @staticmethod
@@ -28,6 +28,21 @@ class UserStatsSyncer:
             return None
         
         return "-".join(str(data[k]) for k in keys)
+    
+    @staticmethod
+    def _get_activity_level(last_battle_time: int | None) -> int:
+        """根据最后战斗时间戳返回活跃等级（0-9）"""
+        if not last_battle_time or last_battle_time <= 0:
+            return 0
+
+        diff = TimeUtils.timestamp() - last_battle_time
+
+        constants = EnvConfig.get_constants()
+        for threshold, level in constants.USER_ACTIVITY_THRESHOLDS:
+            if diff <= threshold:
+                return level
+
+        return 9
 
     @classmethod
     def _extract_user_data(cls, account_id: int, api_result: dict) -> dict:
@@ -38,6 +53,7 @@ class UserStatsSyncer:
             'insignias': None,
             'is_enabled': 1,
             'is_public': 1,
+            'activity_level': 0,
             'total_battles': 0,
             'pve_battles': 0,
             'pvp_battles': 0,
@@ -56,7 +72,7 @@ class UserStatsSyncer:
             return user_data
         
         # 无有效数据
-        if 'statistics' not in user_info:
+        if user_info is None or 'statistics' not in user_info:
             user_data['is_enabled'] = 0
             return user_data
         
@@ -72,21 +88,25 @@ class UserStatsSyncer:
         basic_data = statistics.get('basic', {})
         leveling_points = basic_data.get('leveling_points', 0)
         
-        # 处理中国服的主播体验账号的特殊情况
-        if EnvConfig.REGION == 'cn' and leveling_points >= CSSLP:
-            leveling_points -= CSSLP
+        # 中国服主播体验账号的特殊等级点数偏移量（1,000,000）
+        # 国服 API 返回的 leveling_points 包含了此偏移，需减去以得到真实场次
+        if leveling_points >= 1_000_000:
+            leveling_points -= 1_000_000
         
-        # 处理时间戳字段：0 或 None 都转为 None
+        # 处理时间戳字段
         register_time = int(user_info.get('created_at', 0))
         last_battle_time = basic_data.get('last_battle_time', 0)
+        if last_battle_time == 0:
+            last_battle_time = None
         
         user_data.update({
             'username': user_info['name'],
             'register_time': register_time if register_time not in (0, None) else None,
             'insignias': cls._get_insignias(user_info.get('dog_tag')),
+            'activity_level': cls._get_activity_level(last_battle_time),
             'total_battles': leveling_points,
             'karma': basic_data.get('karma', 0),
-            'last_battle_at': last_battle_time if last_battle_time not in (0, None) else None,
+            'last_battle_at': last_battle_time,
             'pve_battles': statistics.get('pve', {}).get('battles_count', 0),
             'pvp_battles': statistics.get('pvp', {}).get('battles_count', 0),
             'ranked_battles': statistics.get('rank_solo', {}).get('battles_count', 0),
@@ -109,10 +129,9 @@ class UserStatsSyncer:
         sql = """
             INSERT INTO T_user_base (
                 account_id, 
-                username,
-                updated_at 
+                username 
             ) VALUES (
-                %s, %s, NOW()
+                %s, %s
             );
         """
         await cursor.execute(sql, [account_id, username])
@@ -130,19 +149,23 @@ class UserStatsSyncer:
         sql = """
             UPDATE T_user_base 
             SET 
-                table_count = %s 
+                table_count = %s, 
+                updated_at = NOW()
             WHERE account_id = %s;
         """
         await cursor.execute(sql, [len(constants.USER_INIT_TABLE_LIST), account_id])
 
     @staticmethod
-    async def _is_existing(cursor: Cursor, account_id: int) -> tuple | None:
+    async def _fetch_user_base_row(cursor: Cursor, account_id: int) -> tuple | None:
         sql = """
-            SELECT 
-                username, 
-                UNIX_TIMESTAMP(updated_at) 
-            FROM T_user_base 
-            WHERE account_id = %s;
+            SELECT
+                b.username,
+                UNIX_TIMESTAMP(b.updated_at),
+                c.user_level
+            FROM T_user_base b
+            LEFT JOIN T_user_config c
+              ON b.account_id = c.account_id
+            WHERE b.account_id = %s;
         """
         await cursor.execute(sql, [account_id])
         return await cursor.fetchone()
@@ -159,7 +182,7 @@ class UserStatsSyncer:
                 UPDATE T_user_base 
                 SET 
                     username = %s, 
-                    updated_at = CURRENT_TIMESTAMP 
+                    updated_at = NOW() 
                 WHERE account_id = %s;
             """
             await cursor.execute(sql, [user_data['username'], account_id])
@@ -171,7 +194,7 @@ class UserStatsSyncer:
                     username = %s, 
                     register_time = FROM_UNIXTIME(%s), 
                     insignias = %s, 
-                    updated_at = CURRENT_TIMESTAMP 
+                    updated_at = NOW() 
                 WHERE account_id = %s;
             """
             await cursor.execute(
@@ -191,7 +214,7 @@ class UserStatsSyncer:
             await cursor.execute(sql, [account_id, old_username])
 
     @staticmethod
-    async def _update_user_stats(cursor: Cursor, account_id: int, user_data: dict) -> None:
+    async def _update_user_stats(cursor: Cursor, account_id: int, user_level: int, user_data: dict) -> None:
         """更新 T_user_stats 表"""
         if user_data['is_enabled'] == 0:
             # 账号不存在
@@ -200,7 +223,8 @@ class UserStatsSyncer:
                 SET 
                     is_enabled = 0, 
                     activity_level = 0, 
-                    updated_at = CURRENT_TIMESTAMP 
+                    next_refresh_at = NULL,
+                    updated_at = NOW() 
                 WHERE account_id = %s;
             """
             await cursor.execute(sql, [account_id])
@@ -212,7 +236,8 @@ class UserStatsSyncer:
                     is_enabled = 1, 
                     is_public = 0, 
                     activity_level = 0, 
-                    updated_at = CURRENT_TIMESTAMP 
+                    next_refresh_at = F_user_next_refresh_at(%s, 0), 
+                    updated_at = NOW() 
                 WHERE account_id = %s;
             """
             await cursor.execute(sql, [account_id])
@@ -222,7 +247,7 @@ class UserStatsSyncer:
                 SET 
                     is_enabled = 1,  
                     is_public = 1, 
-                    activity_level = F_user_activity_level(%s),
+                    activity_level = %s,
                     total_battles = %s, 
                     pve_battles = %s, 
                     pvp_battles = %s, 
@@ -230,14 +255,16 @@ class UserStatsSyncer:
                     rating_battles = %s, 
                     karma = %s, 
                     last_battle_at = FROM_UNIXTIME(%s), 
-                    updated_at = CURRENT_TIMESTAMP 
+                    next_refresh_at = F_user_next_refresh_at(%s, %s), 
+                    updated_at = NOW() 
                 WHERE account_id = %s;
             """
             await cursor.execute(
                 sql,
-                [user_data['last_battle_at'], user_data['total_battles'], user_data['pve_battles'], 
+                [user_data['activity_level'], user_data['total_battles'], user_data['pve_battles'], 
                 user_data['pvp_battles'], user_data['ranked_battles'], user_data['rating_battles'], 
-                user_data['karma'], user_data['last_battle_at'], account_id]
+                user_data['karma'], user_data['last_battle_at'], user_level, user_data['activity_level'], 
+                account_id]
             )
 
     @classmethod
@@ -255,17 +282,23 @@ class UserStatsSyncer:
         
         async with MySQLManager.auto_transaction_cursor() as cursor:
             # 从数据库中读取用户的username
-            existing = await cls._is_existing(cursor, account_id)
+            existing = await cls._fetch_user_base_row(cursor, account_id)
             
             if not existing:
                 await cls._init_new_user(cursor, account_id, user_data['username'])
-            
-            old_username, old_timestamp = existing
+                old_username = user_data['username']
+                old_timestamp = None
+                user_level = None
+            else:
+                old_username, old_timestamp, user_level = existing
+
+            if not user_level:
+                user_level = 0
 
             # 更新 T_user_base
             await cls._update_user_base(cursor, account_id, user_data, old_username, old_timestamp)
             # 更新 T_user_stats
-            await cls._update_user_stats(cursor, account_id, user_data)
+            await cls._update_user_stats(cursor, account_id, user_level, user_data)
 
         return JSONResponse.API_1000_Success
     
@@ -290,10 +323,9 @@ class UserClanSyncer:
             INSERT INTO T_clan_base (
                 clan_id, 
                 tag, 
-                league, 
-                updated_at 
+                league
             ) VALUES (
-                %s, %s, %s, NOW()
+                %s, %s, %s
             );
         """
         await cursor.execute(sql, [clan_id, clan_tag, league])
@@ -311,7 +343,8 @@ class UserClanSyncer:
         sql = """
             UPDATE T_clan_base 
             SET 
-                table_count = %s 
+                table_count = %s, 
+                updated_at = NOW()
             WHERE clan_id = %s;
         """
         await cursor.execute(sql, [len(constants.CLAN_INIT_TABLE_LIST), clan_id])
@@ -329,7 +362,7 @@ class UserClanSyncer:
             UPDATE T_user_clan 
             SET 
                 clan_id = %s, 
-                updated_at = CURRENT_TIMESTAMP 
+                updated_at = NOW() 
             WHERE account_id = %s;
         """
         await cursor.execute(sql, [clan_id, account_id])

@@ -57,6 +57,21 @@
     "T_ship_stats_by_users",
     "T_ship_rating_distribution"
   ],
+  "USER_ACTIVITY_THRESHOLDS": [
+    [86400, 1],
+    [259200, 2],
+    [604800, 3],
+    [2592000, 4],
+    [7776000, 5],
+    [15552000, 6],
+    [31536000, 7],
+    [63072000, 8]
+  ],
+  "CLAN_ACTIVITY_THRESHOLDS": [
+    [10, 3],
+    [30, 2],
+    [50, 1]
+  ],
   "METRIC_RATING_THRESHOLDS": {
     "damage": [
       0.8,

@@ -1,60 +1,15 @@
 -- DELIMITER //
 
--- 用户活跃度计算函数
--- 根据最后战斗时间距今的差值，返回1-9的活跃度等级
--- 活跃度越高表示用户最近越活跃（间隔时间越短）
-CREATE FUNCTION F_user_activity_level(last_battle_time BIGINT)
-RETURNS INT
-DETERMINISTIC
-BEGIN
-    DECLARE current_ts BIGINT;
-    DECLARE diff BIGINT;
-    
-    IF IFNULL(last_battle_time, 0) = 0 THEN
-        RETURN 0;
-    END IF;
-    
-    SET current_ts = UNIX_TIMESTAMP();
-    SET diff = current_ts - last_battle_time;
-    
-    RETURN CASE
-        WHEN diff <= 86400 THEN 1       -- 1天内
-        WHEN diff <= 259200 THEN 2      -- 3天内
-        WHEN diff <= 604800 THEN 3      -- 7天内
-        WHEN diff <= 2592000 THEN 4     -- 30天内
-        WHEN diff <= 7776000 THEN 5     -- 90天内
-        WHEN diff <= 15552000 THEN 6    -- 180天内
-        WHEN diff <= 31536000 THEN 7    -- 365天内
-        WHEN diff <= 63072000 THEN 8    -- 730天内
-        ELSE 9                           -- 超过730天
-    END;
-END;
-
--- 用户更新到期判断函数
--- 根据用户的启用状态、上次更新时间及活跃度等级，
--- 查询 D_user_activity_strategy 表获取更新间隔，判断是否需要更新
-CREATE FUNCTION F_is_user_update_due(
-    p_is_enabled     BOOLEAN,
-    p_updated_at     TIMESTAMP,
-    p_activity_level TINYINT,
-    p_user_level     TINYINT
-) RETURNS BOOLEAN
+CREATE FUNCTION F_user_next_refresh_at(
+    p_user_level     TINYINT,
+    p_activity_level TINYINT
+) RETURNS TIMESTAMP
     READS SQL DATA
-    DETERMINISTIC
+    NOT DETERMINISTIC
 BEGIN
     DECLARE v_interval INT;
 
-    -- 新用户需要更新
-    IF p_updated_at IS NULL THEN
-        RETURN TRUE;
-    END IF;
-
-    -- 不可用用户不需要更新
-    IF p_is_enabled IS FALSE THEN
-        RETURN FALSE;
-    END IF;
-
-    -- 查询更新间隔策略
+    -- 查询用户对应的刷新间隔，未找到则默认 30 H (108000 秒)
     SELECT interval_seconds
     INTO v_interval
     FROM D_user_activity_strategy
@@ -62,48 +17,33 @@ BEGIN
       AND user_level = p_user_level
     LIMIT 1;
 
-    -- 默认 1 天
-    SET v_interval = IFNULL(v_interval, 86400);
+    SET v_interval = IFNULL(v_interval, 108000);
 
-    -- 判断是否到期
-    RETURN p_updated_at + INTERVAL v_interval SECOND <= NOW();
+    -- 返回绝对时间戳：当前时间 + 间隔
+    RETURN NOW() + INTERVAL v_interval SECOND;
 END;
 
--- 公会更新到期判断函数
--- 根据公会的启用状态和上次更新时间，
--- 查询 D_clan_activity_strategy 表获取更新间隔，判断是否需要更新
-CREATE FUNCTION F_is_clan_update_due(
-    p_is_enabled     BOOLEAN,
-    p_updated_at     TIMESTAMP
-) RETURNS BOOLEAN
+
+CREATE FUNCTION F_clan_next_refresh_at(
+    p_activity_level TINYINT
+) RETURNS TIMESTAMP
     READS SQL DATA
-    DETERMINISTIC
+    NOT DETERMINISTIC
 BEGIN
     DECLARE v_interval INT;
 
-    -- 新用户需要更新
-    IF p_updated_at IS NULL THEN
-        RETURN TRUE;
-    END IF;
-
-    -- 不可用用户不需要更新
-    IF p_is_enabled IS FALSE THEN
-        RETURN FALSE;
-    END IF;
-
-    -- 查询更新间隔策略
+    -- 查询公会对应的刷新间隔，未找到则默认 30 H (108000 秒)
     SELECT interval_seconds
     INTO v_interval
     FROM D_clan_activity_strategy
-    WHERE activity_level = 1
+    WHERE activity_level = p_activity_level
       AND clan_level = 0
     LIMIT 1;
 
-    -- 默认 1 天
-    SET v_interval = IFNULL(v_interval, 86400);
+    SET v_interval = IFNULL(v_interval, 108000);
 
-    -- 判断是否到期
-    RETURN p_updated_at + INTERVAL v_interval SECOND <= NOW();
+    -- 返回绝对时间戳：当前时间 + 间隔
+    RETURN NOW() + INTERVAL v_interval SECOND;
 END;
 
 -- 船只PR值计算函数
@@ -164,52 +104,4 @@ BEGIN
     WHERE metric_id = idx
       AND r_val >= threshold;
     RETURN result;
-END;
-
-CREATE FUNCTION F_user_next_refresh_seconds(
-    p_is_enabled     BOOLEAN,
-    p_updated_at     TIMESTAMP,
-    p_activity_level TINYINT,
-    p_user_level     TINYINT
-) RETURNS INT
-    READS SQL DATA
-    DETERMINISTIC
-BEGIN
-    DECLARE v_interval INT;
-    DECLARE v_next_refresh_at TIMESTAMP;
-    DECLARE v_remaining_seconds INT;
-
-    -- 新用户需要立即刷新
-    IF p_updated_at IS NULL THEN
-        RETURN -1;
-    END IF;
-
-    -- 不可用用户不需要刷新，返回一个很大的值表示无需刷新
-    IF p_is_enabled IS FALSE THEN
-        RETURN 10000000;
-    END IF;
-
-    -- 查询更新间隔策略
-    SELECT interval_seconds
-    INTO v_interval
-    FROM D_user_activity_strategy
-    WHERE activity_level = p_activity_level
-      AND user_level = p_user_level
-    LIMIT 1;
-
-    -- 默认 1 天
-    SET v_interval = IFNULL(v_interval, 86400);
-
-    -- 计算下次刷新时间
-    SET v_next_refresh_at = p_updated_at + INTERVAL v_interval SECOND;
-
-    -- 计算剩余秒数
-    SET v_remaining_seconds = TIMESTAMPDIFF(SECOND, NOW(), v_next_refresh_at);
-
-    -- 如果已经到期，返回 -1 表示需要立即刷新
-    IF v_remaining_seconds <= 0 THEN
-        RETURN -1;
-    END IF;
-
-    RETURN v_remaining_seconds;
 END;
