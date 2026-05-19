@@ -711,7 +711,7 @@ def get_update_ids(
                         hour_index = remaining_seconds // 3600
                         if hour_index < 24:
                             total_count += 1
-                            buckets[0].append(row[0])
+                            buckets[hour_index].append(row[0])
 
 
                 total_due += len(due_ids)
@@ -747,20 +747,20 @@ def get_update_ids(
             min_peak_abs=min_peak_abs,
             min_interval_total=min_interval_total
         )
-        if not intervals:
-            logger.info("No interval needs rebalancing")
-            return
-        for left, right in intervals:
-            bucket_slice = buckets[left:right+1]  # 子列表引用，修改会作用到原桶
-            migrations = rebalance_interval(bucket_slice)
-            all_migrations.extend(migrations)
+        if intervals:
+            for left, right in intervals:
+                bucket_slice = buckets[left:right+1]  # 子列表引用，修改会作用到原桶
+                migrations = rebalance_interval(bucket_slice)
+                all_migrations.extend(migrations)
 
-            # 更新全局 counts 供后续区间使用
-            for h in range(left, right+1):
-                counts[h] = len(buckets[h])
-        score = calc_imbalance_score(counts)
-        logger.debug('Rebalanced plan (%s): %s', score, counts)
-        logger.info("Applied %d %s migrations to database", len(all_migrations), index)
+                # 更新全局 counts 供后续区间使用
+                for h in range(left, right+1):
+                    counts[h] = len(buckets[h])
+            score = calc_imbalance_score(counts)
+            logger.debug('Rebalanced plan (%s): %s', score, counts)
+            logger.info("Applied %d %s migrations to database", len(all_migrations), index)
+        else:
+            logger.info("No interval needs rebalancing")
     else:
         logger.info("No interval needs rebalancing")
     
