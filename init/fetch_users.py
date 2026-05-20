@@ -1,13 +1,58 @@
-from aiomysql.cursors import Cursor
-from typing import Optional
+import os
+import time
+import json
+import logging
+import pymysql
+import requests
+from tqdm import tqdm
+from pathlib import Path
+from dotenv import load_dotenv
 
-from app.core import EnvConfig
-from app.constants import ClanColor
-from app.database import MySQLManager
-from app.loggers import ExceptionLogger
-from app.response import JSONResponse
-from app.utils import TimeUtils
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+
+ROOT_DIR = Path(os.getcwd())
+
+if (ROOT_DIR / 'env.dev').exists():
+    logger.info('Loading environment file: env.dev')
+    load_dotenv('env.dev')
+elif (ROOT_DIR / 'env.prod').exists():
+    logger.info('Loading environment file: env.pros')
+    load_dotenv('env.prod')
+else:
+    raise FileNotFoundError('No environment file found')
+
+DATA_DIR = Path(os.getenv("DATA_DIR"))
+
+DB_CONFIG = {
+    "host": 'localhost',
+    "port": int(os.getenv("MYSQL_PORT", 3306)),
+    "user": 'root',
+    "password": os.getenv("MYSQL_ROOT_PASSWORD"),
+    "database": os.getenv("MYSQL_DATABASE"),
+    'autocommit': False
+}
+
+os.environ['NO_PROXY'] = '127.0.0.1,localhost'
+
+file_path = DATA_DIR / 'json/init_marker.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    REGION: str = data['region']
+file_path = DATA_DIR / 'const/constants.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    USER_ACTIVITY_THRESHOLDS: list = data['USER_ACTIVITY_THRESHOLDS']
+    USER_INIT_TABLE_LIST: list = data['USER_INIT_TABLE_LIST']
+file_path = DATA_DIR / 'const/endpoints.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    VORTEX_API: list = data[REGION]['vortex_api']
 
 class UserStatsSyncer:
     @staticmethod
@@ -35,10 +80,8 @@ class UserStatsSyncer:
         if not last_battle_time or last_battle_time <= 0:
             return 0
 
-        diff = TimeUtils.timestamp() - last_battle_time
-
-        constants = EnvConfig.get_constants()
-        for threshold, level in constants.USER_ACTIVITY_THRESHOLDS:
+        diff = int(time.time()) - last_battle_time
+        for threshold, level in USER_ACTIVITY_THRESHOLDS:
             if diff <= threshold:
                 return level
 
@@ -113,7 +156,7 @@ class UserStatsSyncer:
         })
         
         # 处理俄服的评分战数据
-        if EnvConfig.REGION == 'ru':
+        if REGION == 'ru':
             rating_count = 0
             rating_count += statistics.get('rating_solo', {}).get('battles_count', 0)
             rating_count += statistics.get('rating_div', {}).get('battles_count', 0)
@@ -122,7 +165,7 @@ class UserStatsSyncer:
         return user_data
 
     @staticmethod
-    async def _init_new_user(cursor: Cursor, account_id: int, username: str) -> None:
+    def _init_new_user(cursor, account_id: int, username: str) -> None:
         """为新用户创建基础表记录"""
         if not username:
             username = f'User_{account_id}'
@@ -134,9 +177,8 @@ class UserStatsSyncer:
                 %s, %s
             );
         """
-        await cursor.execute(sql, [account_id, username])
-        constants = EnvConfig.get_constants()
-        for table_name in constants.USER_INIT_TABLE_LIST:
+        cursor.execute(sql, [account_id, username])
+        for table_name in USER_INIT_TABLE_LIST:
             sql = f"""
                 INSERT INTO {table_name} (
                     account_id
@@ -144,7 +186,7 @@ class UserStatsSyncer:
                     %s
                 );
             """
-            await cursor.execute(sql, [account_id])
+            cursor.execute(sql, [account_id])
 
         sql = """
             UPDATE T_user_base 
@@ -153,10 +195,10 @@ class UserStatsSyncer:
                 updated_at = NOW()
             WHERE account_id = %s;
         """
-        await cursor.execute(sql, [len(constants.USER_INIT_TABLE_LIST), account_id])
+        cursor.execute(sql, [len(USER_INIT_TABLE_LIST), account_id])
 
     @staticmethod
-    async def _fetch_user_base_row(cursor: Cursor, account_id: int) -> tuple | None:
+    def _fetch_user_base_row(cursor, account_id: int) -> tuple | None:
         sql = """
             SELECT
                 b.username,
@@ -167,11 +209,11 @@ class UserStatsSyncer:
               ON b.account_id = c.account_id
             WHERE b.account_id = %s;
         """
-        await cursor.execute(sql, [account_id])
-        return await cursor.fetchone()
+        cursor.execute(sql, [account_id])
+        return cursor.fetchone()
 
     @staticmethod
-    async def _update_user_base(cursor: Cursor, account_id: int, user_data: dict, old_username: str, old_timestamp: int) -> None:
+    def _update_user_base(cursor, account_id: int, user_data: dict, old_username: str, old_timestamp: int) -> None:
         """更新 T_user_base 表"""
         if not user_data['username']:
             return
@@ -185,7 +227,7 @@ class UserStatsSyncer:
                     updated_at = NOW() 
                 WHERE account_id = %s;
             """
-            await cursor.execute(sql, [user_data['username'], account_id])
+            cursor.execute(sql, [user_data['username'], account_id])
         else:
             # 有名称和注册时间 -> 正常用户
             sql = """
@@ -197,7 +239,7 @@ class UserStatsSyncer:
                     updated_at = NOW() 
                 WHERE account_id = %s;
             """
-            await cursor.execute(
+            cursor.execute(
                 sql,[user_data['username'], user_data['register_time'], user_data['insignias'], account_id]
             )
         
@@ -211,10 +253,10 @@ class UserStatsSyncer:
                     %s, %s
                 );
             """
-            await cursor.execute(sql, [account_id, old_username])
+            cursor.execute(sql, [account_id, old_username])
 
     @staticmethod
-    async def _update_user_stats(cursor: Cursor, account_id: int, user_level: int, user_data: dict) -> None:
+    def _update_user_stats(cursor, account_id: int, user_level: int, user_data: dict) -> None:
         """更新 T_user_stats 表"""
         if user_data['is_enabled'] == 0:
             # 账号不存在
@@ -227,7 +269,7 @@ class UserStatsSyncer:
                     updated_at = NOW() 
                 WHERE account_id = %s;
             """
-            await cursor.execute(sql, [account_id])
+            cursor.execute(sql, [account_id])
         elif user_data['is_public'] == 0:
             # 账号隐藏战绩
             sql = """
@@ -240,7 +282,7 @@ class UserStatsSyncer:
                     updated_at = NOW() 
                 WHERE account_id = %s;
             """
-            await cursor.execute(sql, [user_level, account_id])
+            cursor.execute(sql, [user_level, account_id])
         else:
             sql = """
                 UPDATE T_user_stats 
@@ -259,7 +301,7 @@ class UserStatsSyncer:
                     updated_at = NOW() 
                 WHERE account_id = %s;
             """
-            await cursor.execute(
+            cursor.execute(
                 sql,
                 [user_data['activity_level'], user_data['total_battles'], user_data['pve_battles'], 
                 user_data['pvp_battles'], user_data['ranked_battles'], user_data['rating_battles'], 
@@ -268,8 +310,7 @@ class UserStatsSyncer:
             )
 
     @classmethod
-    @ExceptionLogger.handle_database_exception_async
-    async def refresh(cls, account_id: int, api_result: dict) -> str | None:
+    def refresh(cls, cursor, account_id: int, api_result: dict) -> str | None:
         """基于用户基本信息接口的数据，刷新数据库的 user_stats 表
         
         eg. https://vortex.worldofwarships.asia/api/accounts/2023619512/
@@ -279,118 +320,95 @@ class UserStatsSyncer:
             str: 错误类型名称
         """
         user_data = cls._extract_user_data(account_id, api_result)
+
+        # 从数据库中读取用户的username
+        existing = cls._fetch_user_base_row(cursor, account_id)
         
-        async with MySQLManager.auto_transaction_cursor() as cursor:
-            # 从数据库中读取用户的username
-            existing = await cls._fetch_user_base_row(cursor, account_id)
-            
-            if not existing:
-                await cls._init_new_user(cursor, account_id, user_data['username'])
-                old_username = user_data['username']
-                old_timestamp = None
-                user_level = None
-            else:
-                old_username, old_timestamp, user_level = existing
+        if not existing:
+            cls._init_new_user(cursor, account_id, user_data['username'])
+            old_username = user_data['username']
+            old_timestamp = None
+            user_level = None
+        else:
+            old_username, old_timestamp, user_level = existing
 
-            if not user_level:
-                user_level = 0
+        if not user_level:
+            user_level = 0
 
-            # 更新 T_user_base
-            await cls._update_user_base(cursor, account_id, user_data, old_username, old_timestamp)
-            # 更新 T_user_stats
-            await cls._update_user_stats(cursor, account_id, user_level, user_data)
+        # 更新 T_user_base
+        cls._update_user_base(cursor, account_id, user_data, old_username, old_timestamp)
+        # 更新 T_user_stats
+        cls._update_user_stats(cursor, account_id, user_level, user_data)
 
-        return JSONResponse.API_1000_Success
+        return
+
+def is_existing(cursor, account_id: int):
+    cursor.execute("SELECT 1 FROM T_user_base WHERE account_id = %s;", [account_id])
+    if cursor.fetchone():
+        return True
+    else:
+        return False
+
+def fetch_data(url: str, params: dict = None):
+    try:
+        resp = requests.get(url, params=params, timeout=5)
+        if resp.status_code == 200:
+            result = resp.json()
+            return result
+        elif resp.status_code == 404:
+            return {}
+        return f'HTTP_STATUS_{resp.status_code}'
+    except Exception as e:
+        return f'ERROR_{type(e).__name__}'
+
+def main(filepath: Path):
+    with open(filepath, "r", encoding="utf-8") as f:
+        users: list = json.load(f)
+
+    if not users:
+        logger.info("No users to process, exiting")
+        return
     
-class UserClanSyncer:
-    @staticmethod
-    async def _is_existing(cursor: Cursor, clan_id: int) -> tuple | None:
-        sql = """
-            SELECT 
-                1 
-            FROM T_clan_base 
-            WHERE clan_id = %s;
-        """
-        await cursor.execute(sql, [clan_id])
-        return await cursor.fetchone()
+    conn = pymysql.connect(**DB_CONFIG)
     
-    @staticmethod
-    async def _init_new_clan(cursor: Cursor, clan_id: int, clan_tag: str, league: int) -> None:
-        """为新用户创建基础表记录"""
-        if not clan_tag:
-            clan_tag = f'N/A'
-        sql = """
-            INSERT INTO T_clan_base (
-                clan_id, 
-                tag, 
-                league
-            ) VALUES (
-                %s, %s, %s
-            );
-        """
-        await cursor.execute(sql, [clan_id, clan_tag, league])
-        constants = EnvConfig.get_constants()
-        for table_name in constants.CLAN_INIT_TABLE_LIST:
-            sql = f"""
-                INSERT INTO {table_name} (
-                    clan_id
-                ) VALUES (
-                    %s
-                );
-            """
-            await cursor.execute(sql, [clan_id])
+    with conn.cursor() as cursor:
+        with tqdm(users, desc="Inserting clans", total=len(users)) as pbar:
+            for item in pbar:
+                pbar.set_postfix_str(str(item))
+                existing = is_existing(cursor, item)
+                if existing:
+                    continue
+                url = f'{VORTEX_API[0]}/api/accounts/{item}/'
+                response = fetch_data(url)
+                if response == {}:
+                    tqdm.write(f'{item} | User not exist')
+                    continue
+                if isinstance(response, str):
+                    tqdm.write(f'{item} | {response}')
+                    continue
+                # 处理异常情况
+                if response.get('status') != 'ok':
+                    tqdm.write(f'{item} | GameAPI Error')
+                    continue
+                response = response.get('data', {})
+                result = UserStatsSyncer.refresh(cursor, item, response)
+                if isinstance(result, str):
+                    tqdm.write(f'{item} | {result}')
+                    continue
+                conn.commit()
 
-        sql = """
-            UPDATE T_clan_base 
-            SET 
-                table_count = %s, 
-                updated_at = NOW()
-            WHERE clan_id = %s;
-        """
-        await cursor.execute(sql, [len(constants.CLAN_INIT_TABLE_LIST), clan_id])
+if __name__ == '__main__':
+    """从接口读取所有有效的工会数据
+    
+    使用示例：
+    python init/fetch_users.py
+    """
+    
+    filepath = ROOT_DIR / 'data/trash/users.json'
 
-    @staticmethod
-    async def _update_user_clan(cursor: Cursor, account_id: int, clan_id: Optional[int]) -> None:
-        """批量更新公会成员关系
-
-        Args:
-            cursor: 数据库游标
-            clan_id: 公会 ID
-            user_ids: 当前公会成员 ID 列表
-        """
-        sql = f"""
-            UPDATE T_user_clan 
-            SET 
-                clan_id = %s, 
-                updated_at = NOW() 
-            WHERE account_id = %s;
-        """
-        await cursor.execute(sql, [clan_id, account_id])
-
-    @classmethod
-    async def refresh(cls, account_id: int, result: dict) -> str | None:
-        """基于公会成员接口数据刷新数据库中的公会成员信息
-
-        Args:
-            conn: 数据库连接
-            clan_id: 公会 ID
-            result: API 返回的公会成员数据
-
-        Returns:
-            None: 成功
-            str: 失败时返回错误类型名称
-        """
-
-        async with MySQLManager.auto_transaction_cursor() as cursor:
-            clan_id = result.get('clan_id')
-            if clan_id:
-                clan_tag = result.get('clan', {}).get('tag')
-                league = ClanColor.CLAN_COLOR_INDEX.get(
-                    result.get('clan', {}).get('color'), 5
-                )
-                existing = await cls._is_existing(cursor, clan_id)
-                if not existing:
-                    await cls._init_new_clan(cursor, clan_id, clan_tag, league)
-            await cls._update_user_clan(cursor, account_id, clan_id)
-
-        return JSONResponse.API_1000_Success
+    try:
+        main(filepath)
+    except KeyboardInterrupt:
+        logger.info("Interrupted by user")
+    except Exception as e:
+        logger.error(e)

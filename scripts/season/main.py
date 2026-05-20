@@ -116,15 +116,6 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         logger.warning('Season_ID not configured')
         return
     logger.info(f"Current Season ID: {season_id}")
-
-    # 2. 确保当前赛季的工会战数据表存在
-    table_status = ensure_clan_battle_table(mysql_connection, season_id)
-    if table_status is None:
-        logger.warning(f'Failed to check if Table T_clan_battle_s{season_id} exists')
-    if table_status:
-        logger.info(f'New table T_clan_battle_s{season_id} has been successfully created.')
-    else:
-        logger.debug(f'Table T_clan_battle_s{season_id} is already exists')
     
     # 3. 为确保首次运行时能立即获取数据，最低每天刷新一次
     if (
@@ -171,11 +162,20 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         logger.disable_tqdm()
 
         logger.info('Current active clans: 0(%d), 1(%d), 2(%d), 3(%d), 4(%d)', league_count["0"], league_count["1"], league_count["2"], league_count["3"], league_count["4"])
+        
+        # 确保当前赛季的工会战数据表存在
+        table_status = ensure_clan_battle_table(mysql_connection, season_id)
+        if table_status is None:
+            logger.warning(f'Failed to check if Table T_clan_battle_s{season_id} exists')
+        if table_status:
+            logger.info(f'New table T_clan_battle_s{season_id} has been successfully created.')
+        else:
+            logger.debug(f'Table T_clan_battle_s{season_id} is already exists')
 
         # 比较最新数据和数据库数据，确定需要更新的工会ID列表
         update_ids = get_update_ids(mysql_connection, season_id, total_list, success_count == EXPECTED_LEAGUE_COUNT)
         len_update_ids = len(update_ids)
-        
+            
         if len_update_ids > 0:
             # 更新需要更新的工会数据
             logger.info(f'Clans update numbers: {len_update_ids}')

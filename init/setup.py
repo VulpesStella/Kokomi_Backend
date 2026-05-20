@@ -4,6 +4,7 @@
 import os
 import time
 import json
+import logging
 import pymysql
 import requests
 import argparse
@@ -12,84 +13,64 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+
+ROOT_DIR = Path(os.getcwd())
+
 def log(step_text: str, symbol: str, width: int = 58):
     text_len = len(step_text)
     dots_count = max(width - text_len, 2)  # 最少 2 个点
     dots = "." * dots_count
-    print(f"{step_text}{dots}{symbol}")
+    return f"{step_text}{dots}{symbol}"
 
-def main(region: str, env_file: str):
-    # 加载配置文件
-    log('1. Read environment configuration file ', '🛠️')
-    ROOT_DIR = Path(__file__).resolve().parent.parent
-    load_dotenv(ROOT_DIR / env_file)
-    if os.getenv('PLATFORM') is None:
-        log(f'  - {env_file} file reading failed ', '❌')
-        return
-    MYSQL_CONFIG = {
-        "host": "127.0.0.1",
-        "port": 3306,
-        "user": "root",
-        "password": os.getenv("MYSQL_ROOT_PASSWORD"),
-        "autocommit": False
-    }
-    DATABASE = os.getenv("MYSQL_DATABASE")
-    REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
-    REGION_TIMEZONE = {
-        'asia': 8, 
-        'eu': 1, 
-        'na': -7, 
-        'ru': 3, 
-        'cn': 8
-    }
-    log(f'  - {env_file} file read successfully ', '✅')
+if (ROOT_DIR / 'env.dev').exists():
+    load_dotenv('env.dev')
+    logger.info(log('Loaded environment file: env.dev', '✅'))
+elif (ROOT_DIR / 'env.prod').exists():
+    load_dotenv('env.prod')
+    logger.info(log('Loaded environment file: env.pros', '✅'))
+else:
+    raise FileNotFoundError('No environment file found')
 
-    # # 生成redis配置文件
-    # file_path = ROOT_DIR / "redis.conf"
-    # if not file_path.exists():
-    #     redis_conf = f"bind 0.0.0.0\nappendonly yes\nrequirepass {REDIS_PASSWORD}"
-    #     file_path.write_text(redis_conf)
-    # log(f'  - redis.conf file generated successfully ', '✅')
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+DB_CONFIG = {
+    "host": 'localhost',
+    "port": int(os.getenv("MYSQL_PORT", 3306)),
+    "user": 'root',
+    "password": os.getenv("MYSQL_ROOT_PASSWORD"),
+    "database": os.getenv("MYSQL_DATABASE"),
+    'autocommit': False
+}
+
+DATA_DIR = Path(os.getenv("DATA_DIR"))
+REGION_TIMEZONE = {'asia': 8, 'eu': 1, 'na': -7, 'ru': 3, 'cn': 8}
+
+os.environ['NO_PROXY'] = '127.0.0.1,localhost'
+
+def main(region: str, location: str):
+    # 生成redis配置文件
+    file_path = ROOT_DIR / "redis.conf"
+    if not file_path.exists():
+        redis_conf = f"bind 0.0.0.0\nappendonly yes\nrequirepass {REDIS_PASSWORD}"
+        file_path.write_text(redis_conf)
+    logging.info(log('File `redis.conf` generated successfully', '✅'))
     
     # # 生成mysql配置文件
     # file_path = ROOT_DIR / f"my.cnf"
     # if not file_path.exists():
     #     redis_conf = "[mysqld]\ntransaction-isolation = READ-COMMITTED"
     #     file_path.write_text(redis_conf)
-    # log(f'  - my.cnf file generated successfully ', '✅')
+    # logging.info(log('File `my.cnf` generated successfully', '✅'))
 
     file_path = ROOT_DIR / 'data/const/endpoints.json'
     with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
         VORTEX_API: list = data[region]['vortex_api']
-
-    # 执行数据库初始化
-    log('3. Initialize MySQL database ', '🛠️')
-    conn = pymysql.connect(**MYSQL_CONFIG)
-    try:
-        with conn.cursor() as cursor:
-            cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{DATABASE}`;")
-            cursor.execute(f"USE `{DATABASE}`;")
-            sql_files = [
-                ROOT_DIR / "init/mysql/01-schemas/01-base.sql",
-                ROOT_DIR / "init/mysql/01-schemas/02-user.sql",
-                ROOT_DIR / "init/mysql/01-schemas/03-clan.sql",
-                ROOT_DIR / "init/mysql/01-schemas/04-ship.sql",
-                ROOT_DIR / "init/mysql/01-schemas/05-recent.sql",
-                ROOT_DIR / "init/mysql/02-data/01-base.sql",
-                ROOT_DIR / "init/mysql/03-views/01-base.sql",
-                ROOT_DIR / "init/mysql/04-functions/01-base.sql"
-            ]
-            for sql_file in sql_files:
-                with sql_file.open("r", encoding="utf-8") as f:
-                    sql = f.read()
-                    cursor.execute(sql)
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        traceback.print_exc()  
-        return 
-
     
     # 读取游戏版本
     base_url = VORTEX_API[0]
@@ -99,10 +80,10 @@ def main(region: str, env_file: str):
     if resp.status_code == 200:
         version_data = resp.json()
         full_version = version_data[0]['data']['version']
-        log(f'  - Game version readed successfully ', '✅')
         short_version = ".".join(full_version.split(".")[:2])
-        
+        logging.info(log(f'Latest game version: {short_version}', '✅'))
         try:
+            conn = pymysql.connect(**DB_CONFIG)
             with conn.cursor() as cursor:
                 sql = """
                     INSERT INTO T_game_version (
@@ -115,26 +96,47 @@ def main(region: str, env_file: str):
             conn.commit()
         except Exception:
             conn.rollback()
-            traceback.print_exc()  
+            traceback.print_exc() 
+        finally:
+            conn.close() 
     else:
-        resp.raise_for_status()
+        logger.info(log(f'Request status code: {resp.status_code}', '❌️'))
 
-    conn.close()
+    timestamp = int(time.time())
 
-    # # 生成初始化文件
-    # result = {
-    #     'init_time': int(time.time()),
-    #     'region': region,
-    #     'location': '-',
-    #     'timezone': REGION_TIMEZONE[region],
-    #     'token': None
-    # }
-    # hash_value = hash(frozenset(result.items()))
-    # result['hash'] = hash_value
-    # init_file_path = ROOT_DIR / f"data/json/init_marker.json"
-    # with open(init_file_path, "w", encoding="utf-8") as f:
-    #     json.dump(result, f, ensure_ascii=False)
-    # log(f'4. init_marker.json file generated successfully ', '✅')
+    result = {
+        "update_time": timestamp,
+        "file_count": 0,
+        "total_size_bytes": 0,
+        "avg_size_bytes": 0
+    }
+    init_file_path = ROOT_DIR / f"data/json/db_stats.json"
+    with open(init_file_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False)
+    logging.info(log('File `db_stats.json` generated successfully', '✅'))
+
+    result = {
+        "id": 28,
+        "start": 1739944800,
+        "finish": 1744005600
+    }
+    init_file_path = ROOT_DIR / f"data/json/clan_season.json"
+    with open(init_file_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False)
+    logging.info(log('File `clan_season.json` generated successfully', '✅'))
+
+    # 生成初始化文件
+    result = {
+        'init_time': timestamp,
+        'region': region,
+        'location': location,
+        'timezone': REGION_TIMEZONE[region],
+        'token': None
+    }
+    init_file_path = ROOT_DIR / f"data/json/init_marker.json"
+    with open(init_file_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False)
+    logging.info(log('File `init_marker.json` generated successfully', '✅'))
 
 if __name__ == "__main__":
     # 加载参数并效验
@@ -146,20 +148,18 @@ if __name__ == "__main__":
         help="API Token"
     )
     parser.add_argument(
-        "-e", "--env",
+        "-l", "--location",
         type=str,
         required=True,
-        help="Env File"
+        help="Location"
     )
     args = parser.parse_args()
     region = args.region
-    env = args.env
+    location = args.location
     if region not in ['asia', 'eu', 'na', 'ru', 'cn']:
         raise ValueError('Incorrect region')
-    if env not in ['.env', 'env.dev', 'env.prod']:
-        raise ValueError('Incorrect env file')
     main(
         region=region,
-        env_file=env
+        location=location
     )
     print('----------  Initialization completed successfully  ----------')

@@ -7,10 +7,10 @@
 由于游戏 API 存在较高的跨地域请求延迟，本项目采用了分布式地区部署方案
 
 - 完整服务由 1 台主节点和 5 台子节点组成，子节点汇总必要数据发送给主节点
-- 子节点的物理地址分别位于`亚洲` `欧洲` `北美` `独联体` `中国`，以对应游戏的 5 个区服
+- 子节点的物理地址分别位于`亚洲` `欧洲` `北美` `俄罗斯` `中国`，以对应游戏的 5 个区服
 - 各子节点仅负责请求并处理所属地区的数据，避免跨区请求以保证效率
 - 各子节点对原始 API 数据进行处理或者储存，返回经过处理后的标准化数据
-- 各子节点均不对外暴露，仅允许主节点 IP 和 Root 用户进行远程访问
+- 各子节点均不对外暴露，仅允许主节点 和 Root 用户进行远程访问
 
 ## Dev 环境部署
 
@@ -19,8 +19,7 @@
 ### 部署前提
 
 1. 确保 Python >= 3.10
-2. 克隆项目代码，并获取到项目的协作权限
-3. 部署在本地的 MySQL + Redis + RabbitMQ
+2. 部署在本地的 MySQL + Redis + RabbitMQ
 
 ### 虚拟环境配置
 
@@ -33,12 +32,12 @@
 #     网络请求：httpx requests
 #     数据库：aiomysql dbutils
 #     中间件：redis celery
+#     进度条：tqdm
 #     
 # 
 # 开发环境下的额外模块
 #     汉化支持：polib
 #     数据处理：pandas numpy msgpack
-#     控制台进度条：tqdm
 
 # 创建虚拟环境
 python -m venv .venv
@@ -54,20 +53,35 @@ pip install -r requirements-dev.txt
 ### 项目初始化
 
 ```bash
-# 执行项目和数据库初始化脚本
+# 执行数据库初始化脚本
+python init/rebuild_db.py
+
+# 执行项目初始化脚本
 # 参数1 region: asia, eu, na, ru, cn
-# 参数2 env_file: env.dev, env.prod (此处默认使用env.dev)
-python init/setup.py -r <region> -e env.dev
+# 参数2 location: 服务器的物理地址
+python init/setup.py -r <region> -l <city>,<country>
 ```
 
 ### 运行代码
 
 ```bash
-# 加载测试用户集，通过读取当前赛季工会战排名，获取到数百个工会ID
-python init/start.py
-# 运行一次
-# 运行Celery（Windows环境不支持并发模式，开发环境只使用单线程模式）
+# 加载本地测试用户集，请按照以下顺序启动服务
+
+# 通过读取当前赛季工会战排名，获取到数百个工会ID
+python scripts/season/main.py
+
+# 启动 Celery 消费者
 celery --app tasks.main:celery_app worker -Q refresh_queue -P solo --loglevel=info --concurrency=1
+
+# 加载用户集（通过读取工会ID下的用户列表）
+python scripts/maintenance/main.py 
+
+# 加载用户的缓存数据
+python scripts/cache/main.py 
+
+# 待加载完所有的用户的缓存数据后执行
+# 统计船只的服务器玩家数据
+python scripts/stats/main.py 
 ```
 
 ## Prod 环境部署

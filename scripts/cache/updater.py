@@ -484,7 +484,6 @@ class UserCacheUpdater:
               AND metric_id = %s;
         """
         cursor.executemany(sql, updated_record)
-        logger.debug(f'Updated {len(updated_record)} rows ship record data')
 
     @staticmethod
     def _upsert_leaderboard(
