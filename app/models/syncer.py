@@ -292,13 +292,12 @@ class UserStatsSyncer:
             else:
                 old_username, old_timestamp, user_level = existing
 
-        if not existing:
-            await RedisClient.drop(lock_key)
+            if not existing:
+                await RedisClient.drop(lock_key)
 
-        if not user_level:
-            user_level = 0
+            if not user_level:
+                user_level = 0
         
-        async with MySQLManager.auto_transaction_cursor() as cursor:
             # 更新 T_user_base
             await cls._update_user_base(cursor, account_id, user_data, old_username, old_timestamp)
             # 更新 T_user_stats

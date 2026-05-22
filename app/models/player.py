@@ -2,7 +2,7 @@ from app.core import EnvConfig
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
-from app.utils import TimeUtils
+from app.utils import TimeUtils, StringUtils
 
 
 class DemoPlayerModel:
@@ -100,11 +100,12 @@ class PlayerModel:
     @ExceptionLogger.handle_database_exception_async
     async def get_user_name_and_clan(account_id: int):
         async with MySQLManager.read_only_cursor() as cur:
+            result = {}
             sql = """
                 SELECT 
                     account_id,
                     username,
-                    register_time,
+                    UNIX_TIMESTAMP(register_time),
                     insignias,
                     clan_id,
                     clan_tag,
@@ -114,4 +115,37 @@ class PlayerModel:
             """
             await cur.execute(sql, [account_id])
             data = await cur.fetchone()
-            return JSONResponse.get_success_response(data)
+            if not data:
+                return JSONResponse.API_1000_Success
+            result['basic'] = {
+                'user_id': data[0],
+                'username': data[1],
+                'clan_id': data[4],
+                'clan_tag': data[5],
+                'league': data[6],
+                'karma': 0,
+                'created_at': data[2],
+                'insignias': StringUtils.parse_insignias(data[3])
+            }
+            sql = """
+                SELECT 
+                    is_enabled, 
+                    is_public, 
+                    karma, 
+                    UNIX_TIMESTAMP(updated_at) 
+                FROM T_user_stats 
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            data = await cur.fetchone()
+            if not data:
+                return JSONResponse.API_2020_DataIntegrityError
+            
+            if data[3] is None:
+                result['stats'] = False
+            elif not data[0] or not data[1]:
+                result['stats'] = False
+            else:
+                result['stats'] = True
+                result['basic']['karma'] = data[2]
+            return JSONResponse.get_success_response(result)

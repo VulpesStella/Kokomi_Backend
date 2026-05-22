@@ -206,12 +206,12 @@ app.include_router(
     dependencies=[Security(SecurityManager.require_user)]
 )
 
-# app.include_router(
-#     statistics_router,
-#     prefix="/api/stats",
-#     tags=['Statistics Interface'],
-#     dependencies=[Security(SecurityManager.require_user)]
-# )
+app.include_router(
+    statistics_router,
+    prefix="/api",
+    tags=['Statistics Interface'],
+    dependencies=[Security(SecurityManager.require_user)]
+)
 
 # app.include_router(
 #     recent_router,

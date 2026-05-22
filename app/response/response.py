@@ -97,6 +97,7 @@ class JSONResponse:
     API_2017_ClanNotInDB = {'status': 'ok', 'code': 2017, 'message': 'ClanNotInDB'}
     API_2018_LeaderboardUnderMaintenance = {'status': 'ok', 'code': 2018, 'message': 'LeaderboardUnderMaintenance'}
     API_2019_AcqurieLockFailed = {'status': 'ok', 'code': 2019, 'message': 'AcqurieLockFailed'}
+    API_2020_DataIntegrityError = {'status': 'ok', 'code': 2020, 'message': 'DataIntegrityError'}
 
     # 通用程序错误
     _API_3000_ProgramError = {'status': 'ok', 'code': 3000, 'message': 'ProgramError'}

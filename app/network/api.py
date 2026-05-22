@@ -215,13 +215,35 @@ class  ExternalAPI:
         endpoints = EnvConfig.get_endpoints()
         base_url = random.choice(endpoints.VORTEX_API)
         url = f'{base_url}/api/accounts/{account_id}/' + (f'?ac={user_token}' if user_token else '')
-        response = await HttpClient.get_clan_data(url)
+        response = await HttpClient.get_user_data(url)
 
         error, results = await record_http_metrics([response], [url])
         if error:
             return results
         
         return JSONResponse.get_success_response(results[0])
+
+    @staticmethod
+    @ExceptionLogger.handle_program_exception_async
+    async def get_user_pvp_overall(account_id: int, ac1: str = None):
+        base_url = random.choice(EnvConfig.endpoints.VORTEX_API)
+        urls = [
+            f'{base_url}/api/accounts/{account_id}/ships/pvp_solo/' + (f'?ac={ac1}' if ac1 else ''),
+            f'{base_url}/api/accounts/{account_id}/ships/pvp_div2/' + (f'?ac={ac1}' if ac1 else ''),
+            f'{base_url}/api/accounts/{account_id}/ships/pvp_div3/' + (f'?ac={ac1}' if ac1 else '')
+        ]
+        tasks = []
+        responses = []
+        async with asyncio.Semaphore(len(urls)):
+            for url in urls:
+                tasks.append(HttpClient.get_user_data(url))
+            responses = await asyncio.gather(*tasks)
+
+        error, results = await record_http_metrics(responses, urls)
+        if error:
+            return results
+        
+        return JSONResponse.get_success_response(results)
         
     # @staticmethod
     # @ExceptionLogger.handle_program_exception_async

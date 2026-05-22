@@ -11,13 +11,15 @@ class RefreshAPI:
     async def refresh_user(account_id: int) -> ResponseDict:
         # 从 Redis 中获取用户的 access_token
         redis_key = f"token:ac:{account_id}"
-        response = await RedisClient.get_token(redis_key)
-        error, access_token = JSONResponse.extract_data_strict(response)
+        error, access_token = JSONResponse.extract_data_strict(
+            response=await RedisClient.get_token(redis_key)
+        )
         if error:
             return access_token
         
-        response = await ExternalAPI.get_user_refresh(account_id, access_token)
-        error, result = JSONResponse.extract_data_strict(response)
+        error, result = JSONResponse.extract_data_strict(
+            response=await ExternalAPI.get_user_refresh(account_id, access_token)
+        )
         if error:
             return result
         
@@ -26,22 +28,30 @@ class RefreshAPI:
 
         # 用户不存在情况下不执行后续数据库刷新步骤
         user_info = user_data.get(str(account_id)) if user_data else None
+
+        if user_info is None:
+            return JSONResponse.API_2011_UserNotExist
+        
+        if 'hidden_profile' in user_info:
+            return JSONResponse.API_2015_UserHiddenProfile
+        
         if (
             user_info is None or 
-            (
-                'hidden_profile' not in user_info and 
-                'statistics' not in user_info
-            )
+            'statistics' not in user_info or 
+            'basic' not in user_info['statistics']
         ):
-            return JSONResponse.API_2011_UserNotExist
-
-        response = await UserStatsSyncer.refresh(account_id, user_data)
-        error, result = JSONResponse.extract_data_strict(response)
+            return JSONResponse.API_2013_UserDataIsNone
+        
+        error, refresh = JSONResponse.extract_data_strict(
+            response=await UserStatsSyncer.refresh(account_id, user_data)
+        )
         if error:
-            return result
+            return refresh
+        
         if user_clan:
-            response = await UserClanSyncer.refresh(account_id, user_clan)
-            error, result = JSONResponse.extract_data_strict(response)
+            error, result = JSONResponse.extract_data_strict(
+                response=await UserClanSyncer.refresh(account_id, user_clan)
+            )
             if error:
                 return result
         
