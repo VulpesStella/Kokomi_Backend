@@ -325,7 +325,6 @@ class ClanUsersSyncer:
                 if not lock:
                     logger.warning('Acquire refesh lock failed')
                     return
-                logger.debug(f'Insert {len(missing_ids)} new users')
                 cls._init_new_users(cursor, missing_ids, users)
                 conn.commit()
                 release_lock(redis_client, lock_key)

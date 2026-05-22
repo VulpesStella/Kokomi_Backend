@@ -112,7 +112,7 @@ def init_logger(level: int = logging.INFO) -> TqdmAwareLogger:
     logging.setLoggerClass(old_class)  # 恢复默认类
     
     # 设置日志级别
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(level)
     
     # 添加 handlers
     file_handler = logger._create_file_handler()

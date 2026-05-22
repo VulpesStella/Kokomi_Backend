@@ -36,9 +36,6 @@ def get_update_ids(conn: Connection) -> list:
     planned_count = 0
     today_remained_count = 0
 
-    total_due = 0
-    locked = 0
-
     refresh_stats = [0] * 5
     buckets = [[] for _ in range(24)]
     all_migrations = []
@@ -116,12 +113,6 @@ def get_update_ids(conn: Connection) -> list:
     except Exception:
         logger.error(traceback.format_exc())
         return []
-
-    skipped = total_due - locked
-    logger.info(
-        'Clan update schedule - Total: %s | Locked: %s | Skipped: %s',
-        total_due, locked, skipped
-    )
 
     counts = [len(b) for b in buckets]
     score = calc_imbalance_score(counts)

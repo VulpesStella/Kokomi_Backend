@@ -114,7 +114,7 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         response = fetch_clan_members(redis_client, update_data)
 
         if not response:
-            return
+            continue
         
         users = {}
         for user_info in response.get('items', []):
