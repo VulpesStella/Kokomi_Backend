@@ -92,16 +92,6 @@ def insert_clan(cursor, clan: dict) -> None:
         sql = f"INSERT INTO {table_name} (clan_id) VALUES (%s);"
         cursor.execute(sql, [clan_id])
 
-    # 3. 更新 table_count
-    sql = """
-        UPDATE T_clan_base
-        SET 
-            table_count = %s, 
-            updated_at = NOW()
-        WHERE clan_id = %s;
-    """
-    cursor.execute(sql, (len(CLAN_INIT_TABLE_LIST), clan_id))
-
 def main(filepath: Path):
     """从CSV文件初始化公会相关表"""
 
