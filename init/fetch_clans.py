@@ -20,20 +20,18 @@ if (ROOT_DIR / 'env.dev').exists():
     logger.info('Loading environment file: env.dev')
     load_dotenv('env.dev')
 elif (ROOT_DIR / 'env.prod').exists():
-    logger.info('Loading environment file: env.pros')
+    logger.info('Loading environment file: env.prod')
     load_dotenv('env.prod')
 else:
     raise FileNotFoundError('No environment file found')
 
-DATA_DIR = Path(os.getenv("DATA_DIR"))
-
 os.environ['NO_PROXY'] = '127.0.0.1,localhost'
 
-file_path = DATA_DIR / 'json/init_marker.json'
+file_path = ROOT_DIR / 'data/json/init_marker.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     REGION: str = data['region']
-file_path = DATA_DIR / 'const/endpoints.json'
+file_path = ROOT_DIR / 'data/const/endpoints.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     CLAN_API: str = data[REGION]['clan_api']

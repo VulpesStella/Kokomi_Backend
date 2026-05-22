@@ -19,7 +19,7 @@ if (ROOT_DIR / 'env.dev').exists():
     logger.info('Loading environment file: env.dev')
     load_dotenv('env.dev')
 elif (ROOT_DIR / 'env.prod').exists():
-    logger.info('Loading environment file: env.pros')
+    logger.info('Loading environment file: env.prod')
     load_dotenv('env.prod')
 else:
     raise FileNotFoundError('No environment file found')

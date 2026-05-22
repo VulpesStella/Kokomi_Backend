@@ -280,7 +280,7 @@ def _archive_ship_stats(
     """
     # 读取源表全量数据
     col_names = ', '.join(columns)
-    cursor.execute(f"SELECT ship_id, {col_names} FROM {source_table}")
+    cursor.execute(f"SELECT ship_id, {col_names} FROM T_user_stats")
     source_rows = cursor.fetchall()
 
     # 读取归档表当天+当前版本已有的 ship_id
@@ -607,8 +607,7 @@ def aggregate_recent_data(cursor: Cursor) -> None:
 
 def get_update_ids(
     conn: Connection, 
-    redis_client: Redis, 
-    index: str
+    redis_client: Redis
 ) -> list:
     """分批查询需要更新的 ID 并通过 Redis 分布式锁去重
 
@@ -622,12 +621,6 @@ def get_update_ids(
     Returns:
         成功获取锁的 ID 列表
     """
-    if index == 'user':
-        source_table = 'T_user_stats'
-        id_field = 'account_id'
-    else:
-        source_table = 'T_clan_users'
-        id_field = 'clan_id'
 
     update_list = []
 
@@ -648,21 +641,21 @@ def get_update_ids(
     try:
         with conn.cursor() as cursor:
             # 获取最大 id
-            cursor.execute(f"SELECT MAX(id) FROM {source_table};")
+            cursor.execute(f"SELECT MAX(id) FROM T_user_stats;")
             max_id = cursor.fetchone()[0] or 0
 
-            logger.debug(f'Table {source_table} MaxID: {max_id}')
+            logger.debug(f'Table T_user_stats MaxID: {max_id}')
 
             # 按 id 区间循环
             for start_id in range(1, max_id + 1, BATCH_SIZE):
                 end_id = start_id + BATCH_SIZE - 1
                 sql = f"""
                     SELECT 
-                        {id_field}, 
+                        account_id, 
                         is_enabled,
                         UNIX_TIMESTAMP(next_refresh_at), 
                         UNIX_TIMESTAMP(updated_at) 
-                    FROM {source_table}
+                    FROM T_user_stats
                     WHERE id BETWEEN %s AND %s;
                 """
                 cursor.execute(sql, [start_id, end_id])
@@ -718,7 +711,7 @@ def get_update_ids(
 
                 if due_ids:
                     pipe = redis_client.pipeline()
-                    keys = [f"refresh_lock:{index}:{uid}" for uid in due_ids]
+                    keys = [f"refresh_lock:user:{uid}" for uid in due_ids]
                     for key in keys:
                         pipe.set(key, 1, nx=True, ex=4*3600)
                     results = pipe.execute()
@@ -731,9 +724,9 @@ def get_update_ids(
         return []
 
     skipped = total_due - locked
-    logger.debug(
-        '%s update schedule - Total: %s | Locked: %s | Skipped: %s',
-        index.capitalize(), total_due, locked, skipped
+    logger.info(
+        'User update schedule - Total: %s | Locked: %s | Skipped: %s',
+        total_due, locked, skipped
     )
 
     counts = [len(b) for b in buckets]
@@ -772,7 +765,7 @@ def get_update_ids(
                 SET 
                     metric_value = %s 
                 WHERE metric_key = %s;
-            """, [planned_count, f'planned_{index}s'])
+            """, [planned_count, f'planned_users'])
 
             # 2. 更新 refresh_stats
             status_names = ['overdue', 'within_24h', 'within_week', 'within_month', 'within_quarter']
@@ -780,7 +773,7 @@ def get_update_ids(
                 sql = f"""
                     UPDATE T_refresh_stats
                     SET 
-                        {index}_count = %s,
+                        user_count = %s,
                         updated_at = NOW()
                     WHERE status = %s;
                 """
@@ -792,7 +785,7 @@ def get_update_ids(
                 sql = f"""
                     UPDATE T_refresh_hourly_stats
                     SET 
-                        planned_{index}s = %s,
+                        planned_users = %s,
                         updated_at = NOW()
                     WHERE planned_hour = %s;
                 """
@@ -800,10 +793,10 @@ def get_update_ids(
             
             if all_migrations:
                 sql = f"""
-                    UPDATE {source_table}
+                    UPDATE T_user_stats
                     SET 
                         next_refresh_at = next_refresh_at - INTERVAL %s HOUR
-                    WHERE {id_field} = %s
+                    WHERE account_id = %s
                 """
                 params = [(hours, uid) for uid, hours in all_migrations]
                 cursor.executemany(sql, params)
@@ -812,7 +805,7 @@ def get_update_ids(
         conn.rollback()
         logger.error(traceback.format_exc())
 
-    logger.info('Planned %s updates within today: %s', index, today_remained_count)
+    logger.info('Planned user updates within today: %s', today_remained_count)
 
     return update_list
 

@@ -16,60 +16,68 @@ from .processing import (
 )
 
 class StatsAPI:
-    ...
-    # @staticmethod
-    # @ExceptionLogger.handle_program_exception_async
-    # async def get_user_pvp(
-    #     account_id: int,
-    #     field: str = None,
-    #     include_old: bool = True
-    # ):
-    #     redis_key = f"token:ac:{account_id}"
-    #     result = await RedisClient.get(redis_key)
-    #     if result['code'] != 1000:
-    #         return result
-    #     if result['data']:
-    #         ac = result['data']
-    #     else:
-    #         ac = None
-    #     # 先读数据库，读不到数据再请求
-    #     result = await PlatyerModel.get_user_brief(account_id)
-    #     if result['code'] != 1000:
-    #         return result
-    #     if result['data'] is None:
-    #         # 数据库中无用户数据，进行网络请求获取数据
-    #         result = await ExternalAPI.get_user_brief(account_id, ac)
-    #         if result['code'] != 1000:
-    #             return result
-    #     data = {
-    #         'type': field,
-    #         'basic': result['data'],
-    #         'statistics': {}
-    #     }
-    #     result = await ExternalAPI.get_user_pvp(account_id, ac, field, include_old)
-    #     if result['code'] != 1000:
-    #         return result
-    #     data['statistics'] = {
-    #         'overall': {},
-    #         'battle_type': {},
-    #         'ship_type': {},
-    #         'record': {},
-    #         'chart': {}
-    #     }
+    @staticmethod
+    @ExceptionLogger.handle_program_exception_async
+    async def get_user_pvp_overall(
+        account_id: int,
+        include_old: bool = True
+    ):
+        # 从 Redis 中获取用户的 access_token
+        redis_key = f"token:ac:{account_id}"
+        response = await RedisClient.get_token(redis_key)
+        error, access_token = JSONResponse.extract_data_strict(response)
+        if error:
+            return access_token
         
-    #     server_data = JsonUtils.read('ship_data')
-    #     if EnvConfig.REGION == 'ru':
-    #         shipid_data = JsonUtils.read('ship_name_lesta')
-    #     else:
-    #         shipid_data = JsonUtils.read('ship_name_wg')
-    #     original_data = pvp_calculate_rating(result['data']['original_data'], server_data['ship_data'])
-    #     data['statistics']['overall'] = processing_overall_data(original_data, 'pvp')
-    #     data['statistics']['battle_type'] = processing_battle_type_data(original_data)
-    #     data['statistics']['ship_type'] = processing_ship_type_data(original_data, 'pvp', shipid_data)
-    #     data['statistics']['chart'] = processing_pvp_chart(original_data, shipid_data)
-    #     data['statistics']['record'] = result['data']['record']
+        # 先读数据库，读不到数据再请求
+        error, user = JSONResponse.extract_data_strict(
+            response=await PlayerModel.get_user_name_and_clan(account_id)
+        )
+        if error:
+            return user
+        
+        # 通过接口获取数据
+        if user is None:
+            error, response = JSONResponse.extract_data_strict(
+                response=await ExternalAPI.get_user_basic(account_id, access_token)
+            )
+            if error:
+                return response
+        
+        # if result['data'] is None:
+        #     # 数据库中无用户数据，进行网络请求获取数据
+        #     result = await ExternalAPI.get_user_brief(account_id, ac)
+        #     if result['code'] != 1000:
+        #         return result
+        # data = {
+        #     'type': field,
+        #     'basic': result['data'],
+        #     'statistics': {}
+        # }
+        # result = await ExternalAPI.get_user_pvp(account_id, ac, field, include_old)
+        # if result['code'] != 1000:
+        #     return result
+        # data['statistics'] = {
+        #     'overall': {},
+        #     'battle_type': {},
+        #     'ship_type': {},
+        #     'record': {},
+        #     'chart': {}
+        # }
+        
+        # server_data = JsonUtils.read('ship_data')
+        # if EnvConfig.REGION == 'ru':
+        #     shipid_data = JsonUtils.read('ship_name_lesta')
+        # else:
+        #     shipid_data = JsonUtils.read('ship_name_wg')
+        # original_data = pvp_calculate_rating(result['data']['original_data'], server_data['ship_data'])
+        # data['statistics']['overall'] = processing_overall_data(original_data, 'pvp')
+        # data['statistics']['battle_type'] = processing_battle_type_data(original_data)
+        # data['statistics']['ship_type'] = processing_ship_type_data(original_data, 'pvp', shipid_data)
+        # data['statistics']['chart'] = processing_pvp_chart(original_data, shipid_data)
+        # data['statistics']['record'] = result['data']['record']
 
-    #     return JSONResponse.get_success_response(data)
+        # return JSONResponse.get_success_response(data)
     
     # @staticmethod
     # @ExceptionLogger.handle_program_exception_async

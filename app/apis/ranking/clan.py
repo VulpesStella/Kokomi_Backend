@@ -2,7 +2,7 @@ from typing import Any, Optional
 
 from app.core import EnvConfig
 from app.loggers import ExceptionLogger
-from app.models import ClanModel
+from app.models import ClanModel, RankingModel
 from app.response import JSONResponse, ResponseDict
 from app.middlewares import RedisClient
 
@@ -117,7 +117,7 @@ class ClanRankingAPI:
 
         # 6. 批量获取工会详情数据
         error, clans_data = JSONResponse.extract_data_strict(
-            response=await ClanModel.get_leaderboard_data(page_clan_ids)
+            response=await RankingModel.get_clan_leaderboard(page_clan_ids)
         )
         if error:
             return clans_data
@@ -204,7 +204,7 @@ class ClanRankingAPI:
 
         # 7. 批量获取工会详情数据
         error, clans_data = JSONResponse.extract_data_strict(
-            response=await ClanModel.get_leaderboard_data(page_clan_ids)
+            response=await RankingModel.get_clan_leaderboard(page_clan_ids)
         )
         if error:
             return clans_data

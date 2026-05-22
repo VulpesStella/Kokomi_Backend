@@ -43,50 +43,22 @@ import pymysql
 import traceback
 from tqdm import tqdm
 from redis import Redis
-from celery import Celery
 from pymysql import Connection
 from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
+from db_ops import get_update_ids
+from api import fetch_clan_members
+from syncer import ClanUsersSyncer
 from settings import (
     CLIENT_NAME, 
     REGION, 
     USE_TQDM,
     REFRESH_INTERVAL, 
     MYSQL_CONFIG, 
-    REDIS_CONFIG,
-    RABBITMQ_CONFIG
-)
-from db_ops import (
-    aggregate_recent_data,
-    refresh_version,
-    get_update_ids,
-    archive_statistics
+    REDIS_CONFIG
 )
 
-
-def send_task(celery_app: Celery, task_name: str, entity_id: int, queue: str) -> bool:
-    """向指定队列发送 Celery 任务。
-
-    Args:
-        celery_app: Celery 应用实例。
-        task_name: 任务名称。
-        entity_id: 实体 ID（用户或公会 ID）。
-        queue: 目标队列名。
-
-    Returns:
-        True 表示发送成功，False 表示失败。
-    """
-    try:
-        celery_app.send_task(
-            name=task_name, 
-            args=[{'uid': entity_id}], 
-            queue=queue
-        )
-        return True
-    except Exception as e:
-        logger.error(f"Send Task failed: {entity_id} | {type(e).__name__}")
-        return False
     
 def progress_iterable(
     items: list[Any], desc: str, logger_obj: TqdmAwareLogger
@@ -108,12 +80,12 @@ def progress_iterable(
                 pbar.set_postfix_str(str(item))
                 yield item
     else:
-        # total = len(items)
+        total = len(items)
         for idx, item in enumerate(items, 1):
-            # logger_obj.info('%s - [%d/%d] | Current: %s', desc, idx, total, item)
+            logger_obj.info('%s - [%d/%d] | Current: %s', desc, idx, total, item)
             yield item
 
-def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery) -> None:
+def worker(mysql_connection: Connection, redis_client: Redis) -> None:
     """单轮维护调度执行体
 
     执行版本同步、暂存数据聚合、用户/公会刷新 ID 筛选与 Celery 任务分发、
@@ -124,70 +96,38 @@ def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery
         redis_client: Redis 客户端
         celery_app: Celery 应用实例
     """
-    # 1.每小时检测游戏版本是否更新
-    try:
-        with mysql_connection.cursor() as cursor:
-            refresh_version(cursor, redis_client)
+    
 
-        mysql_connection.commit()
-    except Exception:
-        mysql_connection.rollback()
-        logger.error(traceback.format_exc())
-
-    # 2. 把待写入的recent数据写入归档表
-    try:
-        with mysql_connection.cursor() as cursor:
-            aggregate_recent_data(cursor)
-
-        mysql_connection.commit()
-    except Exception:
-        mysql_connection.rollback()
-        logger.error(traceback.format_exc())
-
-    # 3.更新玩家/工会的基本数据
-    update_ids = get_update_ids(mysql_connection, redis_client)
+    # 更新工会的基本数据
+    update_ids = get_update_ids(mysql_connection)
     len_update_ids = len(update_ids)
-    if len_update_ids != 0:
-        logger.info(f'Current user update numbers: {len_update_ids}')
+    if len_update_ids == 0:
+        return
+    logger.info(f'Current clan update numbers: {len_update_ids}')
 
-        failed_count = 0
-        logger.enable_tqdm()
-        for update_data in progress_iterable(
-            items=update_ids, 
-            desc=f"Processing user",
-            logger_obj=logger
-        ):
-            if not send_task(celery_app, f'user_refresh', update_data, 'refresh_queue'):
-                redis_client.delete(f"refresh_lock:user:{update_data}")
-                failed_count += 1
-        logger.disable_tqdm()
-        logger.info(f'Task sent completed - Success: {len_update_ids - failed_count} | Failed: {failed_count}')
+    logger.enable_tqdm()
+    for update_data in progress_iterable(
+        items=update_ids, 
+        desc=f"Processing clan",
+        logger_obj=logger
+    ):
+        response = fetch_clan_members(redis_client, update_data)
+
+        if not response:
+            return
         
-    # 4.归档统计数据到归档表
-    try:
-        with mysql_connection.cursor() as cursor:
-            archive_statistics(cursor)
+        users = {}
+        for user_info in response.get('items', []):
+            users[user_info['id']] = user_info['name']
 
-        mysql_connection.commit()
-    except Exception:
-        mysql_connection.rollback()
-        logger.error(traceback.format_exc())
+        ClanUsersSyncer.refresh(redis_client, mysql_connection, update_data, users)
+    logger.disable_tqdm()
 
 def main():
-    """主调度循环
-
-    初始化 Celery 应用后进入无限循环：建立连接 → worker() 执行维护任务 →
-    释放连接资源 → 按 REFRESH_INTERVAL 补齐 sleep。
-    异常不会中断循环，但会清理服务状态 key 以便外部监控感知。
-    """
+    """主调度循环"""
     redis_client = None
     mysql_connection = None
-    broker_url = f"pyamqp://{RABBITMQ_CONFIG['user']}:{RABBITMQ_CONFIG['password']}@{RABBITMQ_CONFIG['host']}/"
-    celery_app = Celery(
-        'producer',
-        broker=broker_url,
-        broker_connection_retry_on_startup=True
-    )
+
     while True:
         start = time.monotonic()
 
@@ -199,8 +139,7 @@ def main():
 
             worker(
                 mysql_connection=mysql_connection,
-                redis_client=redis_client,
-                celery_app=celery_app
+                redis_client=redis_client
             )
         except Exception:
             logger.error(traceback.format_exc())

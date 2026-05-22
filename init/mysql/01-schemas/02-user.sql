@@ -7,10 +7,9 @@ CREATE TABLE IF NOT EXISTS T_user_base (
     username         VARCHAR(25)  NOT NULL,        -- 最大25个字符
     register_time    TIMESTAMP    DEFAULT NULL,    -- 注册时间
     insignias        VARCHAR(55)  DEFAULT NULL,    -- 徽章信息
-    table_count      TINYINT      DEFAULT 0,       -- 已初始化关联表数量
 
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    DEFAULT NULL,
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id),
 

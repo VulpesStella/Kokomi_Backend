@@ -6,10 +6,9 @@ CREATE TABLE IF NOT EXISTS T_clan_base (
     clan_id          BIGINT       NOT NULL,        -- 10位的非连续数字
     tag              VARCHAR(10)  NOT NULL,        -- 公会标签
     league           TINYINT      DEFAULT 5,       -- 当前段位 0紫金 1白金 2黄金 3白银 4青铜 5无
-    table_count      TINYINT      DEFAULT 0,       -- 已初始化关联表数量
 
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    DEFAULT NULL,
+    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id),
 

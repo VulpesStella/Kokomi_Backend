@@ -2,8 +2,8 @@
 全局配置模块
 
 负责加载环境变量（开发环境从 env.dev 文件，生产环境由 Docker Compose 注入），
-初始化 MySQL / Redis 连接配置、Clan API 地址以及公会战相关的赛季窗口、
-联赛分段列表等常量。所有模块级变量在 import 时即完成初始化，加载失败会直接 exit(1)。
+初始化 MySQL / Redis / RabbitMQ 连接配置以及任务分发的各项参数常量。
+所有模块级变量在 import 时即完成初始化，加载失败会直接 exit(1)。
 """
 
 import os
@@ -13,12 +13,16 @@ from pathlib import Path
 from datetime import datetime
 
 
-CLIENT_NAME = 'ClanSeason'
+CLIENT_NAME = 'Member'
 REFRESH_INTERVAL = 60
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
-USE_TQDM = sys.stdout.isatty()  # 只有在交互式终端中才使用 tqdm 显示进度条
+USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
 
-# 生产环境下的环境变量由 Docker Compose 注入 env.prod，开发环境下则通过加载 env.dev 文件来设置
+BATCH_SIZE = 1000
+MIN_IMBALANCE_SCORE = 20
+REBALANCE_ENABLED = True
+
+# 生产环境下的环境变量由Docker Compose注入env.prod，开发环境下则通过加载env.dev文件来设置
 if not os.getenv('PLATFORM') or not os.getenv('PLATFORM').startswith('KokomiAPI'):
     # 关闭代理，避免请求外部API时被本地环境变量干扰
     os.environ['NO_PROXY'] = '127.0.0.1,localhost'
@@ -63,8 +67,6 @@ with open(file_path, "r", encoding="utf-8") as f:
 file_path = DATA_DIR / 'const/constants.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
-    CLAN_REALM_MAP: list = data['CLAN_REALM_MAP']
-    CLAN_LEAGUE_LIST: list = data['CLAN_LEAGUE_LIST']
-    CLAN_BATTLE_WINDOWS: list = data['CLAN_BATTLE_WINDOWS']
-    CLAN_INIT_TABLE_LIST: list = data['CLAN_INIT_TABLE_LIST']
+    USER_INIT_TABLE_LIST: list = data['USER_INIT_TABLE_LIST']
+    CLAN_ACTIVITY_THRESHOLDS: list = data['CLAN_ACTIVITY_THRESHOLDS']
 print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Configuration data loading complete")

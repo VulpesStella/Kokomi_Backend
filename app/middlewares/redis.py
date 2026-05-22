@@ -1,4 +1,5 @@
 import json
+import asyncio
 from typing import Optional
 import redis.asyncio as redis
 from redis.asyncio.client import Redis
@@ -150,6 +151,21 @@ class RedisClient:
         )
         return JSONResponse.API_1000_Success
     
+    @staticmethod
+    @ExceptionLogger.handle_cache_exception_async
+    async def acquire_lock(key: str, ex: int = 5, max_retries: int = 5, intervel: float = 0.2):
+        conn = RedisConnection.acquire_conn()
+        for _ in range(1, max_retries + 1):
+            acquired = await conn.set(
+                key, 1, nx=True, ex=ex
+            )
+
+            if acquired:
+                return JSONResponse.get_success_response(True)
+
+            asyncio.sleep(intervel)
+        return JSONResponse.get_success_response(False)
+
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
     async def zget_top_n(key: str, n: int = 50):

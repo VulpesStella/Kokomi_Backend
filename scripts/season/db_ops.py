@@ -9,16 +9,16 @@
 - 联赛字段刷新（refresh_clan_league）
 - Redis 排行榜全量同步（refresh_clan_cache）
 """
-
+import time
 import traceback
 from redis import Redis
 from pymysql import Connection
+from pymysql.cursors import Cursor
 from typing import Optional
 
 from logger import logger
 from utils import get_current_timestamp
 from settings import CLAN_INIT_TABLE_LIST
-
 
 def need_update(conn: Connection, tracking_key: str, tracking_type: str) -> bool:
     """检查并更新数据追踪状态，判断是否需要执行更新任务
@@ -214,6 +214,32 @@ def ensure_clan_battle_table(conn: Connection, season_id: int) -> Optional[bool]
         conn.rollback()
         logger.error(traceback.format_exc())
 
+def init_new_clans(cursor: Cursor, clans: list) -> None:
+    """为新用户创建基础表记录"""
+
+    if not clans:
+        return
+    # 1. 批量插入 T_clan_base
+    values_list = []
+    params = []
+    for clan in clans:
+        values_list.append("(%s, %s, %s)")
+        params.extend([clan[0], clan[1], clan[2]])
+    
+    sql = f"INSERT INTO T_clan_base (clan_id, tag, league) VALUES {','.join(values_list)};"
+    cursor.execute(sql, params)
+
+    # 2. 批量插入所有子表
+    for table_name in CLAN_INIT_TABLE_LIST:
+        values_list = []
+        params = []
+        for clan in clans:
+            values_list.append("(%s)")
+            params.append(clan[0])
+        
+        sql = f"INSERT INTO {table_name} (clan_id) VALUES {','.join(values_list)};"
+        cursor.execute(sql, params)
+
 def get_update_ids(
     conn: Connection, 
     season_id: int, 
@@ -249,41 +275,18 @@ def get_update_ids(
             """
             cursor.execute(sql, clan_ids)
             existing_map = {row[0]: row for row in cursor.fetchall()}
-
+            missing_rows = []
+            existing_rows = []
             for clan_data in clan_data_list:
                 clan_id = clan_data[0]
                 existing = existing_map.get(clan_id)
 
                 if existing is None:
-                    # 新公会：初始化基础表和统计表
-                    sql = """
-                        INSERT INTO T_clan_base (
-                            clan_id, tag, league
-                        ) VALUES (
-                            %s, %s, %s
-                        );
-                    """
-                    cursor.execute(sql,[clan_id, clan_data[1], clan_data[2]])
-                    for table_name in CLAN_INIT_TABLE_LIST:
-                        sql = f"""
-                            INSERT INTO {table_name} (
-                                clan_id
-                            ) VALUES (
-                                %s
-                            );
-                        """
-                        cursor.execute(sql, [clan_id])
-                    sql = """
-                        UPDATE T_clan_base 
-                        SET 
-                            table_count = %s, 
-                            updated_at = NOW() 
-                        WHERE clan_id = %s;
-                    """
-                    cursor.execute(sql, [len(CLAN_INIT_TABLE_LIST), clan_id])
+                    missing_rows.append(clan_data)
                     update_ids.append(clan_id)
                 else:
                     # 已有公会：比较 last_battle_at 和赛季是否变化
+                    existing_rows.append(clan_data)
                     if clan_data[3] is None:
                         continue
                     if (
@@ -296,7 +299,7 @@ def get_update_ids(
                         # 2. last_battle_at 时间戳不同（有新战斗发生）
                         # 3. 赛季 ID 不同（新赛季首次获取数据）
                         update_ids.append(clan_id)
-            if need_refresh:
+            if need_refresh and existing_rows:
                 sql = """
                     UPDATE T_clan_base 
                     SET 
@@ -314,13 +317,17 @@ def get_update_ids(
                     WHERE clan_id = %s;
                 """
                 update_params = [
-                    [d[1], d[2], d[0]] for d in clan_data_list
+                    [d[1], d[2], d[0]] for d in existing_rows
                 ]
                 cursor.executemany(update_sql, update_params)
+            if missing_rows:
+                logger.debug(f'Insert {len(missing_rows)} new clans')
+                init_new_clans(cursor, missing_rows)
             conn.commit()
     except Exception:
         conn.rollback()
         logger.error(traceback.format_exc())
+        return []
     return update_ids
 
 def refresh_clan_cache(

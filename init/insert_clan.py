@@ -26,7 +26,6 @@ elif (ROOT_DIR / 'env.prod').exists():
 else:
     raise FileNotFoundError('No environment file found')
 
-DATA_DIR = Path(os.getenv("DATA_DIR"))
 
 DB_CONFIG = {
     "host": 'localhost',
@@ -37,7 +36,7 @@ DB_CONFIG = {
     'autocommit': False
 }
 
-file_path = DATA_DIR / 'const/constants.json'
+file_path = ROOT_DIR / 'data/const/constants.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     CLAN_INIT_TABLE_LIST: list = data['CLAN_INIT_TABLE_LIST']
@@ -57,8 +56,8 @@ def read_clans_from_csv(filepath: Path) -> list[dict]:
                 if members > 0:
                     clans.append({
                         'clan_id': int(row['clan_id']),
-                        'tag': row.get('tag', 'N/A'),     # 防止缺失
-                        'league': row.get('league', 5)    # 默认0
+                        'tag': row.get('tag', 'N/A'),
+                        'league': row.get('league', 5)
                     })
     except Exception as e:
         logger.error(f"Failed to read CSV: {e}")

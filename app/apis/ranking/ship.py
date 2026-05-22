@@ -4,7 +4,7 @@ from app.core import EnvConfig
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse, ResponseDict
 from app.middlewares import RedisClient
-from app.models import ShipModel, PlayerModel
+from app.models import ShipModel, PlayerModel, RankingModel
 
 
 class ShipRankingAPI:
@@ -172,7 +172,7 @@ class ShipRankingAPI:
 
         # 8. 批量获取用户详情数据
         error, users_data = JSONResponse.extract_data_strict(
-            response=await PlayerModel.get_leaderboard_data(ship_id, page_user_ids)
+            response=await RankingModel.get_ship_leaderboard(ship_id, page_user_ids)
         )
         if error:
             return users_data
@@ -214,6 +214,12 @@ class ShipRankingAPI:
         Returns:
             ResponseDict
         """
+        error, record = JSONResponse.extract_data_strict(
+            response=await PlayerModel.record_query(account_id)
+        )
+        if error:
+            return record
+
         # 1. 获取并验证符合条件的船只ID列表
         error, ship_ids = await cls._get_ship_ids()
         if error:
@@ -280,7 +286,7 @@ class ShipRankingAPI:
 
         # 8. 获取用户详情数据
         error, users_data = JSONResponse.extract_data_strict(
-            response=await PlayerModel.get_leaderboard_data(ship_id, page_user_ids)
+            response=await RankingModel.get_ship_leaderboard(ship_id, page_user_ids)
         )
         if error:
             return users_data

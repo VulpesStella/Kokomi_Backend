@@ -63,7 +63,7 @@ services:
     volumes:
       - ./logs:/app/logs
     container_name: backend-celery
-    command: celery --app tasks.main:celery_app worker -Q refresh_queue --loglevel=info --concurrency=2
+    command: celery --app tasks.main:celery_app worker -Q refresh_queue --loglevel=info --concurrency=4
     env_file:
       - env.prod
     restart: on-failure:1
@@ -78,7 +78,6 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
-      - ./temp:/app/temp
     container_name: backend-maintenance
     command: python scripts/maintenance/main.py
     env_file:
@@ -113,6 +112,22 @@ services:
       - ./data:/app/data
     container_name: backend-season
     command: python scripts/season/main.py
+    env_file:
+      - env.prod
+    restart: on-failure:1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  member:
+    image: myapp:latest
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    container_name: backend-member
+    command: python scripts/member/main.py
     env_file:
       - env.prod
     restart: on-failure:1

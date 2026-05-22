@@ -137,7 +137,7 @@ class DemoExternalAPI:
         return JSONResponse.get_success_response(results[0])
        
 
-class ExternalAPI:
+class  ExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_user_search(nickname: str):
@@ -189,31 +189,39 @@ class ExternalAPI:
 
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
-    async def get_user_basic(account_id: int, user_clan: bool, user_token: Optional[str]):
+    async def get_user_refresh(account_id: int, user_token: Optional[str]):
         endpoints = EnvConfig.get_endpoints()
         base_url = random.choice(endpoints.VORTEX_API)
-        if user_clan:
-            urls = [
-                f'{base_url}/api/accounts/{account_id}/' + (f'?ac={user_token}' if user_token else ''),
-                f'{base_url}/api/accounts/{account_id}/clans/'
-            ]
-            tasks = []
-            responses = []
-            async with asyncio.Semaphore(len(urls)):
-                for url in urls:
-                    tasks.append(HttpClient.get_user_data(url))
-                responses = await asyncio.gather(*tasks)
-        else:
-            urls = [
-                f'{base_url}/api/accounts/{account_id}/' + (f'?ac={user_token}' if user_token else '')
-            ]
-            responses = [await HttpClient.get_user_data(urls[0])]
+        urls = [
+            f'{base_url}/api/accounts/{account_id}/' + (f'?ac={user_token}' if user_token else ''),
+            f'{base_url}/api/accounts/{account_id}/clans/'
+        ]
+        tasks = []
+        responses = []
+        async with asyncio.Semaphore(len(urls)):
+            for url in urls:
+                tasks.append(HttpClient.get_user_data(url))
+            responses = await asyncio.gather(*tasks)
 
         error, results = await record_http_metrics(responses, urls)
         if error:
             return results
         
         return JSONResponse.get_success_response(results)
+
+    @staticmethod
+    @ExceptionLogger.handle_program_exception_async
+    async def get_user_basic(account_id: int, user_token: Optional[str]):
+        endpoints = EnvConfig.get_endpoints()
+        base_url = random.choice(endpoints.VORTEX_API)
+        url = f'{base_url}/api/accounts/{account_id}/' + (f'?ac={user_token}' if user_token else '')
+        response = await HttpClient.get_clan_data(url)
+
+        error, results = await record_http_metrics([response], [url])
+        if error:
+            return results
+        
+        return JSONResponse.get_success_response(results[0])
         
     # @staticmethod
     # @ExceptionLogger.handle_program_exception_async

@@ -4,6 +4,7 @@ from .recent import DemoRecentModel, RecentModel
 from .clan import DemoClanModel, ClanModel
 from .ship import ShipModel
 from .syncer import UserStatsSyncer, UserClanSyncer
+from .ranking import RankingModel
 
 __all__ = [
     'DemoPlayerModel',
@@ -13,6 +14,7 @@ __all__ = [
     'UserStatsSyncer', 
     'UserClanSyncer'
     'PlatformModel',
+    'RankingModel',
     'PlayerModel',
     'RecentModel',
     'ClanModel',

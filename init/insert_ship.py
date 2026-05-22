@@ -21,12 +21,10 @@ if (ROOT_DIR / 'env.dev').exists():
     logger.info('Loading environment file: env.dev')
     load_dotenv('env.dev')
 elif (ROOT_DIR / 'env.prod').exists():
-    logger.info('Loading environment file: env.pros')
+    logger.info('Loading environment file: env.prod')
     load_dotenv('env.prod')
 else:
     raise FileNotFoundError('No environment file found')
-
-DATA_DIR = Path(os.getenv("DATA_DIR"))
 
 DB_CONFIG = {
     "host": 'localhost',
@@ -37,7 +35,7 @@ DB_CONFIG = {
     'autocommit': False
 }
 
-file_path = DATA_DIR / 'const/constants.json'
+file_path = ROOT_DIR / 'data/const/constants.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     SHIP_INIT_TABLE_LIST: list = data['SHIP_INIT_TABLE_LIST']

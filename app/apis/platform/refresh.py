@@ -16,7 +16,7 @@ class RefreshAPI:
         if error:
             return access_token
         
-        response = await ExternalAPI.get_user_basic(account_id, True, access_token)
+        response = await ExternalAPI.get_user_refresh(account_id, access_token)
         error, result = JSONResponse.extract_data_strict(response)
         if error:
             return result
@@ -39,10 +39,11 @@ class RefreshAPI:
         error, result = JSONResponse.extract_data_strict(response)
         if error:
             return result
-        response = await UserClanSyncer.refresh(account_id, user_clan)
-        error, result = JSONResponse.extract_data_strict(response)
-        if error:
-            return result
+        if user_clan:
+            response = await UserClanSyncer.refresh(account_id, user_clan)
+            error, result = JSONResponse.extract_data_strict(response)
+            if error:
+                return result
         
         return JSONResponse.API_1000_Success
         

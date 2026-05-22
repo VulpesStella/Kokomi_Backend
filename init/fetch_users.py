@@ -22,12 +22,10 @@ if (ROOT_DIR / 'env.dev').exists():
     logger.info('Loading environment file: env.dev')
     load_dotenv('env.dev')
 elif (ROOT_DIR / 'env.prod').exists():
-    logger.info('Loading environment file: env.pros')
+    logger.info('Loading environment file: env.prod')
     load_dotenv('env.prod')
 else:
     raise FileNotFoundError('No environment file found')
-
-DATA_DIR = Path(os.getenv("DATA_DIR"))
 
 DB_CONFIG = {
     "host": 'localhost',
@@ -40,16 +38,16 @@ DB_CONFIG = {
 
 os.environ['NO_PROXY'] = '127.0.0.1,localhost'
 
-file_path = DATA_DIR / 'json/init_marker.json'
+file_path = ROOT_DIR / 'data/json/init_marker.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     REGION: str = data['region']
-file_path = DATA_DIR / 'const/constants.json'
+file_path = ROOT_DIR / 'data/const/constants.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     USER_ACTIVITY_THRESHOLDS: list = data['USER_ACTIVITY_THRESHOLDS']
     USER_INIT_TABLE_LIST: list = data['USER_INIT_TABLE_LIST']
-file_path = DATA_DIR / 'const/endpoints.json'
+file_path = ROOT_DIR / 'data/const/endpoints.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     VORTEX_API: list = data[REGION]['vortex_api']
@@ -187,15 +185,6 @@ class UserStatsSyncer:
                 );
             """
             cursor.execute(sql, [account_id])
-
-        sql = """
-            UPDATE T_user_base 
-            SET 
-                table_count = %s, 
-                updated_at = NOW()
-            WHERE account_id = %s;
-        """
-        cursor.execute(sql, [len(USER_INIT_TABLE_LIST), account_id])
 
     @staticmethod
     def _fetch_user_base_row(cursor, account_id: int) -> tuple | None:

@@ -60,6 +60,9 @@ python init/rebuild_db.py
 # 参数1 region: asia, eu, na, ru, cn
 # 参数2 location: 服务器的物理地址
 python init/setup.py -r <region> -l <city>,<country>
+
+# 写入船只基本数据
+python init/insert_clan.py
 ```
 
 ### 运行代码

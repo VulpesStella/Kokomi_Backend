@@ -4,6 +4,7 @@ from typing import Optional
 from app.core import EnvConfig
 from app.constants import ClanColor
 from app.database import MySQLManager
+from app.middlewares import RedisClient
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
 from app.utils import TimeUtils
@@ -122,7 +123,7 @@ class UserStatsSyncer:
         return user_data
 
     @staticmethod
-    async def _init_new_user(cursor: Cursor, account_id: int, username: str) -> None:
+    async def _init_new_user(cursor: Cursor, account_id: int, username: str | None) -> None:
         """为新用户创建基础表记录"""
         if not username:
             username = f'User_{account_id}'
@@ -145,15 +146,6 @@ class UserStatsSyncer:
                 );
             """
             await cursor.execute(sql, [account_id])
-
-        sql = """
-            UPDATE T_user_base 
-            SET 
-                table_count = %s, 
-                updated_at = NOW()
-            WHERE account_id = %s;
-        """
-        await cursor.execute(sql, [len(constants.USER_INIT_TABLE_LIST), account_id])
 
     @staticmethod
     async def _fetch_user_base_row(cursor: Cursor, account_id: int) -> tuple | None:
@@ -285,6 +277,14 @@ class UserStatsSyncer:
             existing = await cls._fetch_user_base_row(cursor, account_id)
             
             if not existing:
+                lock_key = 'refresh_lock:user_insert'
+                error, lock = JSONResponse.extract_data_strict(
+                    response=await RedisClient.acquire_lock(lock_key)
+                )
+                if error:
+                    return lock
+                if not lock:
+                    return JSONResponse.API_2019_AcqurieLockFailed
                 await cls._init_new_user(cursor, account_id, user_data['username'])
                 old_username = user_data['username']
                 old_timestamp = None
@@ -292,9 +292,13 @@ class UserStatsSyncer:
             else:
                 old_username, old_timestamp, user_level = existing
 
-            if not user_level:
-                user_level = 0
+        if not existing:
+            await RedisClient.drop(lock_key)
 
+        if not user_level:
+            user_level = 0
+        
+        async with MySQLManager.auto_transaction_cursor() as cursor:
             # 更新 T_user_base
             await cls._update_user_base(cursor, account_id, user_data, old_username, old_timestamp)
             # 更新 T_user_stats

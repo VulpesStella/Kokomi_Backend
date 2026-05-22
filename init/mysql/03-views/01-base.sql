@@ -39,6 +39,8 @@ CREATE VIEW V_user_basic_with_clan AS
 SELECT
     u.account_id,
     u.username,
+    u.register_time,
+    u.insignias,
     uc.clan_id,
     c.tag AS clan_tag,
     c.league,
