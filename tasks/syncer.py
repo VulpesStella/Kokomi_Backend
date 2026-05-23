@@ -280,6 +280,6 @@ class UserStatsSyncer:
             
             conn.commit()
             return None
-        except Exception as e:
+        except Exception:
             conn.rollback()
-            return type(e).__name__
+            raise
