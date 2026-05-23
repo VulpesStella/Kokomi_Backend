@@ -3,6 +3,7 @@ import csv
 import json
 import logging
 import pymysql
+import argparse
 from tqdm import tqdm
 from pathlib import Path
 from dotenv import load_dotenv
