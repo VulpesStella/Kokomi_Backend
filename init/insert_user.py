@@ -97,9 +97,9 @@ def main(filepath: Path, check: bool):
     """从CSV文件初始化公会相关表"""
 
     # 读取CSV数据
-    clans = read_users_from_csv(filepath)
-    if not clans:
-        logger.info("No clans to process, exiting")
+    uses = read_users_from_csv(filepath)
+    if not uses:
+        logger.info("No uses to process, exiting")
         return
     
     conn = pymysql.connect(**DB_CONFIG)
@@ -107,11 +107,11 @@ def main(filepath: Path, check: bool):
     try:
         conn.begin()
         with conn.cursor() as cursor:
-            with tqdm(clans, desc="Inserting clans", total=len(clans)) as pbar:
+            with tqdm(uses, desc="Inserting uses", total=len(uses)) as pbar:
                 i = 1
                 for item in pbar:
-                    clan_id = item['clan_id']
-                    pbar.set_postfix_str(str(clan_id))
+                    account_id = item['account_id']
+                    pbar.set_postfix_str(str(account_id))
 
                     insert_user(cursor, item, check)
 
