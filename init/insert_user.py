@@ -3,6 +3,7 @@ import csv
 import json
 import logging
 import pymysql
+import argparse
 from tqdm import tqdm
 from pathlib import Path
 from dotenv import load_dotenv
@@ -39,64 +40,64 @@ DB_CONFIG = {
 file_path = ROOT_DIR / 'data/const/constants.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
-    CLAN_INIT_TABLE_LIST: list = data['CLAN_INIT_TABLE_LIST']
+    USER_INIT_TABLE_LIST: list = data['USER_INIT_TABLE_LIST']
 
-def read_clans_from_csv(filepath: Path) -> list[dict]:
+def read_users_from_csv(filepath: Path) -> list[dict]:
     """读取CSV，返回 members_count > 0 的公会列表"""
     if not filepath.exists():
         logger.error(f"CSV file not found: {filepath}")
         return []
 
-    clans = []
+    users = []
     try:
         with open(filepath, 'r', encoding='utf-8-sig') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                members = int(row['members_count'])
-                if members > 0:
-                    clans.append({
-                        'clan_id': int(row['clan_id']),
-                        'tag': row.get('tag', 'N/A'),
-                        'league': row.get('league', 5)
+                is_enable = int(row['is_active'])
+                is_public = int(row['is_public'])
+                if is_enable and is_public:
+                    users.append({
+                        'account_id': int(row['account_id']),
+                        'username': row.get('username', f"User_{row['account_id']}")
                     })
     except Exception as e:
         logger.error(f"Failed to read CSV: {e}")
         return []
 
-    logger.info(f"Loaded {len(clans)} valid clans from CSV")
-    return clans
+    logger.info(f"Loaded {len(users)} valid users from CSV")
+    return users
 
-def insert_clan(cursor, clan: dict, check: bool) -> None:
-    """插入一个公会"""
-    clan_id = clan['clan_id']
+def insert_user(cursor, clan: dict, check: bool) -> None:
+    """插入一个用户"""
+    account_id = clan['account_id']
     
     # [可选] 是否在插入前检查
     # 如果数据库为空，则可以不检查
     if check:
-        cursor.execute("SELECT 1 FROM T_clan_base WHERE clan_id = %s;", [clan_id])
+        cursor.execute("SELECT 1 FROM T_user_base WHERE account_id = %s;", [account_id])
         if cursor.fetchone():
             return
 
     # 1. 插入主表
     sql = """
-        INSERT INTO T_clan_base (
-            clan_id, tag, league
+        INSERT INTO T_user_base (
+            account_id, username
         ) VALUES (
-            %s, %s, %s
+            %s, %s
         );
     """
-    cursor.execute(sql, [clan_id, clan['tag'], clan['league']])
+    cursor.execute(sql, [account_id, clan['username']])
 
     # 2. 为每个关联表插入 clan_id
-    for table_name in CLAN_INIT_TABLE_LIST:
-        sql = f"INSERT INTO {table_name} (clan_id) VALUES (%s);"
-        cursor.execute(sql, [clan_id])
+    for table_name in USER_INIT_TABLE_LIST:
+        sql = f"INSERT INTO {table_name} (account_id) VALUES (%s);"
+        cursor.execute(sql, [account_id])
 
 def main(filepath: Path, check: bool):
     """从CSV文件初始化公会相关表"""
 
     # 读取CSV数据
-    clans = read_clans_from_csv(filepath)
+    clans = read_users_from_csv(filepath)
     if not clans:
         logger.info("No clans to process, exiting")
         return
@@ -112,7 +113,7 @@ def main(filepath: Path, check: bool):
                     clan_id = item['clan_id']
                     pbar.set_postfix_str(str(clan_id))
 
-                    insert_clan(cursor, item, check)
+                    insert_user(cursor, item, check)
 
                     # 每写入100个提交一次
                     if i % 100 == 0:
@@ -128,17 +129,15 @@ def main(filepath: Path, check: bool):
     
     logger.info("Initialization completed")
 
-
 if __name__ == '__main__':
-    """公会数据初始化工具。
+    """用户数据初始化工具
     
-    从CSV文件读取 members_count > 0 的公会数据，
-    初始化 T_clan_base、T_clan_users、T_clan_stats 三个表。
+    从CSV文件读取有效的用户数据，初始化表
     
     使用示例：
-    python init/insert_clan.py
+    python init/insert_user.py -c 1
     """
-    filepath = ROOT_DIR / 'data/trash/clans.csv'
+    filepath = ROOT_DIR / 'data/trash/users.csv'
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -151,7 +150,7 @@ if __name__ == '__main__':
     check = args.check
     if check not in [0,1]:
         raise ValueError('Incorrect code')
-
+    
     try:
         main(filepath, check)
     except KeyboardInterrupt:

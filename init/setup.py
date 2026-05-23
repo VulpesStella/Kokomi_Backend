@@ -102,40 +102,29 @@ def main(region: str, location: str):
     else:
         logger.info(log(f'Request status code: {resp.status_code}', '❌️'))
 
-    timestamp = int(time.time())
-
-    result = {
-        "update_time": timestamp,
-        "file_count": 0,
-        "total_size_bytes": 0,
-        "avg_size_bytes": 0
-    }
-    init_file_path = ROOT_DIR / f"data/json/db_stats.json"
-    with open(init_file_path, "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False)
-    logging.info(log('File `db_stats.json` generated successfully', '✅'))
-
-    result = {
-        "id": 28,
-        "start": 1739944800,
-        "finish": 1744005600
-    }
     init_file_path = ROOT_DIR / f"data/json/clan_season.json"
-    with open(init_file_path, "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False)
+    if not init_file_path.exists():
+        result = {
+            "id": 28,
+            "start": 1739944800,
+            "finish": 1744005600
+        }
+        with open(init_file_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False)
     logging.info(log('File `clan_season.json` generated successfully', '✅'))
 
     # 生成初始化文件
-    result = {
-        'init_time': timestamp,
-        'region': region,
-        'location': location,
-        'timezone': REGION_TIMEZONE[region],
-        'token': None
-    }
     init_file_path = ROOT_DIR / f"data/json/init_marker.json"
-    with open(init_file_path, "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False)
+    if not init_file_path.exists():
+        result = {
+            'init_time': int(time.time()),
+            'region': region,
+            'location': location,
+            'timezone': REGION_TIMEZONE[region],
+            'token': None
+        }
+        with open(init_file_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False)
     logging.info(log('File `init_marker.json` generated successfully', '✅'))
 
 if __name__ == "__main__":

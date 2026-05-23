@@ -141,18 +141,3 @@ CREATE TABLE IF NOT EXISTS T_user_config (
 
     UNIQUE INDEX idx_rid_aid (account_id)
 );
-
--- 用户基础数据归档表
--- 按日期记录用户基础表的行数变化
-CREATE TABLE IF NOT EXISTS ARCH_user_base (
-    id               BIGINT       AUTO_INCREMENT,
-
-    stat_date        DATE         NOT NULL,        -- 统计日期 YYYY-MM-DD
-    row_count        INT          NOT NULL,        -- 当日数据条目数
-
-    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id),
-
-    UNIQUE KEY uk_date (stat_date)
-);

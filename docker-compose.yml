@@ -73,13 +73,13 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  maintenance:
+  account:
     image: myapp:latest
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
-    container_name: backend-maintenance
-    command: python scripts/maintenance/main.py
+    container_name: backend-account
+    command: python scripts/account/main.py
     env_file:
       - env.prod
     restart: on-failure:1

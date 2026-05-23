@@ -112,9 +112,17 @@ VALUES
 INSERT INTO T_tracking_meta 
     (tracking_key, tracking_type) 
 VALUES
-    ('table_meta', 'archive_time'),
     ('ship_stats', 'update_time'),
     ('clan_season', 'refresh_time');
+
+INSERT INTO T_database_meta 
+    (metric_key) 
+VALUES
+    ('mysql_tables'),
+    ('mysql_rows'),
+    ('mysql_size_kb'),
+    ('sqlite_files'),
+    ('sqlite_size_kb');
 
 INSERT INTO T_table_meta 
     (metric_key, table_name) 

@@ -1,11 +1,3 @@
-"""
-全局配置模块
-
-负责加载环境变量（开发环境从 env.dev 文件，生产环境由 Docker Compose 注入），
-初始化 MySQL / Redis 连接配置、Clan API 地址以及公会战相关的赛季窗口、
-联赛分段列表等常量。所有模块级变量在 import 时即完成初始化，加载失败会直接 exit(1)。
-"""
-
 import os
 import sys
 import json

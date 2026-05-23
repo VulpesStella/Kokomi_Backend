@@ -1,9 +1,3 @@
-"""
-工具函数模块
-
-提供时间戳生成、当天剩余秒数计算等通用工具函数。
-"""
-
 from datetime import datetime, timezone
 
 from settings import DATE_FMT

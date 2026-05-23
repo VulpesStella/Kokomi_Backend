@@ -1,10 +1,3 @@
-"""
-外部 API 请求模块
-
-封装对 WoWS Vortex API 的 HTTP 调用，用于拉取最新游戏版本信息
-并记录请求指标到 Redis。
-"""
-
 import random
 import requests
 import traceback
@@ -12,8 +5,8 @@ from redis import Redis
 from typing import Optional, Union
 
 from logger import logger
-from settings import VORTEX_API
 from utils import get_current_iso_time
+from settings import VORTEX_API
 
 
 def fetch_data(url: str) -> Union[dict, str]:

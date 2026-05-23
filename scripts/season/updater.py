@@ -1,10 +1,3 @@
-"""
-公会赛季数据更新模块
-
-负责从 API 拉取单个公会的赛季详情，解析并构建标准化的公会结果字典，
-与本地缓存对比后生成对战记录增量，最终通过 db_ops 写入 MySQL 并更新 Redis 排行榜。
-"""
-
 import json
 import traceback
 from redis import Redis
@@ -12,13 +5,13 @@ from pymysql import Connection
 from typing import Optional
 
 from logger import logger
-from settings import REGION
 from api import fetch_clan_season
 from utils import formtime_to_timestamp
 from db_ops import (
     read_clan_cache,
     update_clan_cache
 )
+from settings import REGION
 
 def format_clan_data(data: list) -> Optional[dict]:
     """将公会队伍原始数据列表转换为结构化字典
@@ -203,12 +196,12 @@ def update_clan_season(
         clan_id: 公会 ID
     """
     try:
-        # 1. 请求公会详情
+        # 请求公会详情
         result = fetch_clan_season(redis_client, clan_id)
         if not result:
             return
 
-        # 2. 解析并构建标准化数据
+        # 解析并构建标准化数据
         clan_result = _build_clan_result(result, clan_id, season_id)
         team_data_1 = clan_result['team_data'][1]
         team_data_2 = clan_result['team_data'][2]
@@ -270,7 +263,7 @@ def update_clan_season(
 
         update_clan_cache(conn, update_params, insert_data_list)
 
-        # 4. 更新 Redis 排行榜缓存
+        # 更新 Redis 排行榜缓存
         clan_rating = round(
             clan_result['public_rating']
             + clan_result['stage_battles'] * 0.1

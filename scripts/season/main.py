@@ -1,38 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-公会战数据刷新服务 —— 主调度模块
-
-# 功能概述：
-以后台常驻进程方式运行，周期性从 WoWS Clan API 拉取各联赛分段（共 13 个）
-的公会排行榜列表，根据赛季活跃状态和数据变化判断是否需要拉取详细数据，
-更新公会联赛段位和战斗统计，并将最新排行榜缓存到 Redis 有序集合。
-
-# 模块分工：
-- main.py    （本文件）—— 主调度循环、连接管理、进度展示
-- api.py                —— 外部 Clan API 请求封装（排行榜列表 + 单公会详情）
-- updater.py            —— 单公会赛季数据解析、对战记录增量计算
-- db_ops.py             —— 数据库读写（赛季表创建、缓存读写、联赛刷新、排行榜同步）
-- utils.py              —— 时间工具、赛季配置读取、活动窗口判断
-- logger.py             —— tqdm 兼容日志器
-- settings.py           —— 环境变量加载与全局配置常量
-
-# 主循环流程：
-    1. 建立 Redis / MySQL 连接，写入服务状态 key
-    2. 调用 worker()：
-        a. 读取赛季配置，确保赛季战表 S_clan_battle_{id} 已创建
-        b. 检查 need_update（最低每天一次）或 is_cb_active（赛季活跃期）
-        c. 遍历 13 个联赛分段，拉取公会排行榜列表
-        d. 处理赛季切换（season_id 变化时重新确定赛季）
-        e. 全部 13 个分段拉取成功后，全量刷新公会 league 字段
-        f. 对比排行数据与数据库记录，筛选需更新的公会
-        g. 逐公会拉取详细数据 → 写入 MySQL → 更新 Redis 排行
-        h. 全量重建 Redis 公会排行榜有序集合（防脏数据残留）
-    3. finally 块释放连接并 gc.collect()
-    4. 计算耗时，按 REFRESH_INTERVAL 补齐 sleep
-"""
-
 import os
 import gc
 import time
@@ -50,7 +18,6 @@ from api import fetch_clan_leagues
 from db_ops import (
     need_update,
     get_update_ids,
-    refresh_clan_cache,
     ensure_clan_battle_table
 )
 from utils import (
@@ -59,10 +26,10 @@ from utils import (
     refresh_season_data
 )
 from settings import (
-    CLIENT_NAME, 
     REGION, 
     USE_TQDM,
-    REFRESH_INTERVAL, 
+    CLIENT_NAME, 
+    REFRESH_INTERVAL,
     MYSQL_CONFIG, 
     REDIS_CONFIG, 
     CLAN_REALM_MAP, 
@@ -70,8 +37,7 @@ from settings import (
 )
 
 
-SECONDS_PER_DAY = 24 * 60 * 60
-EXPECTED_LEAGUE_COUNT = 13  # 联赛分段的预期数量（League 1-4 + Division 1-3 + League 4 Division 1 = 3*4 + 1 = 13）
+EXPECTED_LEAGUE_COUNT = 13  # 共13个联赛分段
 
 def progress_iterable(
     items: list[Any], desc: str, logger_obj: TqdmAwareLogger
@@ -102,8 +68,7 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
     """单轮公会赛季数据刷新执行体
 
     读取赛季配置，确保赛季战表存在后，从 API 拉取全部 13 个联赛分段的公会列表，
-    全量刷新 league 字段，对比筛选需更新的公会后逐条拉取详情写入 MySQL，
-    最后全量重建 Redis 排行榜缓存。
+    全量刷新 league 字段，对比筛选需更新的公会后逐条拉取详情写入 MySQL
 
     Args:
         mysql_connection: MySQL 数据库连接
@@ -117,7 +82,7 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         return
     logger.info(f"Current Season ID: {season_id}")
     
-    # 3. 为确保首次运行时能立即获取数据，最低每天刷新一次
+    # 2. 最低每天刷新一次
     if (
         need_update(mysql_connection, 'clan_season', 'refresh_time') or 
         is_cb_active(season_data['start'], season_data['finish'])
@@ -149,19 +114,24 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
                 # 赛季变化处理
                 if latest_season_id != season_id:
                     if total_list:
-                        logger.warning('Clan battle season changed')
+                        logger.warning(f'Clan battle season changed: {season_id} -> {latest_season_id}')
                         return
+                    
                     # 首次遇到新赛季，更新season_id
+                    logger.info(f'Clan battle season changed: {season_id} -> {latest_season_id}')
                     season_id = latest_season_id
                     refresh_season_data(season_id)
-                    logger.info(f"Latest Season ID: {season_id}")
+                    redis_client.delete('leaderboard:clan')
 
                 success_count += 1
                 league_count[league] += len(league_data)
                 total_list.extend(league_data)
         logger.disable_tqdm()
 
-        logger.info('Current active clans: 0(%d), 1(%d), 2(%d), 3(%d), 4(%d)', league_count["0"], league_count["1"], league_count["2"], league_count["3"], league_count["4"])
+        logger.info(
+            'Current active clans: 0(%d), 1(%d), 2(%d), 3(%d), 4(%d)', 
+            league_count["0"], league_count["1"], league_count["2"], league_count["3"], league_count["4"]
+        )
         
         # 确保当前赛季的工会战数据表存在
         table_status = ensure_clan_battle_table(mysql_connection, season_id)
@@ -187,9 +157,6 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
             ):
                 update_clan_season(redis_client, mysql_connection, season_id, update_data)
             logger.disable_tqdm()
-        
-        # 全量刷新工会排行榜缓存，防止脏数据污染
-        refresh_clan_cache(redis_client, mysql_connection, season_id)
     else:
         logger.info(f'Update time not yet reached')
 

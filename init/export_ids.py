@@ -1,7 +1,8 @@
 import os
-import json
+import csv
 import logging
 import pymysql
+from tqdm import tqdm
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -25,7 +26,7 @@ else:
     raise FileNotFoundError('No environment file found')
 
 DB_CONFIG = {
-    "host": 'localhost',
+    "host": '129.226.90.10',
     "port": 3306,
     "user": 'root',
     "password": os.getenv("MYSQL_ROOT_PASSWORD"),
@@ -33,21 +34,59 @@ DB_CONFIG = {
     'autocommit': True
 }
 
-def main(filepath: Path):
+CSV_FIELDS = ['account_id', 'username', 'is_active', 'is_public']
+
+def main(output: Path):
     """读取所有 account_id 并写入 JSON 文件"""
-    conn = pymysql.connect(**DB_CONFIG)
+    conn: pymysql.connect = pymysql.connect(**DB_CONFIG)
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT account_id FROM user_basic WHERE region_id = 4 ORDER BY id;")
-            rows = cursor.fetchall()
-            # 提取整数列表
-            account_ids = [row[0] for row in rows]
-        logger.info(f"Fetched {len(account_ids)} account IDs")
+            # 先获取最大 id
+            cursor.execute("SELECT MAX(id) FROM user_basic WHERE region_id = 5;")
+            max_id = cursor.fetchone()[0] or 0
+            logger.info(f"Max ID: {max_id}")
+
+            if max_id == 0:
+                logger.warning("No data found")
+                rows = []
+            else:
+                rows = []
+                with tqdm(total=max_id, desc="Fetching users", unit="rows") as pbar:
+                    for start_id in range(1, max_id + 1, 1000):
+                        end_id = start_id + 1000 - 1
+
+                        sql = """
+                            SELECT 
+                                b.account_id, 
+                                b.username, 
+                                i.is_active, 
+                                i.is_public 
+                            FROM user_basic b
+                            LEFT JOIN user_info i
+                            ON b.account_id = i.account_id
+                            WHERE b.region_id = 5 
+                            AND b.id BETWEEN %s AND %s
+                            ORDER BY b.id;
+                        """
+                        cursor.execute(sql, [start_id, end_id])
+                        batch_rows = cursor.fetchall()
+                        rows.extend(batch_rows)
+                        pbar.update(end_id - start_id + 1)
+
+            logger.info(f"Fetched {len(rows)} rows")
+
+        with open(output, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+            writer.writeheader()
+            for row in rows:
+                writer.writerow({
+                    'account_id': row[0],
+                    'username': row[1],
+                    'is_active': row[2],
+                    'is_public': row[3]
+                })
         
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(account_ids, f, ensure_ascii=False)
-        
-        logger.info(f"Saved account IDs to {filepath}")
+        logger.info(f"Saved account IDs to {output}")
     except Exception as e:
         logger.error(f"Error: {e}")
         raise
@@ -60,9 +99,9 @@ if __name__ == '__main__':
     使用示例：
     python init\export_ids.py
     """
-    filepath = ROOT_DIR / 'data/trash/users.json'
+    output = ROOT_DIR / 'data/trash/users.csv'
     try:
-        main(filepath)
+        main(output)
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
     except Exception as e:

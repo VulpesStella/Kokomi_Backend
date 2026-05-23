@@ -1,18 +1,11 @@
-"""
-外部 API 请求模块
-
-封装对 WoWS Clan API 的 HTTP 调用，支持公会排行榜（ladder）数据拉取、
-单公会详情查询和请求指标记录。
-"""
-
 import requests
 import traceback
 from redis import Redis
 from typing import Optional, Union
 
 from logger import logger
-from settings import CLAN_API
 from utils import get_current_iso_time
+from settings import CLAN_API
 
 
 def fetch_data(url: str) -> Union[dict, str]:

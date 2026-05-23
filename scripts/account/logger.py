@@ -1,12 +1,3 @@
-"""
-日志模块
-
-提供 TqdmAwareLogger —— 一个兼容 tqdm 进度条的 Logger 子类。
-在 tqdm 模式下，日志通过 tqdm.write() 输出以避免打乱进度条显示；
-标准模式下则使用 logging.StreamHandler 输出到控制台。
-同时将 WARNING 及以上级别的日志写入文件。
-"""
-
 import sys
 import logging
 from tqdm import tqdm
@@ -14,20 +5,15 @@ from pathlib import Path
 
 from utils import get_formatted_date
 from settings import (
-    CLIENT_NAME,
-    LOG_LEVEL,
     LOG_DIR,
+    USE_TQDM,
     DATE_FMT,
-    USE_TQDM
+    LOG_LEVEL,
+    CLIENT_NAME
 )
 
 
-
 class TqdmAwareLogger(logging.Logger):
-    """
-    自动感知 tqdm 的 Logger
-    """
-    
     def __init__(self, name: str, level: int = logging.DEBUG):
         super().__init__(name, level)
         self._use_tqdm = False
@@ -64,7 +50,7 @@ class TqdmAwareLogger(logging.Logger):
         log_path.parent.mkdir(parents=True, exist_ok=True)
         
         handler = logging.FileHandler(log_path, mode='a', encoding='utf-8')
-        handler.setLevel(logging.WARNING)
+        handler.setLevel(logging.ERROR)  # 只记录 error 信息
         handler.setFormatter(logging.Formatter(
             '%(asctime)s [%(levelname)s] %(message)s',
             datefmt=DATE_FMT
@@ -72,7 +58,7 @@ class TqdmAwareLogger(logging.Logger):
         return handler
 
     def _tqdm_log(self, level: str, msg: str, *args, **kwargs) -> None:
-        """通过 tqdm.write 输出日志，支持传入格式化参数"""
+        """通过 tqdm.write 输出日志"""
         if args:
             try:
                 msg = msg % args

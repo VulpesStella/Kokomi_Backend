@@ -300,32 +300,31 @@ class ClanUsersSyncer:
             conn: 数据库连接
             clan_id: 公会 ID
             result: API 返回的公会成员数据
-
-        Returns:
-            None: 成功
-            str: 失败时返回错误类型名称
         """
         # 提取公会成员映射
         user_ids = list(users.keys())
         activity_level = cls._get_activity_level(len(user_ids))
 
-        with conn.cursor() as cursor:
-            if len(user_ids) == 0:
+        if len(user_ids) == 0:
+            with conn.cursor() as cursor:
                 cls._disable_empty_clan(cursor, clan_id)
                 conn.commit()
                 return
              
+        with conn.cursor() as cursor:
             old_data = cls._get_existing_members(cursor, clan_id)
             existing_ids = cls._get_existing_users(cursor, user_ids)
             missing_ids = [uid for uid in user_ids if uid not in existing_ids]
 
             if missing_ids:
+                # 尽量避免并发写可能存在的问题，先获取锁再写
                 lock_key = 'refresh_lock:user_insert'
                 lock = acquire_lock(redis_client, lock_key)
                 if not lock:
                     logger.warning('Acquire refesh lock failed')
                     return
                 cls._init_new_users(cursor, missing_ids, users)
+                # 写入完成直接提交
                 conn.commit()
                 release_lock(redis_client, lock_key)
 
@@ -333,6 +332,5 @@ class ClanUsersSyncer:
             cls._update_member_relations(cursor, clan_id, user_ids)
             cls._update_clan_users(cursor, clan_id, activity_level, user_ids)
             cls._record_member_changes(cursor, clan_id, old_data, user_ids)
-
-        conn.commit()
-        return
+            conn.commit()
+            return

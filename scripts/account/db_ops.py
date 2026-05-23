@@ -1,13 +1,3 @@
-"""
-数据库读写操作模块
-
-封装维护调度服务所需的 MySQL 查询与写入操作，包括：
-- 游戏版本同步（refresh_version）
-- 暂存数据聚合与清理（aggregate_recent_data）
-- 用户 / 公会刷新 ID 筛选与 Redis 分布式锁（get_user_update_ids / get_clan_update_ids）
-- 统计数据归档（archive_statistics → ARCH 表）
-"""
-
 import json
 import traceback
 from redis import Redis
@@ -35,47 +25,6 @@ from settings import (
     STAGING_DELETE_DELAY_ENABLED
 )
 
-
-def _get_game_version(cursor: Cursor) -> Optional[str]:
-    """获取当前最新游戏版本号
-
-    Args:
-        cursor: 数据库游标
-
-    Returns:
-        最新版本 short_name，无记录时返回 None
-    """
-    sql = """
-        SELECT 
-            short_name 
-        FROM T_game_version 
-        WHERE is_latest = TRUE 
-        LIMIT 1;
-    """
-    cursor.execute(sql)
-    version_row = cursor.fetchone()
-    return version_row[0] if version_row else None
-
-def _get_stats_refresh_time(cursor: Cursor) -> Optional[int]:
-    """获取 ship_stats 源表的上次数据刷新时间戳
-
-    Args:
-        cursor: 数据库游标
-
-    Returns:
-        Unix 时间戳（秒），无记录时返回 None
-    """
-    sql = """
-        SELECT 
-            UNIX_TIMESTAMP(tracking_value) 
-        FROM T_tracking_meta 
-        WHERE tracking_key = 'ship_stats' 
-          AND tracking_type = 'update_time';
-    """
-    cursor.execute(sql)
-    current_tracking_value = cursor.fetchone()
-    return current_tracking_value[0] if current_tracking_value else None
-
 def _read_ship_ids(cursor: Cursor) -> list[int]:
     """读取所有已记录的船只 ID 列表
 
@@ -93,48 +42,27 @@ def _read_ship_ids(cursor: Cursor) -> list[int]:
     cursor.execute(sql)
     return [row[0] for row in cursor.fetchall()]
 
-def _need_update(cursor: Cursor, tracking_key: str, tracking_type: str) -> bool:
-    """检查是否需要执行更新任务
-
-    查询 T_tracking_meta 表中指定键的上次更新时间，
-    若超过 3600 秒或为空则更新 tracking_value 并返回 True
-
+def _read_game_version(cursor: Cursor) -> Optional[str]:
+    """读取当前最新的游戏版本
+    
     Args:
         cursor: 数据库游标
-        tracking_key: 追踪键
-        tracking_type: 追踪类型
-
-    Returns:
-        是否需要执行更新
     """
     sql = """
         SELECT 
-            CASE 
-                WHEN tracking_value IS NULL THEN TRUE
-                WHEN UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(tracking_value) > 3600 THEN TRUE
-                ELSE FALSE
-            END AS need_update
-        FROM T_tracking_meta 
-        WHERE tracking_key = %s 
-            AND tracking_type = %s;
+            short_name 
+        FROM T_game_version 
+        WHERE is_latest = TRUE
+        LIMIT 1;
     """
-    cursor.execute(sql, [tracking_key, tracking_type])
+    cursor.execute(sql)
     result = cursor.fetchone()
-    if not result[0]:
-        return False
-    
-    sql = """
-        UPDATE T_tracking_meta 
-        SET 
-            tracking_value = NOW() 
-        WHERE tracking_key = %s 
-            AND tracking_type = %s;
-    """
-    cursor.execute(sql, [tracking_key, tracking_type])
+    if not result:
+        return None
+    else:
+        return result[0]
 
-    return True
-
-def _verify_ship_archive(cursor: Cursor) -> int:
+def _verify_ship_archive(cursor: Cursor, version: str, ship_ids: list) -> None:
     """确保近期数据存档表包含最新版本下所有船只的记录
 
     读取全量 ship_id 和最新版本号，检查归档表中是否已有该版本的数据条目，
@@ -142,34 +70,9 @@ def _verify_ship_archive(cursor: Cursor) -> int:
 
     Args:
         cursor: 数据库游标
-
-    Returns:
-        本次修复的行数
+        version: 游戏版本
+        ship_ids: 船只ID列表
     """
-    # 获取当前最新版本号
-    sql = """
-        SELECT 
-            short_name 
-        FROM T_game_version 
-        WHERE is_latest = TRUE;
-    """
-    cursor.execute(sql)
-    result = cursor.fetchone()
-    if not result:
-        return 0
-    version = result[0]
-
-    # 获取当前表中所有船只 ID
-    sql = """
-        SELECT 
-            ship_id 
-        FROM T_ship_base;
-    """
-    cursor.execute(sql)
-    ship_ids = [row[0] for row in cursor.fetchall()]
-    if len(ship_ids) == 0:
-        return 0
-
     # 查询已归档的 ship_id + version 组合
     sql = """
         SELECT 
@@ -183,7 +86,7 @@ def _verify_ship_archive(cursor: Cursor) -> int:
     # 找出未归档的 ship_id
     missing_ids = [sid for sid in ship_ids if sid not in archived_ids]
     if not missing_ids:
-        return 0
+        return 
     
     # 补全归档表
     for ship_id in missing_ids:
@@ -197,135 +100,7 @@ def _verify_ship_archive(cursor: Cursor) -> int:
         """
         cursor.execute(sql, [ship_id, version])
 
-    return len(missing_ids)
-
-def _archive_base_table(cursor: Cursor, index: str, today: str) -> None:
-    """归档 user、clan、ship 基础表的行数到对应的 ARCH 表
-
-    将当天 T_{index}_base 的行数与归档表中的历史记录比较，
-    无记录则插入，有变化则更新
-
-    Args:
-        cursor: 数据库游标
-        index: 表类型标识，'user' 'clan' 或 'ship'
-        today: 当天日期字符串 YYYY-MM-DD
-    """
-    # 查询当前数据行数
-    sql = f"SELECT COUNT(*) FROM T_{index}_base;"
-    cursor.execute(sql)
-    base_count = cursor.fetchone()[0]
-
-    sql = """
-        UPDATE T_table_meta 
-        SET 
-            metric_value = %s 
-        WHERE metric_key = %s;
-    """
-    cursor.execute(sql, [base_count, f'base_{index}s'])
-
-    if index != 'ship':
-        # 查询今天是否已有用户统计记录
-        sql = f"""
-            SELECT 
-                row_count 
-            FROM ARCH_{index}_base 
-            WHERE stat_date = %s;
-        """
-        cursor.execute(sql, [today])
-        base_result = cursor.fetchone()
-
-        # 处理用户统计
-        if base_result is None:
-            # 没有记录，插入新记录
-            sql = f"""
-                INSERT INTO ARCH_{index}_base (
-                    stat_date, row_count
-                ) VALUES (
-                    %s, %s
-                );
-            """
-            cursor.execute(sql, [today, base_count])
-        elif base_result[0] != base_count:
-            # 有记录但数据有变化，更新
-            sql = f"""
-                UPDATE ARCH_{index}_base 
-                SET 
-                    row_count = %s 
-                WHERE stat_date = %s;
-            """
-            cursor.execute(sql, [base_count, today])
-
-    logger.info(f'Table archived: T_{index}_base')
-
-def _archive_ship_stats(
-    cursor: Cursor,
-    today: str,
-    game_version: str,
-    source_table: str,
-    archive_table: str,
-    columns: list[str]
-):
-    """按需将源表数据归档到对应的 ARCH 表
-
-    读取源表全量数据，与归档表已有记录对比，
-    新 ship_id 执行 INSERT，已有 ship_id 执行 UPDATE
-
-    Args:
-        cursor: 数据库游标
-        today: 当天日期字符串 YYYY-MM-DD
-        game_version: 当前游戏版本号
-        source_table: 源表名
-        archive_table: 归档表名
-        columns: 需要归档的列名列表
-    """
-    # 读取源表全量数据
-    col_names = ', '.join(columns)
-    cursor.execute(f"SELECT ship_id, {col_names} FROM T_user_stats")
-    source_rows = cursor.fetchall()
-
-    # 读取归档表当天+当前版本已有的 ship_id
-    sql = f"""
-        SELECT ship_id 
-        FROM {archive_table}
-        WHERE stat_date = %s 
-          AND game_version = %s;
-    """
-    cursor.execute(sql, (today, game_version))
-    existing_ids = {row[0] for row in cursor.fetchall()}
-
-    # 收集 INSERT 和 UPDATE 列表
-    insert_list = []
-    update_list = []
-
-    for source_row in source_rows:
-        if source_row[0] in existing_ids:
-            update_list.append(source_row)
-        else:
-            insert_list.append(source_row)
-
-    # 执行 INSERT
-    if insert_list:
-        placeholders = ', '.join(['%s'] * len(columns))
-        insert_sql = f"""
-            INSERT INTO {archive_table} 
-            (ship_id, stat_date, game_version, {col_names})
-            VALUES (%s, %s, %s, {placeholders})
-        """
-        for row in insert_list:
-            cursor.execute(insert_sql, (row[0], today, game_version, *row[1:]))
-
-    # 执行 UPDATE
-    if update_list:
-        set_clause = ', '.join([f'{col} = %s' for col in columns])
-        update_sql = f"""
-            UPDATE {archive_table} 
-            SET {set_clause}
-            WHERE ship_id = %s AND stat_date = %s AND game_version = %s
-        """
-        for row in update_list:
-            cursor.execute(update_sql, (*row[1:], row[0], today, game_version))
-
-    logger.info(f'Table archived: {archive_table}')
+    logger.debug(f'Table ARCH_ship_stats_by_recent inserted: {len(missing_ids)}')
 
 def _aggregate_ship_recent(cursor: Cursor, all_ship_ids: list) -> int:
     """将暂存表中 pending 状态的近期数据聚合写入归档表
@@ -579,10 +354,6 @@ def refresh_version(cursor: Cursor, redis_client: Redis) -> None:
     """
     cursor.execute(sql, [latest['full'], latest['short']])
 
-    # 把新version的插入存档表
-    insert_count = _verify_ship_archive(cursor)
-    logger.info(f'Insert row counts: {insert_count}')
-
     logger.info(
         f"Game Version: "
         f"{local_version[0] if local_version else 'NULL'} -> {latest['short']}"
@@ -594,6 +365,14 @@ def aggregate_recent_data(cursor: Cursor) -> None:
     if len(all_ship_ids) == 0:
         return
     
+    # 读取最新的游戏版本
+    game_version = _read_game_version(cursor)
+    if not game_version:
+        return
+
+    # 把新version的插入存档表
+    _verify_ship_archive(cursor, game_version, all_ship_ids)
+    
     # 将中转表中待处理的近期舰船数据聚合写入归档表
     processed = _aggregate_ship_recent(cursor, all_ship_ids)
 
@@ -603,6 +382,67 @@ def aggregate_recent_data(cursor: Cursor) -> None:
     logger.info(
         'Recent data aggregated - Processed: %s | Deleted: %s',
         processed, deleted
+    )
+
+def archive_base_table(cursor: Cursor) -> int:
+    """归档 user、clan、ship 基础表的行数到 ARCH 表
+
+    Args:
+        cursor: 数据库游标
+    """
+    base_count_list = [0,0,0,0]
+    # 查询当前数据行数
+    i = 1
+    for index in ['user', 'clan', 'ship']:
+        sql = f"SELECT COUNT(*) FROM T_{index}_base;"
+        cursor.execute(sql)
+        base_count = cursor.fetchone()[0]
+
+        sql = """
+            UPDATE T_table_meta 
+            SET 
+                metric_value = %s 
+            WHERE metric_key = %s;
+        """
+        cursor.execute(sql, [base_count, f'base_{index}s'])
+
+        base_count_list[0] += base_count
+        base_count_list[i] += base_count
+
+        i += 1
+
+    today = get_current_iso_time()[:10]
+    sql = """
+        SELECT 1 
+        FROM ARCH_base_count 
+        WHERE stat_date = %s;
+    """
+    cursor.execute(sql, [today])
+    data = cursor.fetchone()
+    if data is None:
+        sql = """
+            INSERT INTO ARCH_base_count (
+                stat_date, total_count, user_count, clan_count, ship_count
+            ) VALUES (
+                %s,%s,%s,%s,%s
+            )
+        """
+        cursor.execute(sql, [today]+base_count_list)
+    else:
+        sql = """
+            UPDATE ARCH_base_count 
+            SET 
+                total_count = %s, 
+                user_count = %s, 
+                clan_count = %s, 
+                ship_count = %s 
+            WHERE stat_date = %s;
+        """
+        cursor.execute(sql, base_count_list + [today])
+
+    logger.info(
+        'Base table archived - User: %s | Clan: %s | Ship: %s',
+        base_count_list[1], base_count_list[2], base_count_list[3]
     )
 
 def get_update_ids(
@@ -644,11 +484,10 @@ def get_update_ids(
             cursor.execute(f"SELECT MAX(id) FROM T_user_stats;")
             max_id = cursor.fetchone()[0] or 0
 
-            logger.debug(f'Table T_user_stats MaxID: {max_id}')
-
             # 按 id 区间循环
             for start_id in range(1, max_id + 1, BATCH_SIZE):
                 end_id = start_id + BATCH_SIZE - 1
+
                 sql = f"""
                     SELECT 
                         account_id, 
@@ -660,16 +499,20 @@ def get_update_ids(
                 """
                 cursor.execute(sql, [start_id, end_id])
                 rows = cursor.fetchall()
+
                 if not rows:
                     continue
+
                 due_ids = []
+
                 for row in rows:
                     if not row[1]:
-                        # 不可用不参加后续统计
+                        # 不可用用户不更新
                         continue
 
                     planned_count += 1
 
+                    # 计算下次更新时间到现在时间的差值，-1表示需要更新
                     if row[3] is None:
                         remaining_seconds = -1
                     elif row[2] and row[2] > current_timestamp:
@@ -684,14 +527,14 @@ def get_update_ids(
                     if remaining_seconds == -1:
                         due_ids.append(row[0])
                         refresh_stats[0] += 1
-                        # overdue 也算进 hourly_stats 的第 0 小时
                         total_count += 1
+                        # overdue 也算进 hourly_stats 的第 0 小时
                         buckets[0].append(row[0])
                         continue
 
                     # 统计 refresh_stats：within_24h / within_week / within_month / within_quarter
                     if remaining_seconds <= 86400:
-                        refresh_stats[1] += 1  # today
+                        refresh_stats[1] += 1  # within_24h
                     elif remaining_seconds <= 604800:
                         refresh_stats[2] += 1  # within_week
                     elif remaining_seconds <= 2592000:
@@ -706,14 +549,14 @@ def get_update_ids(
                             total_count += 1
                             buckets[hour_index].append(row[0])
 
-
                 total_due += len(due_ids)
 
                 if due_ids:
+                    # 通过redis去重
                     pipe = redis_client.pipeline()
                     keys = [f"refresh_lock:user:{uid}" for uid in due_ids]
                     for key in keys:
-                        pipe.set(key, 1, nx=True, ex=4*3600)
+                        pipe.set(key, 1, nx=True, ex=3600)
                     results = pipe.execute()
                     batch_locked = [due_ids[i] for i, r in enumerate(results) if r]
                     update_list.extend(batch_locked)
@@ -741,6 +584,7 @@ def get_update_ids(
             min_interval_total=min_interval_total
         )
         if intervals:
+            logger.info("Found %d intervals to rebalance: %s", len(intervals), intervals)
             for left, right in intervals:
                 bucket_slice = buckets[left:right+1]  # 子列表引用，修改会作用到原桶
                 migrations = rebalance_interval(bucket_slice)
@@ -751,26 +595,26 @@ def get_update_ids(
                     counts[h] = len(buckets[h])
             score = calc_imbalance_score(counts)
             logger.debug('Rebalanced plan (%s): %s', score, counts)
-            logger.info("Applied %d %s migrations to database", len(all_migrations), index)
         else:
-            logger.info("No interval needs rebalancing")
+            logger.debug("No interval needs rebalancing")
     else:
-        logger.info("No interval needs rebalancing")
+        logger.debug("No interval needs rebalancing")
     
     try:
         with conn.cursor() as cursor:
             # 1. 更新 planned_count
-            cursor.execute("""
+            sql = """
                 UPDATE T_table_meta 
                 SET 
                     metric_value = %s 
                 WHERE metric_key = %s;
-            """, [planned_count, f'planned_users'])
+            """
+            cursor.execute(sql, [planned_count, 'planned_users'])
 
             # 2. 更新 refresh_stats
             status_names = ['overdue', 'within_24h', 'within_week', 'within_month', 'within_quarter']
             for status, count in zip(status_names, refresh_stats):
-                sql = f"""
+                sql = """
                     UPDATE T_refresh_stats
                     SET 
                         user_count = %s,
@@ -782,7 +626,7 @@ def get_update_ids(
             # 3. 更新 refresh_hourly_stats（planned_hour 对应 1~24）
             for hour_index, count in enumerate(counts):
                 planned_hour = hour_index + 1
-                sql = f"""
+                sql = """
                     UPDATE T_refresh_hourly_stats
                     SET 
                         planned_users = %s,
@@ -792,7 +636,7 @@ def get_update_ids(
                 cursor.execute(sql, [count, planned_hour])
             
             if all_migrations:
-                sql = f"""
+                sql = """
                     UPDATE T_user_stats
                     SET 
                         next_refresh_at = next_refresh_at - INTERVAL %s HOUR
@@ -800,6 +644,7 @@ def get_update_ids(
                 """
                 params = [(hours, uid) for uid, hours in all_migrations]
                 cursor.executemany(sql, params)
+                logger.info("Applied %d user migrations to database", len(all_migrations))
         conn.commit()
     except Exception:
         conn.rollback()
@@ -808,57 +653,3 @@ def get_update_ids(
     logger.info('Planned user updates within today: %s', today_remained_count)
 
     return update_list
-
-def archive_statistics(cursor: Cursor) -> None:
-    """归档用户/公会数量和船只统计数据到对应的 ARCH 表
-
-    归档内容包括：
-        - T_user_base / T_clan_base 的行数
-        - T_ship_stats_by_users → ARCH_ship_stats_by_users
-        - T_ship_stats_by_battles → ARCH_ship_stats_by_battles
-
-    Args:
-        cursor: 数据库游标
-    """
-    if not _need_update(cursor, 'table_meta', 'archive_time'):
-        logger.debug('Archive time not yet reached')
-        return
-
-    today = get_current_iso_time()[:10]
-    
-    # 归档基础表中的用户和工会数量
-    for index in ['user', 'clan', 'ship']:
-        _archive_base_table(cursor, index, today)
-    
-    # 获取当前游戏版本号
-    game_version = _get_game_version(cursor)
-    if game_version is None:
-        logger.warning('No active game version found, skip archive')
-        return
-
-    # 获取当前源表的数据版本标识
-    current_tracking_value = _get_stats_refresh_time(cursor)
-    if current_tracking_value is None:
-        return
-
-    # 归档 T_ship_stats_by_users
-    _archive_ship_stats(
-        cursor=cursor,
-        today=today,
-        game_version=game_version,
-        source_table='T_ship_stats_by_users',
-        archive_table='ARCH_ship_stats_by_users',
-        columns=['users', 'battles', 'win_rate', 'avg_damage', 'avg_frags',
-                'avg_exp', 'survived_rate', 'avg_scouting_damage', 'avg_potential_damage']
-    )
-
-    # 归档 T_ship_stats_by_battles
-    _archive_ship_stats(
-        cursor=cursor,
-        today=today,
-        game_version=game_version,
-        source_table='T_ship_stats_by_battles',
-        archive_table='ARCH_ship_stats_by_battles',
-        columns=['battles', 'win_rate', 'avg_damage', 'avg_frags',
-                'avg_exp', 'survived_rate', 'avg_scouting_damage', 'avg_potential_damage']
-    )

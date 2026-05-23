@@ -77,7 +77,7 @@ RARITY_MAP = {
 }
 
 # 需要初始化的 PvP 极值记录指标 ID
-METRIC_IDS = [3, 5, 7, 8, 9]
+METRIC_IDS = [3, 4, 5, 7, 8, 9]
 
 def parse_ship_row(row: dict) -> dict:
     """将 CSV 行解析为用于插入的船只参数字典"""
@@ -104,7 +104,6 @@ def parse_ship_row(row: dict) -> dict:
 
 def insert_ship(cursor, ship: dict) -> None:
     """插入一条船只数据"""
-    # 基础表
     sql = """
         INSERT INTO T_ship_base (
             ship_id, is_enabled, is_old, tier, type_id,

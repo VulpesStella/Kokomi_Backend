@@ -1,40 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-数据更新调度服务 —— 主调度模块
-
-=== 功能概述 ===
-以后台常驻进程方式运行，周期性检测游戏版本更新、聚合暂存数据、
-根据活跃度策略筛选需刷新的用户/公会，通过 Celery + RabbitMQ 向消息队列
-分发异步刷新任务，最后将当前统计数据归档到 ARCH 表。
-
-=== 模块分工 ===
-- main.py    （本文件）—— 主调度循环、连接管理、Celery 任务分发
-- api.py                —— 外部 API 请求封装（游戏版本拉取）
-- db_ops.py             —— 数据库读写（版本同步、暂存聚合、ID 筛选、统计归档）
-- utils.py              —— 时间工具函数
-- logger.py             —— tqdm 兼容日志器
-- settings.py           —— 环境变量加载与全局配置常量
-
-=== 主循环流程 ===
-    1. 建立 Redis / MySQL / Celery 连接，写入服务状态 key
-    2. 调用 worker()：
-        a. 每小时检测游戏版本变化，同步最新版本信息
-        b. 聚合 STAGING_ship_recent_data 中的 pending 数据到归档表
-        c. 分批扫描 T_user_stats / T_clan_users，按活跃度策略筛选 due 的 ID
-        d. 通过 Redis 分布式锁（refresh_lock:*:）去重，避免重复分发
-        e. 对获取到锁的 ID，通过 Celery send_task 发送到 refresh_queue
-        f. 发送失败的 ID 删除 Redis 锁，允许下次重试
-        g. 归档用户 / 公会数量和船只统计数据到 ARCH 表
-    3. finally 块释放连接并 gc.collect()
-    4. 计算耗时，按 REFRESH_INTERVAL 补齐 sleep
-
-=== 信号处理 ===
-    - Linux:  注册 SIGTERM 处理器，接收信号后调用 os._exit(0)
-    - Windows: 无法捕获 SIGTERM，通过 KeyboardInterrupt 模拟
-"""
-
 import os
 import gc
 import time
@@ -47,13 +13,13 @@ from pymysql import Connection
 from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
+from syncer import ClanUsersSyncer
 from db_ops import get_update_ids
 from api import fetch_clan_members
-from syncer import ClanUsersSyncer
 from settings import (
-    CLIENT_NAME, 
     REGION, 
     USE_TQDM,
+    CLIENT_NAME, 
     REFRESH_INTERVAL, 
     MYSQL_CONFIG, 
     REDIS_CONFIG

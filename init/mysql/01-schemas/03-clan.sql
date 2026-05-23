@@ -83,18 +83,3 @@ CREATE TABLE IF NOT EXISTS T_clan_action (
     INDEX idx_cid (clan_id),
     INDEX idx_aid (account_id)
 );
-
--- 公会基础数据归档表
--- 按日期记录公会基础表的行数变化
-CREATE TABLE IF NOT EXISTS ARCH_clan_base (
-    id               BIGINT       AUTO_INCREMENT,
-
-    stat_date        DATE         NOT NULL,        -- 统计日期 YYYY-MM-DD
-    row_count        INT          NOT NULL,        -- 当日数据条目数
-
-    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id),
-
-    UNIQUE KEY uk_date (stat_date)
-);

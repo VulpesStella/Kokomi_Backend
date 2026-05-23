@@ -58,11 +58,6 @@ from db_ops import (
     update_users_stats_table,
     update_rating_distribution_table,
     update_ship_pvp_stats,
-    refresh_leaderboard_meta,
-    refresh_leaderboard_mysql,
-    refresh_leaderboard_redis,
-    delete_leaderboard_redis,
-    clear_leaderboard_redis,
     refresh_table_meta
 )
 from settings import (
@@ -193,76 +188,6 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
             mysql_connection.commit()
     except Exception:
         mysql_connection.rollback()
-        logger.error(traceback.format_exc())
-        
-    # 没有本地统计数据
-    if not existing_stats:
-        logger.info('No local stats data, skip the ranking update process')
-        return
-
-    # 4. 刷新排行榜数据
-    try:
-        # 设置维护锁，防止刷新期间外部读取到不完整数据
-        # 锁的有效期为 1 小时（3600 秒），防止异常情况导致锁永久存在
-        redis_client.set(f'leaderboard:maintenance', 1, ex=3600)
-
-        # 等待一小段时间，让进行中的读取操作完成
-        logger.info('Waiting 10s for ongoing read operations to complete...')
-        time.sleep(10)
-
-        ship_users = {}
-        leaderboard_rows = 0
-
-        with mysql_connection.cursor() as cursor:
-            ranking_ship_ids = []
-            for ship_id, ship_data in ship_data.items():
-                if ship_data:
-                    ranking_ship_ids.append(ship_id)
-
-            # 清空 Redis 排行榜的无效缓存
-            clear_leaderboard_redis(redis_client, ranking_ship_ids)
-
-            # 更新 MySQL 排行榜数据
-            logger.enable_tqdm()
-            for ship_id in progress_iterable(
-                items=ranking_ship_ids,
-                desc="Refreshing MySQL",
-                logger_obj=logger,
-            ):
-                delete_leaderboard_redis(redis_client, ship_id)
-                try:
-                    leaderboard_rows += refresh_leaderboard_mysql(cursor, ship_id)
-                    # 每条船单独提交，避免长事务
-                    mysql_connection.commit()
-                except Exception:
-                    mysql_connection.rollback()
-                    logger.error(traceback.format_exc())
-                users = refresh_leaderboard_redis(cursor, redis_client, ship_id)
-                if users > 0:
-                    ship_users[ship_id] = users
-            logger.disable_tqdm() 
-            logger.info(f'Refreshed {leaderboard_rows} rows leaderboard data')
-
-            # 刷新缓存表信息
-            try:
-                refresh_leaderboard_meta(cursor, leaderboard_rows)
-                mysql_connection.commit()
-            except Exception:
-                mysql_connection.rollback()
-
-        # 更新统计表
-        if ship_users != {}:
-            key = "leaderboard:users"
-            pipe = redis_client.pipeline()
-            pipe.delete(key)
-            for ship_id, users in ship_users.items():
-                pipe.hset(key, str(ship_id), users)
-            pipe.execute()
-
-        # 刷新完成，删除维护锁并记录刷新时间
-        redis_client.set(f'leaderboard:rating_refresh_time', int(time.time()))
-        redis_client.delete(f'leaderboard:maintenance')
-    except Exception:
         logger.error(traceback.format_exc())
 
 def main():

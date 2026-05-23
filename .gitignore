@@ -9,3 +9,10 @@ __pycache__/
 env.dev
 env.prod
 redis.conf
+/temp/
+/data/db/*
+/data/json/*
+/data/trash/*
+/logs/error/*
+/logs/metrics/*
+/logs/scripts/*

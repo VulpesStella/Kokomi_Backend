@@ -5,16 +5,12 @@ from logger import logger
 from settings import MIN_IMBALANCE_SCORE
 
 def apply_migrations(cursor: Cursor, migrations: list, index: str) -> int:
-    """
-    批量更新用户的 next_refresh_at，将其提前指定的小时数。
+    """批量更新用户的 next_refresh_at，将其提前指定的小时数
 
     Args:
         cursor: 数据库游标
         migrations: [(user_id, advance_hours), ...]
         index: 'user' 或 'clan'
-
-    Returns:
-        更新的行数
     """
     if not migrations:
         return 0
@@ -42,8 +38,7 @@ def apply_migrations(cursor: Cursor, migrations: list, index: str) -> int:
     return affected
 
 def update_hourly_stats(cursor: Cursor, counts: list, index: str) -> None:
-    """
-    将均衡后的每小时计划数写回 T_refresh_hourly_stats 表。
+    """将均衡后的每小时计划数写回 T_refresh_hourly_stats 表
     
     Args:
         cursor: 数据库游标
@@ -70,11 +65,10 @@ def update_hourly_stats(cursor: Cursor, counts: list, index: str) -> None:
     logger.info("Updated T_refresh_hourly_stats for %s", index)
 
 def calc_imbalance_score(counts: list) -> float:
-    """
-    计算分布不合理系数。
+    """计算分布不合理系数
 
-    定义为所有违反单调不增的相邻逆增量总和 / 区间总计划数 × 100。
-    返回值越接近 100 表示分布越不合理（越不满足单调不增）。
+    定义为所有违反单调不增的相邻逆增量总和 / 区间总计划数 × 100
+    返回值越接近 100 表示分布越不合理（越不满足单调不增）
     """
     n = len(counts)
     if n < 2:
@@ -90,20 +84,16 @@ def find_rebalance_intervals(
     min_peak_abs: int = 100,
     min_interval_total: int = 200
 ) -> list:
-    """
-    扫描 24 小时分布，返回需要削峰的区间。
+    """扫描 24 小时分布，返回需要削峰的区间
 
-    一个合理的分布应为单调不增（越早时段更新越多）。
+    一个合理的分布应为单调不增（越早时段更新越多）
     从后向前扫描，识别出右侧高、左侧低的“尖峰”区间，
-    并根据绝对数量和波动程度过滤。
+    并根据绝对数量和波动程度过滤
 
     Args:
         counts: 长度为 24 的列表
         min_peak_abs: 尖峰最低绝对值，低于此不处理
         min_interval_total: 区间最少计划总数，低于此不处理
-
-    Returns:
-        list[tuple[int, int]]: 闭区间索引列表
     """
     if len(counts) != 24:
         return []
@@ -140,30 +130,25 @@ def find_rebalance_intervals(
 
         # 过滤轻微波动
         score = calc_imbalance_score(interval_counts)
-        logger.info("Interval [%d-%d] Score(%.2f): %s", left, hour, score, interval_counts)
 
         if score >= MIN_IMBALANCE_SCORE:
+            logger.debug("Interval [%d-%d] Score(%.2f): %s", left, hour, score, interval_counts)
             intervals.append((left, hour))
 
         hour = left - 1
 
-    logger.info("Found %d intervals to rebalance: %s", len(intervals), intervals)
     return intervals
 
 def rebalance_interval(
     buckets_slice: list
 ) -> list:
-    """
-    对区间内的用户桶进行负载均衡（只能提前，就近填谷）。
+    """对区间内的用户桶进行负载均衡（只能提前，就近填谷）
 
-    从最左侧桶开始，若低于目标平均值，则从右侧最近的富余桶借用用户。
-    返回所有需要提前的用户迁移记录。
+    从最左侧桶开始，若低于目标平均值，则从右侧最近的富余桶借用用户
+    返回所有需要提前的用户迁移记录
 
     Args:
         buckets_slice: 区间内按小时顺序排列的桶，每个桶是用户 ID 列表
-
-    Returns:
-        List[Tuple[int, int]]: 每个元素为 (user_id, advance_hours)
     """
     n = len(buckets_slice)
     if n <= 1:

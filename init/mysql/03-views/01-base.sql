@@ -66,7 +66,7 @@ WHERE b.is_enabled = 1
     AND b.is_old = 0
     AND b.tier > 5; 
 
-CREATE VIEW v_version_battles_total AS
+CREATE VIEW V_version_battles_total AS
 SELECT 
     game_version,
     SUM(battles) AS total_battles

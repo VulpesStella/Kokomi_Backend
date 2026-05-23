@@ -1,15 +1,3 @@
-"""
-数据库读写操作模块
-
-封装公会赛季数据所需的 MySQL 查询与写入操作，包括：
-- 数据追踪状态检查（need_update）
-- 赛季战表创建（ensure_clan_battle_table）
-- 缓存读写与增量更新（read_clan_cache / update_clan_cache）
-- 排行榜 ID 筛选（get_update_ids）
-- 联赛字段刷新（refresh_clan_league）
-- Redis 排行榜全量同步（refresh_clan_cache）
-"""
-import time
 import traceback
 from redis import Redis
 from pymysql import Connection
@@ -17,7 +5,6 @@ from pymysql.cursors import Cursor
 from typing import Optional
 
 from logger import logger
-from utils import get_current_timestamp
 from settings import CLAN_INIT_TABLE_LIST
 
 def need_update(conn: Connection, tracking_key: str, tracking_type: str) -> bool:
@@ -149,13 +136,6 @@ def update_clan_cache(
                     );
                 """
                 cursor.executemany(insert_sql, insert_data_list)
-                # for insert_data in insert_data_list:
-                #     battles_result = 'Victory' if insert_data[3] else 'Defeat'
-                #     logger.debug(
-                #         f"Insert a battle record: {insert_data[0]} {insert_data[1]} "
-                #         f"{battles_result} {insert_data[4] if insert_data[4] else ''}"
-                #         f"{insert_data[5] if insert_data[5] else ''}"
-                #     )
 
             conn.commit()
     except Exception:
@@ -254,9 +234,7 @@ def get_update_ids(
         conn: 数据库连接
         season_id: 当前赛季 ID
         clan_data_list: 排行榜公会数据
-
-    Returns:
-        需要更新的公会 ID 列表
+        need_refresh: 是否获取到完成的排行榜数据
     """
     update_ids = []
     try:
@@ -299,14 +277,17 @@ def get_update_ids(
                         # 2. last_battle_at 时间戳不同（有新战斗发生）
                         # 3. 赛季 ID 不同（新赛季首次获取数据）
                         update_ids.append(clan_id)
-            if need_refresh and existing_rows:
-                sql = """
-                    UPDATE T_clan_base 
-                    SET 
-                        league = 5, 
-                        updated_at = NOW();
-                """
-                cursor.execute(sql)
+            if existing_rows:
+                # 如果完整读取到13个league数据则做整体刷新
+                if need_refresh:
+                    sql = """
+                        UPDATE T_clan_base 
+                        SET 
+                            league = 5, 
+                            updated_at = NOW();
+                    """
+                    cursor.execute(sql)
+
                 # 批量更新
                 update_sql = """
                     UPDATE T_clan_base
@@ -320,8 +301,9 @@ def get_update_ids(
                     [d[1], d[2], d[0]] for d in existing_rows
                 ]
                 cursor.executemany(update_sql, update_params)
+            
             if missing_rows:
-                logger.debug(f'Insert {len(missing_rows)} new clans')
+                logger.info(f'Insert {len(missing_rows)} new clans')
                 init_new_clans(cursor, missing_rows)
             conn.commit()
     except Exception:
@@ -369,7 +351,6 @@ def refresh_clan_cache(
                 pipe.zadd(key, {str(k): float(v) for k, v in result.items()})
             pipe.execute()
 
-            redis_client.set('leaderboard:clan_update_time', get_current_timestamp())
             logger.info('Clan leaderboard cache refreshed')
     except Exception:
         logger.error(traceback.format_exc())

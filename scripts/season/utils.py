@@ -1,9 +1,3 @@
-"""
-工具函数模块
-
-提供时间戳转换、赛季配置读取和公会战活动窗口判断等工具函数。
-"""
-
 import json
 from datetime import datetime, timezone, time
 
@@ -47,6 +41,7 @@ def refresh_season_data(season_id: int) -> dict:
     """刷新本地 JSON 文件中的当前赛季配置数据"""
     file_path = DATA_DIR / f'json/clan_season.json'
     data = {"id": season_id,"start": None,"finish": None}
+    
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
 
@@ -79,4 +74,5 @@ def is_cb_active(season_start: int, season_finish: int) -> bool:
         if time(start[0], start[1]) <= current_time < time(end[0], end[1] + 29):
             if REGION in regions:
                 return True
+            
     return False

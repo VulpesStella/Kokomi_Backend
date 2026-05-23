@@ -1,5 +1,4 @@
 import traceback
-from redis import Redis
 from pymysql import Connection
 
 from logger import logger
@@ -49,11 +48,10 @@ def get_update_ids(conn: Connection) -> list:
             cursor.execute(f"SELECT MAX(id) FROM T_clan_users;")
             max_id = cursor.fetchone()[0] or 0
 
-            logger.debug(f'Table T_clan_users MaxID: {max_id}')
-
             # 按 id 区间循环
             for start_id in range(1, max_id + 1, BATCH_SIZE):
                 end_id = start_id + BATCH_SIZE - 1
+
                 sql = f"""
                     SELECT 
                         clan_id, 
@@ -65,15 +63,18 @@ def get_update_ids(conn: Connection) -> list:
                 """
                 cursor.execute(sql, [start_id, end_id])
                 rows = cursor.fetchall()
+
                 if not rows:
                     continue
+
                 for row in rows:
                     if not row[1]:
-                        # 不可用不参加后续统计
+                        # 不可用工会不更新
                         continue
 
                     planned_count += 1
-
+                    
+                    # 不可用用户不更新
                     if row[3] is None:
                         remaining_seconds = -1
                     elif row[2] and row[2] > current_timestamp:
@@ -88,14 +89,14 @@ def get_update_ids(conn: Connection) -> list:
                     if remaining_seconds == -1:
                         update_list.append(row[0])
                         refresh_stats[0] += 1
-                        # overdue 也算进 hourly_stats 的第 0 小时
                         total_count += 1
+                        # overdue 也算进 hourly_stats 的第 0 小时
                         buckets[0].append(row[0])
                         continue
 
                     # 统计 refresh_stats：within_24h / within_week / within_month / within_quarter
                     if remaining_seconds <= 86400:
-                        refresh_stats[1] += 1  # today
+                        refresh_stats[1] += 1  # within_24h
                     elif remaining_seconds <= 604800:
                         refresh_stats[2] += 1  # within_week
                     elif remaining_seconds <= 2592000:
@@ -126,6 +127,7 @@ def get_update_ids(conn: Connection) -> list:
             min_interval_total=min_interval_total
         )
         if intervals:
+            logger.info("Found %d intervals to rebalance: %s", len(intervals), intervals)
             for left, right in intervals:
                 bucket_slice = buckets[left:right+1]  # 子列表引用，修改会作用到原桶
                 migrations = rebalance_interval(bucket_slice)
@@ -136,11 +138,10 @@ def get_update_ids(conn: Connection) -> list:
                     counts[h] = len(buckets[h])
             score = calc_imbalance_score(counts)
             logger.debug('Rebalanced plan (%s): %s', score, counts)
-            logger.info("Applied %d clan migrations to database", len(all_migrations))
         else:
-            logger.info("No interval needs rebalancing")
+            logger.debug("No interval needs rebalancing")
     else:
-        logger.info("No interval needs rebalancing")
+        logger.debug("No interval needs rebalancing")
     
     try:
         with conn.cursor() as cursor:
@@ -150,12 +151,12 @@ def get_update_ids(conn: Connection) -> list:
                 SET 
                     metric_value = %s 
                 WHERE metric_key = %s;
-            """, [planned_count, f'planned_clans'])
+            """, [planned_count, 'planned_clans'])
 
             # 2. 更新 refresh_stats
             status_names = ['overdue', 'within_24h', 'within_week', 'within_month', 'within_quarter']
             for status, count in zip(status_names, refresh_stats):
-                sql = f"""
+                sql = """
                     UPDATE T_refresh_stats
                     SET 
                         clan_count = %s,
@@ -167,7 +168,7 @@ def get_update_ids(conn: Connection) -> list:
             # 3. 更新 refresh_hourly_stats（planned_hour 对应 1~24）
             for hour_index, count in enumerate(counts):
                 planned_hour = hour_index + 1
-                sql = f"""
+                sql = """
                     UPDATE T_refresh_hourly_stats
                     SET 
                         planned_clans = %s,
@@ -177,7 +178,7 @@ def get_update_ids(conn: Connection) -> list:
                 cursor.execute(sql, [count, planned_hour])
             
             if all_migrations:
-                sql = f"""
+                sql = """
                     UPDATE T_clan_users
                     SET 
                         next_refresh_at = next_refresh_at - INTERVAL %s HOUR
@@ -185,6 +186,7 @@ def get_update_ids(conn: Connection) -> list:
                 """
                 params = [(hours, uid) for uid, hours in all_migrations]
                 cursor.executemany(sql, params)
+                logger.info("Applied %d clan migrations to database", len(all_migrations))
         conn.commit()
     except Exception:
         conn.rollback()

@@ -111,6 +111,22 @@ CREATE TABLE IF NOT EXISTS T_table_meta (
     UNIQUE KEY uk_key (metric_key)
 );
 
+-- 数据库元信息表
+-- 记录数据库的数据，用于监控数据增长
+CREATE TABLE IF NOT EXISTS T_database_meta (
+    id              INT           AUTO_INCREMENT,
+
+    metric_key      VARCHAR(50)   NOT NULL,         -- 统计键，通常为表名
+    metric_value    BIGINT        DEFAULT 0,        -- 数据行数
+
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+
+    UNIQUE KEY uk_key (metric_key)
+);
+
 -- 指标等级阈值表
 -- 定义各项指标等级评定的阈值，用于 F_get_metric_level 函数
 CREATE TABLE IF NOT EXISTS T_metric_level_thresholds (
@@ -126,7 +142,7 @@ CREATE TABLE IF NOT EXISTS T_metric_level_thresholds (
     INDEX idx_mid (metric_id)
 );
 
-CREATE TABLE T_refresh_stats (
+CREATE TABLE IF NOT EXISTS T_refresh_stats (
     id               INT          AUTO_INCREMENT,
 
     status           VARCHAR(50)  NOT NULL, -- '状态标识: overdue/today/within_week/within_month/within_quarter',
@@ -141,7 +157,7 @@ CREATE TABLE T_refresh_stats (
     UNIQUE INDEX idx_status (status)
 );
 
-CREATE TABLE T_refresh_hourly_stats (
+CREATE TABLE IF NOT EXISTS T_refresh_hourly_stats (
     id               INT          AUTO_INCREMENT,
 
     planned_hour     TINYINT       NOT NULL,
@@ -154,4 +170,22 @@ CREATE TABLE T_refresh_hourly_stats (
     PRIMARY KEY (id),
 
     UNIQUE INDEX idx_hour (planned_hour)
+);
+
+-- 基础数据归档表
+-- 按日期记录基础表的行数变化
+CREATE TABLE IF NOT EXISTS ARCH_base_count (
+    id               BIGINT       AUTO_INCREMENT,
+
+    stat_date        DATE         NOT NULL,        -- 统计日期 YYYY-MM-DD
+    total_count      INT          NOT NULL,        -- 当日数据条目数
+    user_count       INT          NOT NULL,        -- 当日数据条目数
+    clan_count       INT          NOT NULL,        -- 当日数据条目数
+    ship_count       INT          NOT NULL,        -- 当日数据条目数
+
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+
+    UNIQUE KEY uk_date (stat_date)
 );
