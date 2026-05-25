@@ -19,17 +19,14 @@ except:
 try:
     db_pool = PooledDB(
         creator=pymysql,
-        maxconnections=10,     # 最大连接数
-        mincached=5,           # 初始化时创建的连接
-        maxcached=2,           # 池中最大空闲连接
-        blocking=True,         # 连接用完是否阻塞
+        maxconnections=6,     # 最大连接数
         host=MYSQL_CONFIG['host'],
         port=MYSQL_CONFIG['port'],
         user=MYSQL_CONFIG['user'],
         password=MYSQL_CONFIG['password'],
+        database=MYSQL_CONFIG['database'],
         charset="utf8mb4",
-        autocommit=False,      # 必须使用手动事务
-        database=MYSQL_CONFIG['database']
+        autocommit=False      # 必须使用手动事务
     )
     print('[INIT] MySQL connection pool initialized')
 except:

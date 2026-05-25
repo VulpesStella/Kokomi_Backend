@@ -37,7 +37,6 @@
 # 
 # 开发环境下的额外模块
 #     汉化支持：polib
-#     数据处理：pandas numpy msgpack
 
 # 创建虚拟环境
 python -m venv .venv

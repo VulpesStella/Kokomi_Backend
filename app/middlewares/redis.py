@@ -163,7 +163,7 @@ class RedisClient:
             if acquired:
                 return JSONResponse.get_success_response(True)
 
-            asyncio.sleep(intervel)
+            await asyncio.sleep(intervel)
         return JSONResponse.get_success_response(False)
 
     @staticmethod

@@ -1,4 +1,3 @@
-from app.core import EnvConfig
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
@@ -6,25 +5,22 @@ from app.response import JSONResponse
 
 class PlatformModel:
     @ExceptionLogger.handle_database_exception_async
-    async def read_database_stats():
-        config = EnvConfig.get_config()
+    async def read_database_meta():
+        """读取数据库元信息（T_database_meta 表）
+
+        Returns:
+            success → {code: 1000, data: {metric_key: metric_value, ...}}
+        """
         async with MySQLManager.read_only_cursor() as cur:
             sql = """
-                SELECT 
-                    COUNT(*),
-                    SUM(data_length + index_length),
-                    SUM(table_rows)
-                FROM information_schema.tables
-                WHERE table_schema = %s
-                GROUP BY table_schema;
+                SELECT
+                    metric_key,
+                    metric_value
+                FROM T_database_meta;
             """
-            await cur.execute(sql, [config.MYSQL.db])
-            row = await cur.fetchone()
-            data = {
-                'table_count': row[0],
-                'total_size': row[1],
-                'total_rows': row[2]
-            }
+            await cur.execute(sql)
+            rows = await cur.fetchall()
+            data = {row[0]: row[1] for row in rows}
             return JSONResponse.get_success_response(data)
         
     @ExceptionLogger.handle_database_exception_async
@@ -59,22 +55,18 @@ class PlatformModel:
             return JSONResponse.get_success_response(data)
 
     @ExceptionLogger.handle_database_exception_async
-    async def read_archive_stats(table_name: str):
-        """读取归档表的每日行数变化
-
-        Args:
-            table_name: ARCH_user_base 或 ARCH_clan_base
+    async def read_archive_base_count():
+        """读取 ARCH_base_count 归档表的实体总数每日变化
 
         Returns:
-            success → {code: 1000, data: [(stat_date, row_count), ...]}
-            failure  → {code: error_code, ...}
+            success → {code: 1000, data: [(stat_date, total_count), ...]}
         """
         async with MySQLManager.read_only_cursor() as cur:
-            sql = f"""
+            sql = """
                 SELECT
                     stat_date,
-                    row_count
-                FROM {table_name}
+                    total_count
+                FROM ARCH_base_count
                 ORDER BY stat_date ASC;
             """
             await cur.execute(sql)

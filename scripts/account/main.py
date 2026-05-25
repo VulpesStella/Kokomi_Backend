@@ -110,7 +110,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery
         mysql_connection.rollback()
         logger.error(traceback.format_exc())
 
-    # 3.更新玩家/工会的基本数据
+    # 3.更新玩家的基本数据
     update_ids = get_update_ids(mysql_connection, redis_client)
     len_update_ids = len(update_ids)
     if len_update_ids != 0:

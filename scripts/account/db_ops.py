@@ -556,7 +556,7 @@ def get_update_ids(
                     pipe = redis_client.pipeline()
                     keys = [f"refresh_lock:user:{uid}" for uid in due_ids]
                     for key in keys:
-                        pipe.set(key, 1, nx=True, ex=3600)
+                        pipe.set(key, 1, nx=True, ex=4*3600)
                     results = pipe.execute()
                     batch_locked = [due_ids[i] for i, r in enumerate(results) if r]
                     update_list.extend(batch_locked)

@@ -38,17 +38,6 @@ class RankingModel:
                         WHEN s.win_rate < 67 THEN 7
                         ELSE 8
                     END AS win_rate_level,
-                    ROUND(s.solo_rate, 2) AS solo_rate,
-                    CASE
-                        WHEN s.solo_rate < 10 THEN 1
-                        WHEN s.solo_rate < 30 THEN 2
-                        WHEN s.solo_rate < 40 THEN 3
-                        WHEN s.solo_rate < 50 THEN 4
-                        WHEN s.solo_rate < 60 THEN 5
-                        WHEN s.solo_rate < 70 THEN 6
-                        WHEN s.solo_rate < 80 THEN 7
-                        ELSE 8
-                    END AS solo_rate_level,
                     s.avg_damage,
                     s.avg_damage_level AS avg_damage_level,
                     s.avg_frags,
@@ -78,16 +67,14 @@ class RankingModel:
                     'rating_level': row[7],
                     'win_rate': row[8],
                     'win_rate_level': row[9],
-                    'solo_rate': row[10],
-                    'solo_rate_level': row[11],
-                    'avg_damage': row[12],
-                    'avg_damage_level': row[13],
-                    'avg_frags': row[14],
-                    'avg_frags_level': row[15],
-                    'avg_exp': row[16],
-                    'hit_ratio': row[17],
-                    'max_exp': row[18],
-                    'max_damage': row[19]
+                    'avg_damage': row[10],
+                    'avg_damage_level': row[11],
+                    'avg_frags': row[12],
+                    'avg_frags_level': row[13],
+                    'avg_exp': row[14],
+                    'hit_ratio': row[15],
+                    'max_exp': row[16],
+                    'max_damage': row[17]
                 }
             
             return JSONResponse.get_success_response(result)

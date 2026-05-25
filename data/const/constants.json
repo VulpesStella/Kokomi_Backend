@@ -41,10 +41,11 @@
     "rating": 10
   },
   "USER_INIT_TABLE_LIST": [
-    "T_user_stats",
     "T_user_clan",
-    "T_user_pvp",
-    "T_user_pvp_record",
+    "T_user_stats",
+    "T_user_cache",
+    "T_user_random",
+    "T_user_ranked",
     "T_user_config"
   ],
   "CLAN_INIT_TABLE_LIST": [
@@ -58,19 +59,52 @@
     "T_ship_rating_distribution"
   ],
   "USER_ACTIVITY_THRESHOLDS": [
-    [86400, 1],
-    [259200, 2],
-    [604800, 3],
-    [2592000, 4],
-    [7776000, 5],
-    [15552000, 6],
-    [31536000, 7],
-    [63072000, 8]
+    [
+      86400,
+      1
+    ],
+    [
+      259200,
+      2
+    ],
+    [
+      604800,
+      3
+    ],
+    [
+      2592000,
+      4
+    ],
+    [
+      7776000,
+      5
+    ],
+    [
+      15552000,
+      6
+    ],
+    [
+      31536000,
+      7
+    ],
+    [
+      63072000,
+      8
+    ]
   ],
   "CLAN_ACTIVITY_THRESHOLDS": [
-    [10, 3],
-    [30, 2],
-    [50, 1]
+    [
+      10,
+      3
+    ],
+    [
+      30,
+      2
+    ],
+    [
+      50,
+      1
+    ]
   ],
   "METRIC_RATING_THRESHOLDS": {
     "damage": [

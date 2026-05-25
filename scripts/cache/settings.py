@@ -1,11 +1,3 @@
-"""
-全局配置模块
-
-负责加载环境变量（开发环境从 env.dev 文件，生产环境由 Docker Compose 注入），
-初始化 MySQL / Redis 连接配置、Vortex API 地址、Rating 计算所需的指标映射及阈值等常量。
-所有模块级变量在 import 时即完成初始化，加载失败会直接 exit(1)。
-"""
-
 import os
 import sys
 import json
@@ -14,7 +6,7 @@ from datetime import datetime
 
 
 CLIENT_NAME = 'UserCache'
-REFRESH_INTERVAL = 1200
+REFRESH_INTERVAL = 600
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
 USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
 
@@ -69,10 +61,11 @@ with open(file_path, "r", encoding="utf-8") as f:
 
 METRIC_ID_TO_INDEX = {
     SHIP_METRIC_MAP['exp']: 0,
-    SHIP_METRIC_MAP['planes']: 1,
-    SHIP_METRIC_MAP['damage']: 2,
-    SHIP_METRIC_MAP['scouting_dmg']: 3,
-    SHIP_METRIC_MAP['potential_dmg']: 4
+    SHIP_METRIC_MAP['frags']: 1,
+    SHIP_METRIC_MAP['planes']: 2,
+    SHIP_METRIC_MAP['damage']: 3,
+    SHIP_METRIC_MAP['scouting_dmg']: 4,
+    SHIP_METRIC_MAP['potential_dmg']: 5
 }
 # 反向映射，方便从索引取 metric_id
 INDEX_TO_METRIC_ID = {v: k for k, v in METRIC_ID_TO_INDEX.items()}

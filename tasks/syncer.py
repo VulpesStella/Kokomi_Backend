@@ -62,7 +62,9 @@ class UserStatsSyncer:
             'ranked_battles': 0,
             'rating_battles': 0,
             'karma': 0,
-            'last_battle_at': None
+            'last_battle_at': None,
+            'random_stats': {},
+            'ranked_stats': {}
         }
         
         user_info = api_result.get(str(account_id)) if api_result else None
@@ -100,6 +102,10 @@ class UserStatsSyncer:
         last_battle_time = basic_data.get('last_battle_time', 0)
         if last_battle_time == 0:
             last_battle_time = None
+
+        pve_battles = statistics.get('pve', {}).get('battles_count', 0)
+        pvp_battles = statistics.get('pvp', {}).get('battles_count', 0)
+        ranked_battles = statistics.get('rank_solo', {}).get('battles_count', 0)
         
         user_data.update({
             'username': user_info['name'],
@@ -109,9 +115,9 @@ class UserStatsSyncer:
             'total_battles': leveling_points,
             'karma': basic_data.get('karma', 0),
             'last_battle_at': last_battle_time,
-            'pve_battles': statistics.get('pve', {}).get('battles_count', 0),
-            'pvp_battles': statistics.get('pvp', {}).get('battles_count', 0),
-            'ranked_battles': statistics.get('rank_solo', {}).get('battles_count', 0),
+            'pve_battles': pve_battles,
+            'pvp_battles': pvp_battles,
+            'ranked_battles': ranked_battles
         })
         
         # 处理俄服的评分战数据
@@ -120,6 +126,38 @@ class UserStatsSyncer:
             rating_count += statistics.get('rating_solo', {}).get('battles_count', 0)
             rating_count += statistics.get('rating_div', {}).get('battles_count', 0)
             user_data['rating_battles'] = rating_count
+
+        if pvp_battles > 0:
+            user_data['random_stats'] = {
+                'battles': pvp_battles,
+                'total_exp': statistics['pvp']['exp'],
+                'win_rate': round(statistics['pvp']['wins']/pvp_battles*100, 2),
+                'avg_damage': int(statistics['pvp']['damage_dealt']/pvp_battles),
+                'avg_frags': round(statistics['pvp']['frags']/pvp_battles, 2),
+                'avg_exp': int(statistics['pvp']['original_exp']/pvp_battles),
+                'max_exp': statistics['pvp']['max_exp'],
+                'max_frags': statistics['pvp']['max_frags'],
+                'max_planes': statistics['pvp']['max_planes_killed'],
+                'max_damage': statistics['pvp']['max_damage_dealt'],
+                'max_scouting': statistics['pvp']['max_scouting_damage'],
+                'max_potential': statistics['pvp']['max_total_agro']
+            }
+        
+        if ranked_battles > 0:
+            user_data['ranked_stats'] = {
+                'battles': ranked_battles ,
+                'total_exp': statistics['rank_solo']['exp'],
+                'win_rate': round(statistics['rank_solo']['wins']/ranked_battles*100, 2),
+                'avg_damage': int(statistics['rank_solo']['damage_dealt']/ranked_battles),
+                'avg_frags': round(statistics['rank_solo']['frags']/ranked_battles, 2),
+                'avg_exp': int(statistics['rank_solo']['original_exp']/ranked_battles),
+                'max_exp': statistics['rank_solo']['max_exp'],
+                'max_frags': statistics['rank_solo']['max_frags'],
+                'max_planes': statistics['rank_solo']['max_planes_killed'],
+                'max_damage': statistics['rank_solo']['max_damage_dealt'],
+                'max_scouting': statistics['rank_solo']['max_scouting_damage'],
+                'max_potential': statistics['rank_solo']['max_total_agro']
+            }
         
         return user_data
 
@@ -130,16 +168,17 @@ class UserStatsSyncer:
         Args:
             cursor: 数据库游标
             account_id: 用户 ID
-
-        Returns:
-            (username, updated_at_unix_timestamp) 或 None
         """
         sql = """
             SELECT
                 b.username,
                 UNIX_TIMESTAMP(b.updated_at),
-                c.user_level
+                s.pvp_battles,
+                s.ranked_battles,
+                IFNULL(c.user_level, 0)
             FROM T_user_base b
+            LEFT JOIN T_user_stats s
+              ON b.account_id = s.account_id
             LEFT JOIN T_user_config c
               ON b.account_id = c.account_id
             WHERE b.account_id = %s;
@@ -244,6 +283,58 @@ class UserStatsSyncer:
                 account_id]
             )
 
+    @staticmethod
+    def _update_user_battles(cursor: Cursor, account_id: int, table_name: str, user_data: dict) -> None:
+        """更新 T_user_random / T_user_ranked 表"""
+        if user_data == {}:
+            return
+        
+        sql = f"""
+            UPDATE {table_name} 
+            SET 
+                battles = %s, 
+                total_exp = %s, 
+                win_rate = %s, 
+                avg_damage = %s, 
+                avg_frags = %s, 
+                avg_exp = %s, 
+                max_exp = %s, 
+                max_frags = %s, 
+                max_planes = %s, 
+                max_damage = %s, 
+                max_scouting = %s,  
+                max_potential = %s, 
+                updated_at = NOW() 
+            WHERE account_id = %s;
+        """
+        cursor.execute(sql, [
+            user_data['battles'], user_data['total_exp'], user_data['win_rate'], user_data['avg_damage'], 
+            user_data['avg_frags'], user_data['avg_exp'], user_data['max_exp'], user_data['max_frags'], 
+            user_data['max_planes'], user_data['max_damage'], user_data['max_scouting'], user_data['max_potential'], 
+            account_id
+        ])
+
+    @staticmethod
+    def _update_user_cache(cursor: Cursor, account_id: int, user_data: dict, old_pvp: int) -> None:
+        """更新 T_user_cache 表"""
+        if user_data['is_enabled'] and user_data['is_public']:
+            if old_pvp != user_data['pvp_battles']:
+                sql = """
+                    UPDATE T_user_cache 
+                    SET 
+                        is_due = TRUE 
+                    WHERE account_id = %s;
+                """
+                cursor.execute(sql, [account_id])
+        else:
+            sql = """
+                UPDATE T_user_cache 
+                SET 
+                    is_due = FALSE 
+                WHERE account_id = %s;
+            """
+            cursor.execute(sql, [account_id])
+        
     @classmethod
     def refresh(cls, conn: Connection, account_id: int, api_result: dict) -> str | None:
         """基于用户基本信息接口的数据，刷新数据库的 user_stats 表
@@ -254,29 +345,33 @@ class UserStatsSyncer:
             None: 成功
             str: 错误类型名称
         """
-        try:
-            user_data = cls._extract_user_data(account_id, api_result)
-        except Exception as e:
-            return type(e).__name__
+        user_data = cls._extract_user_data(account_id, api_result)
         
         try:
             with conn.cursor() as cursor:
                 # 从数据库中读取用户的username
                 existing = cls._fetch_user_base_row(cursor, account_id)
                 
-                if not existing:
-                    return "UserNotInDB"  # 账号不存在，跳过
+                if existing is None:
+                    return "UserNotInDB"
                 
-                old_username, old_timestamp, user_level = existing
+                old_username, old_timestamp, random, ranked, user_level = existing
 
-                if not user_level:
-                    user_level = 0
+                if random is None or ranked is None:
+                    return "UserNotInDB"
 
                 # 更新 T_user_base
                 cls._update_user_base(cursor, account_id, user_data, old_username, old_timestamp)
                 
                 # 更新 T_user_stats
                 cls._update_user_stats(cursor, account_id, user_level, user_data)
+
+                # 更新 T_user_random / T_user_ranked
+                cls._update_user_battles(cursor, account_id, 'T_user_random', user_data['random_stats'])
+                cls._update_user_battles(cursor, account_id, 'T_user_ranked', user_data['ranked_stats'])
+
+                # 更新 T_user_cache
+                cls._update_user_cache(cursor, account_id, user_data, random)
             
             conn.commit()
             return None

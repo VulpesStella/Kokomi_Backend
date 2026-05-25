@@ -44,18 +44,6 @@ class ClanRankingAPI:
         return leaderboard
 
     @classmethod
-    async def _get_updated_at(cls) -> tuple[Optional[Any], Optional[str]]:
-        """获取工会排行榜最后更新时间
-
-        Returns:
-            (error, updated_at): error为None时updated_at有效，否则updated_at为错误响应
-        """
-        error, updated_at = JSONResponse.extract_data_strict(
-            response=await RedisClient.get("leaderboard:clan_update_time")
-        )
-        return error, updated_at
-
-    @classmethod
     async def _get_season(cls) -> tuple[Optional[Any], Optional[int]]:
         """获取当前赛季编号
 
@@ -79,22 +67,17 @@ class ClanRankingAPI:
         Returns:
             ResponseDict
         """
-        # 1. 获取缓存更新时间
-        error, updated_at = await cls._get_updated_at()
-        if error:
-            return updated_at
-
-        # 2. 获取赛季编号
+        # 获取赛季编号
         error, season = await cls._get_season()
         if error:
             return season
 
-        # 3. 计算分页起止索引
+        # 计算分页起止索引
         clan_ranking_key = "leaderboard:clan"
         start = (page_index - 1) * page_size
         stop = start + page_size - 1
 
-        # 4. 获取排行榜总工会数
+        # 获取排行榜总工会数
         error, total_users = JSONResponse.extract_data_strict(
             response=await RedisClient.zget_total(clan_ranking_key)
         )
@@ -105,7 +88,7 @@ class ClanRankingAPI:
         if start >= total_users:
             return JSONResponse.API_1000_Success
 
-        # 5. 获取当前页的工会ID列表
+        # 获取当前页的工会ID列表
         error, page_clan_ids = JSONResponse.extract_data_strict(
             response=await RedisClient.zget_range(clan_ranking_key, start, stop)
         )
@@ -115,14 +98,14 @@ class ClanRankingAPI:
         if not page_clan_ids:
             return JSONResponse.API_1000_Success
 
-        # 6. 批量获取工会详情数据
+        # 批量获取工会详情数据
         error, clans_data = JSONResponse.extract_data_strict(
             response=await RankingModel.get_clan_leaderboard(page_clan_ids)
         )
         if error:
             return clans_data
 
-        # 7. 构建返回数据
+        # 构建返回数据
         total_pages = (total_users + page_size - 1) // page_size
         data = {
             'page': {
@@ -134,7 +117,6 @@ class ClanRankingAPI:
                 'region': EnvConfig.REGION,
                 'season': season,
                 'clans': total_users,
-                'updated_at': updated_at
             },
             'datas': cls._build_leaderboard(
                 start + 1,
@@ -157,7 +139,7 @@ class ClanRankingAPI:
         Returns:
             ResponseDict
         """
-        # 1. 获取指定工会的排名
+        # 获取指定工会的排名
         clan_ranking_key = "leaderboard:clan"
         error, user_rank = JSONResponse.extract_data_strict(
             response=await RedisClient.zget_rank(clan_ranking_key, str(clan_id))
@@ -169,14 +151,14 @@ class ClanRankingAPI:
         if user_rank is None:
             return JSONResponse.API_1000_Success
 
-        # 2. 获取排行榜总工会数
+        # 获取排行榜总工会数
         error, total_users = JSONResponse.extract_data_strict(
             response=await RedisClient.zget_total(clan_ranking_key)
         )
         if error:
             return total_users
 
-        # 3. 计算工会所在页码及该页的起止索引
+        # 计算工会所在页码及该页的起止索引
         rank = int(user_rank) + 1  # Redis rank 为 0-based，转为 1-based
         page_index = (user_rank // page_size) + 1
         start = (page_index - 1) * page_size
@@ -192,17 +174,12 @@ class ClanRankingAPI:
         if not page_clan_ids:
             return JSONResponse.API_1000_Success
 
-        # 5. 获取缓存更新时间
-        error, updated_at = await cls._get_updated_at()
-        if error:
-            return updated_at
-
-        # 6. 获取赛季编号
+        # 获取赛季编号
         error, season = await cls._get_season()
         if error:
             return season
 
-        # 7. 批量获取工会详情数据
+        # 批量获取工会详情数据
         error, clans_data = JSONResponse.extract_data_strict(
             response=await RankingModel.get_clan_leaderboard(page_clan_ids)
         )
@@ -221,8 +198,7 @@ class ClanRankingAPI:
                 'region': EnvConfig.REGION,
                 'season': season,
                 'clans': total_users,
-                'rank': rank,
-                'updated_at': updated_at
+                'rank': rank
             },
             'datas': cls._build_leaderboard(
                 start + 1,

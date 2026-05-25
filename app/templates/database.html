@@ -36,14 +36,10 @@
     {% endfor %}
 </div>
 
-<!-- Entity Count 趋势折线图（User / Clan 切换） -->
+<!-- Entity Count 趋势折线图 -->
 <div class="chart-panel-full">
     <div class="chart-header">
-        <span class="chart-title-text">Entity Count Trend</span>
-        <div class="chart-toggle">
-            <button class="toggle-btn active" data-series="user">User</button>
-            <button class="toggle-btn" data-series="clan">Clan</button>
-        </div>
+        <span class="chart-title-text">Entity Count Trend (User + Clan + Ship)</span>
     </div>
     <div id="archive-trend-chart" class="chart-container"></div>
 </div>
@@ -51,127 +47,55 @@
 
 {% block extra_scripts %}
 <script>
-// Entity Count Trend 折线图（User / Clan 切换）
+// Entity Count Trend 折线图
 (function() {
     var chartData = JSON.parse('{{ archive_chart_json | safe }}');
-    var currentSeries = 'user';
-
     var chart = echarts.init(document.getElementById('archive-trend-chart'));
-
-    function renderUser() {
-        chart.setOption({
-            tooltip: {
-                trigger: 'axis',
-                axisPointer: { type: 'cross' }
-            },
-            grid: {
-                left: '3%',
-                right: '4%',
-                bottom: '10%',
-                containLabel: true
-            },
-            xAxis: {
-                type: 'category',
-                data: chartData.user_labels,
-                axisLabel: {
-                    rotate: 30,
-                    fontSize: 11,
-                    interval: 'auto'
-                }
-            },
-            yAxis: {
-                type: 'value',
-                name: 'Users'
-            },
-            series: [{
-                data: chartData.user_values,
-                type: 'line',
-                smooth: true,
-                symbol: 'circle',
-                symbolSize: 5,
-                lineStyle: {
-                    color: '#667eea',
-                    width: 2
-                },
-                itemStyle: {
-                    color: '#667eea'
-                },
-                areaStyle: {
-                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                        { offset: 0, color: 'rgba(102, 126, 234, 0.3)' },
-                        { offset: 1, color: 'rgba(102, 126, 234, 0.02)' }
-                    ])
-                }
-            }]
-        }, true);
-    }
-
-    function renderClan() {
-        chart.setOption({
-            tooltip: {
-                trigger: 'axis',
-                axisPointer: { type: 'cross' }
-            },
-            grid: {
-                left: '3%',
-                right: '4%',
-                bottom: '10%',
-                containLabel: true
-            },
-            xAxis: {
-                type: 'category',
-                data: chartData.clan_labels,
-                axisLabel: {
-                    rotate: 30,
-                    fontSize: 11,
-                    interval: 'auto'
-                }
-            },
-            yAxis: {
-                type: 'value',
-                name: 'Clans'
-            },
-            series: [{
-                data: chartData.clan_values,
-                type: 'line',
-                smooth: true,
-                symbol: 'circle',
-                symbolSize: 5,
-                lineStyle: {
-                    color: '#43e97b',
-                    width: 2
-                },
-                itemStyle: {
-                    color: '#43e97b'
-                },
-                areaStyle: {
-                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                        { offset: 0, color: 'rgba(67, 233, 123, 0.3)' },
-                        { offset: 1, color: 'rgba(67, 233, 123, 0.02)' }
-                    ])
-                }
-            }]
-        }, true);
-    }
-
-    renderUser();
-
-    var buttons = document.querySelectorAll('.toggle-btn');
-    buttons.forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var series = this.getAttribute('data-series');
-            if (series === currentSeries) return;
-            buttons.forEach(function(b) { b.classList.remove('active'); });
-            this.classList.add('active');
-            if (series === 'user') {
-                renderUser();
-            } else {
-                renderClan();
+    chart.setOption({
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross' }
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '10%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: chartData.labels,
+            axisLabel: {
+                rotate: 30,
+                fontSize: 11,
+                interval: 'auto'
             }
-            currentSeries = series;
-        });
+        },
+        yAxis: {
+            type: 'value',
+            name: 'Total Entities'
+        },
+        series: [{
+            data: chartData.values,
+            type: 'line',
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 5,
+            lineStyle: {
+                color: '#667eea',
+                width: 2
+            },
+            itemStyle: {
+                color: '#667eea'
+            },
+            areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(102, 126, 234, 0.3)' },
+                    { offset: 1, color: 'rgba(102, 126, 234, 0.02)' }
+                ])
+            }
+        }]
     });
-
     window.addEventListener('resize', function() { chart.resize(); });
 })();
 </script>

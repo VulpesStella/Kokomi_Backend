@@ -55,7 +55,7 @@ def read_ship_data(cursor) -> dict:
         cursor: 数据库游标
 
     Returns:
-        字典，键为 ship_id，值为 [min_battles, [win_rate, avg_damage, avg_frags]]
+        字典，键为 ship_id，值为 [win_rate, avg_damage, avg_frags]
     """
     ship_info = {}
     sql = """
@@ -179,6 +179,7 @@ def main():
 
                 logger.info('Clan leaderboard cache refreshed')
 
+
             # 刷新船只排行榜
             leaderboard_rows = 0
             ranking_ship_ids = []
@@ -205,10 +206,9 @@ def main():
                     except Exception as e:
                         conn.rollback()
                         tqdm.write(f'Ship {ship_id} refresh failed: {type(e).__name__}')
+                    pbar.update()
                 # 重构 Redis 的缓存
                 refresh_leaderboard_redis(cursor, redis_client, ship_id)
-
-                pbar.update()
             
             # 记录 leaderboard_rows 数据
             try:

@@ -22,10 +22,6 @@ def get_current_iso_time() -> str:
     """获取当前 UTC 时间的 ISO 格式字符串"""
     return datetime.now(timezone.utc).isoformat(timespec='seconds')
 
-def get_current_utc_hour() -> str:
-    """获取当前 UTC 小时数 (0-23)"""
-    return datetime.now(timezone.utc).hour
-
 def calc_ship_rating(player_stats: list, benchmark_stats: list) -> float:
     """计算单艘船的个人 Rating
 

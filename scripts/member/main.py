@@ -66,10 +66,15 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
 
     # 更新工会的基本数据
     update_ids = get_update_ids(mysql_connection)
+
     len_update_ids = len(update_ids)
     if len_update_ids == 0:
         return
-    logger.info(f'Current clan update numbers: {len_update_ids}')
+    if len_update_ids > REFRESH_INTERVAL * 4:
+        update_ids = update_ids[:REFRESH_INTERVAL * 4]
+        len_update_ids = len(update_ids)
+        
+    logger.info(f'Current loop update numbers: {len_update_ids}')
 
     logger.enable_tqdm()
     for update_data in progress_iterable(

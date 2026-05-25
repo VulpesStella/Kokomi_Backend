@@ -45,13 +45,10 @@ from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
 from analytics import ShipStatsAggregator
-from utils import get_current_utc_hour
 from db_ops import (
     need_update,
     reset_tracking_time,
-    analyze_db_files,
     get_max_id,
-    get_ship_ids,
     read_ship_data,
     get_pvp_cache,
     update_battles_stats_table,
@@ -107,36 +104,23 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         mysql_connection: MySQL 数据库连接对象
         redis_client: Redis 客户端对象
     """
-    # 如果 update_time 不为 NULL 且 UTC_HOUR != 23 时，不需要更新
-    if (
-        not need_update(mysql_connection, 'ship_stats', 'update_time') and 
-        get_current_utc_hour() != 23
-    ):
-        # 尽量避开高峰时段
+    if not need_update(mysql_connection, 'ship_stats', 'update_time'):
         logger.info(f'Update time not yet reached')
         return
-    
-    # 1. 分析 Recent 数据库文件状态
-    try:
-        analyze_db_files()
-    except Exception:
-        logger.error(traceback.format_exc())
 
-    # 2. 从 MySQL 读取原始数据并聚合计算
+    # 从 MySQL 读取原始数据并聚合计算
     try:
         with mysql_connection.cursor() as cursor:
             # 获取数据范围
             max_id = get_max_id(cursor)
             if max_id == 0:
                 return
-            
-            # 获取船只 ID 列表
-            ship_ids = get_ship_ids(cursor)
-            if len(ship_ids) == 0:
-                return
         
             # 获取服务器基准数据（用于计算 Rating）
             ship_data = read_ship_data(cursor)
+            ship_ids = list(ship_data.keys())
+            if len(ship_ids) == 0:
+                return
 
             # 首次运行读取不到已有的服务器数据
             existing_stats = None
@@ -144,7 +128,7 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
                 if row:
                     existing_stats = True
                     break
-            
+
             # 初始化聚合器
             aggregator = ShipStatsAggregator(ship_data)
 

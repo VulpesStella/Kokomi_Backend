@@ -31,12 +31,12 @@ class HttpClient:
     async def get_user_data(cls, url):
         res = await cls._client.get(url=url)
         requset_code = res.status_code
-        requset_result = res.json()
         if requset_code == 404:
             # 用户不存在或者账号删除的情况
             return JSONResponse.API_1000_Success
         elif requset_code == 200:
             # 正常返回值的处理
+            requset_result = res.json()
             if requset_result.get('status') == 'ok':
                 data = requset_result['data']
                 return JSONResponse.get_success_response(data)
@@ -50,12 +50,12 @@ class HttpClient:
     async def get_clan_data(cls, url):
         res = await cls._client.get(url=url)
         requset_code = res.status_code
-        requset_result = res.json()
         if requset_code in [404, 503]:
             # 用户不存在或者账号删除的情况
             return JSONResponse.API_1000_Success
         elif requset_code == 200:
             # 正常返回值的处理
+            requset_result = res.json()
             return JSONResponse.get_success_response(requset_result)
         else:
             res.raise_for_status()  # 其他状态码

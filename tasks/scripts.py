@@ -49,10 +49,7 @@ def refresh_user(account_id: int):
         return 'GameAPI Error'
     response = response.get('data', {})
 
-    conn = db_pool.connection()
-    try:
+    with db_pool.connection() as conn:
         result = UserStatsSyncer.refresh(conn, account_id, response)
-    finally:
-        if conn:
-            conn.close()
+        
     return result if isinstance(result, str) else 'Success'

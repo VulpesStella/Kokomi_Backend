@@ -198,7 +198,6 @@ CREATE TABLE IF NOT EXISTS T_ship_pvp_leaderboard (
     battles          INT          NOT NULL,        -- 战斗场次
     rating           FLOAT        NOT NULL,        -- 综合评分
     win_rate         FLOAT        NOT NULL,        -- 胜率
-    solo_rate        FLOAT        NOT NULL,        -- 单野率
     avg_damage       INT          NOT NULL,        -- 场均伤害
     avg_damage_level TINYINT      NOT NULL,        -- 伤害等级 1-5
     avg_frags        FLOAT        NOT NULL,        -- 场均击毁

@@ -1,17 +1,27 @@
-"""
-数据库读取操作模块
-
-封装缓存更新流程中所需的 MySQL 查询操作，包括：
-- 获取待更新用户 ID 列表
-- 读取船只排行榜基准数据（最低场次、服务器均值）
-- 读取船只 PvP 极值记录
-"""
-
 import json
 from pymysql.cursors import Cursor
 
-from settings import METRIC_ID_TO_INDEX
+from settings import (
+    METRIC_ID_TO_INDEX, 
+    INDEX_TO_METRIC_ID
+)
 
+
+def read_game_version(cursor: Cursor) -> tuple:
+    sql = """
+        SELECT 
+            short_name,
+            UNIX_TIMESTAMP(created_at) 
+        FROM T_game_version 
+        WHERE is_latest = TRUE 
+        LIMIT 1;
+    """
+    cursor.execute(sql)
+    version = cursor.fetchone()
+    if not version:
+        return None, None
+    else:
+        return version[0], version[1]
 
 def read_ship_record(cursor: Cursor) -> dict:
     """读取船只 PvP 极值记录数据（返回用户ID集合）
@@ -65,6 +75,44 @@ def read_ship_record(cursor: Cursor) -> dict:
     
     return result
 
+def update_ship_record(cursor: Cursor, data: dict) -> None:
+    """将船只 PvP 极值记录字典写回数据库
+
+    根据传入的嵌套字典结构，更新或插入 T_ship_pvp_record 表中的记录。
+    未在字典中出现的 ship_id 与 metric_id 组合不会被删除或修改。
+
+    Args:
+        cursor: 数据库游标
+        data: 与 read_ship_record 返回值结构相同的字典，
+              键为 ship_id (str)，值为按 METRIC_ID_TO_INDEX 顺序排列的
+              [[metric_value, users_count, top_user_ids], ...] 列表，
+              top_user_ids 为 set 类型。
+    """
+    sql = """
+        INSERT INTO T_ship_pvp_record 
+            (ship_id, metric_id, metric_value, users_count, top_user_ids)
+        VALUES (%s, %s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+            metric_value = VALUES(metric_value),
+            users_count = VALUES(users_count),
+            top_user_ids = VALUES(top_user_ids)
+    """
+    
+    params_list = []
+    for ship_id, metrics in data.items():
+        for idx, record in enumerate(metrics):
+            # record 结构: [metric_value, users_count, top_user_ids_set]
+            if not record:
+                continue
+            metric_value, users_count, top_user_ids_set = record
+            metric_id = INDEX_TO_METRIC_ID[idx]
+            # 将 set 转换为 JSON 数组字符串
+            top_user_ids_json = json.dumps(list(top_user_ids_set)) if len(top_user_ids_set) != None else None
+            params_list.append((ship_id, metric_id, metric_value, users_count, top_user_ids_json))
+    
+    if params_list:
+        cursor.executemany(sql, params_list)
+
 def read_ship_data(cursor: Cursor) -> dict:
     """加载船只排行榜基准数据
 
@@ -106,10 +154,6 @@ def read_ship_data(cursor: Cursor) -> dict:
 def get_update_ids(cursor: Cursor) -> list:
     """获取需要更新 PvP 缓存的用户 ID 列表
 
-    筛选条件：
-        - T_user_pvp 中无缓存记录
-        - 用户有效且公开战绩，且 PvP 场次与缓存中记录不一致
-
     Args:
         cursor: 数据库游标
 
@@ -118,17 +162,9 @@ def get_update_ids(cursor: Cursor) -> list:
     """
     sql = """
         SELECT 
-            s.account_id
-        FROM T_user_stats s
-        LEFT JOIN T_user_pvp p 
-            ON s.account_id = p.account_id
-        WHERE 
-            p.updated_at IS NULL
-            OR (
-                s.is_enabled = 1
-                AND s.is_public = 1
-                AND s.pvp_battles <> p.battles
-            );
+            account_id
+        FROM T_user_cache 
+        WHERE is_due = 1;
     """
     cursor.execute(sql)
     return [row[0] for row in cursor.fetchall()]

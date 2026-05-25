@@ -75,18 +75,24 @@ CREATE TABLE IF NOT EXISTS T_user_clan (
     INDEX idx_cid (clan_id)
 );
 
--- 用户 PvP 缓存表
--- 存储用户在各船只上的 PvP 原始战斗数据
-CREATE TABLE IF NOT EXISTS T_user_pvp (
+-- 用户 PvP 信息表
+-- 存储用户的 PvP 基本战斗数据
+CREATE TABLE IF NOT EXISTS T_user_random (
     id               INT          AUTO_INCREMENT,
 
     account_id       BIGINT       NOT NULL,        -- 1-11位的非连续数字
     battles          INT          DEFAULT 0,       -- 总战斗场次
+    total_exp        BIGINT       DEFAULT 0,
     win_rate         FLOAT        DEFAULT 0,       -- 胜率
-    avg_damage       FLOAT        DEFAULT 0,       -- 场均伤害
+    avg_damage       INT          DEFAULT 0,       -- 场均伤害
     avg_frags        FLOAT        DEFAULT 0,       -- 场均击毁
-    avg_exp          FLOAT        DEFAULT 0,       -- 场均经验
-    ship_cache       JSON         DEFAULT NULL,    -- 船只缓存数据
+    avg_exp          INT          DEFAULT 0,       -- 场均经验
+    max_exp          INT          DEFAULT 0,
+    max_frags        INT          DEFAULT 0,
+    max_planes       INT          DEFAULT 0,
+    max_damage       INT          DEFAULT 0,
+    max_scouting     INT          DEFAULT 0,
+    max_potential    INT          DEFAULT 0,
 
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP    DEFAULT NULL,
@@ -96,27 +102,44 @@ CREATE TABLE IF NOT EXISTS T_user_pvp (
     UNIQUE INDEX idx_aid (account_id)
 );
 
--- 用户 PvP 极值记录表
--- 存储用户各项战斗指标的最高记录
-CREATE TABLE IF NOT EXISTS T_user_pvp_record (
-    id                      INT          AUTO_INCREMENT,
+-- 用户 Rank 信息表
+-- 存储用户的 Rank 基本战斗数据
+CREATE TABLE IF NOT EXISTS T_user_ranked (
+    id               INT          AUTO_INCREMENT,
 
-    account_id              BIGINT       NOT NULL,     -- 1-11位的非连续数字
-    max_exp                 INT          DEFAULT 0,    -- 最高经验
-    max_exp_id              BIGINT       DEFAULT NULL, -- 最高经验船只 ID
-    max_damage              INT          DEFAULT 0,    -- 最高伤害
-    max_damage_id           BIGINT       DEFAULT NULL, -- 最高伤害船只 ID
-    max_frags               INT          DEFAULT 0,    -- 最高击毁
-    max_frags_id            BIGINT       DEFAULT NULL, -- 最高击毁船只 ID
-    max_planes_killed       INT          DEFAULT 0,    -- 最高击落飞机
-    max_planes_killed_id    BIGINT       DEFAULT NULL, -- 最高击落飞机船只 ID
-    max_scouting_damage     INT          DEFAULT 0,    -- 最高侦查伤害
-    max_scouting_damage_id  BIGINT       DEFAULT NULL, -- 最高侦查伤害船只 ID
-    max_potential_damage    INT          DEFAULT 0,    -- 最高潜在伤害
-    max_potential_damage_id BIGINT       DEFAULT NULL, -- 最高潜在伤害船只 ID
+    account_id       BIGINT       NOT NULL,        -- 1-11位的非连续数字
+    battles          INT          DEFAULT 0,       -- 总战斗场次
+    total_exp        BIGINT       DEFAULT 0,
+    win_rate         FLOAT        DEFAULT 0,       -- 胜率
+    avg_damage       INT          DEFAULT 0,       -- 场均伤害
+    avg_frags        FLOAT        DEFAULT 0,       -- 场均击毁
+    avg_exp          INT          DEFAULT 0,       -- 场均经验
+    max_exp          INT          DEFAULT 0,
+    max_frags        INT          DEFAULT 0,
+    max_planes       INT          DEFAULT 0,
+    max_damage       INT          DEFAULT 0,
+    max_scouting     INT          DEFAULT 0,
+    max_potential    INT          DEFAULT 0,
 
-    created_at              TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at              TIMESTAMP    DEFAULT NULL,
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT NULL,
+
+    PRIMARY KEY (id),
+
+    UNIQUE INDEX idx_aid (account_id)
+);
+
+
+CREATE TABLE IF NOT EXISTS T_user_cache (
+    id               INT          AUTO_INCREMENT,
+
+    account_id       BIGINT       NOT NULL,        -- 1-11位的非连续数字
+    is_due           BOOLEAN      DEFAULT TRUE,
+    ships            INT          DEFAULT 0,
+    cache            JSON         DEFAULT NULL,
+
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT NULL,
 
     PRIMARY KEY (id),
 

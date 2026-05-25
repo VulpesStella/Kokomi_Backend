@@ -1,25 +1,14 @@
-"""
-用户 PvP 缓存数据更新模块
-
-负责从外部 API 拉取用户 PvP 数据，提取各项统计指标并计算 Rating，
-将处理结果写入 MySQL 各表（用户缓存、最高记录、船只极值、排行榜），
-同时计算近期增量写入暂存表并同步 Redis 排行榜有序集合。
-"""
-
 import json
 import uuid
 import traceback
 from redis import Redis
-from httpx import AsyncClient
 from pymysql import Connection
 from pymysql.cursors import Cursor
 from typing import Optional
 
 from logger import logger
-from syncer import UserStatsSyncer
 from api import fetch_user_pvp_data
 from utils import calc_ship_rating
-from settings import INDEX_TO_METRIC_ID
 
 
 
@@ -34,7 +23,13 @@ class UserCacheUpdater:
         ship_record: 船只极值记录缓存，来自 read_ship_record()
         ship_info: 船只排行榜基准数据，来自 read_ship_data()
     """
-    def __init__(self, ship_record: dict, ship_info: dict):
+    def __init__(
+        self, 
+        ship_record: dict, 
+        ship_info: dict, 
+        game_version: Optional[str], 
+        version_start: Optional[str]
+    ):
         """初始化更新器
 
         Args:
@@ -43,65 +38,8 @@ class UserCacheUpdater:
         """
         self.ship_record = ship_record
         self.ship_info = ship_info
-
-    @staticmethod
-    def _is_invalid_or_hidden_profile(basic_data: dict) -> bool:
-        """检查用户是否为无效账号或隐藏战绩
-
-        Args:
-            basic_data: API 返回的用户基础数据
-
-        Returns:
-            True 表示无效或隐藏，False 表示正常
-        """
-        if basic_data.get('statistics', {}).get('pvp', {}).get('battles_count', 0) == 0:
-            return True
-        return False
-
-    @staticmethod
-    def _extract_overall_stats(basic_data: dict) -> dict:
-        """提取用户总体 PvP 统计数据
-
-        Args:
-            basic_data: API 返回的用户基础数据
-
-        Returns:
-            包含 battles_count、win_rate、avg_damage、avg_frags、avg_exp 的字典
-        """
-        pvp_count = basic_data['statistics']['pvp'].get('battles_count')
-        return {
-            'battles_count': pvp_count,
-            'win_rate': round(basic_data['statistics']['pvp']['wins'] / pvp_count * 100, 4),
-            'avg_damage': round(basic_data['statistics']['pvp']['damage_dealt'] / pvp_count, 2),
-            'avg_frags': round(basic_data['statistics']['pvp']['frags'] / pvp_count, 4),
-            'avg_exp': round(basic_data['statistics']['pvp']['original_exp'] / pvp_count, 2)
-        }
-
-    @staticmethod
-    def _extract_record_stats(basic_data: dict) -> list:
-        """提取用户各项战斗指标的最高记录
-
-        Args:
-            basic_data: API 返回的用户基础数据
-
-        Returns:
-            按固定顺序排列的最高记录列表 [max_exp, max_exp_id, max_damage, ...]
-        """
-        pvp = basic_data['statistics']['pvp']
-        return [
-            pvp.get('max_exp', 0),
-            pvp.get('max_exp_vehicle'),
-            pvp.get('max_damage_dealt', 0),
-            pvp.get('max_damage_dealt_vehicle'),
-            pvp.get('max_frags', 0),
-            pvp.get('max_frags_vehicle'),
-            pvp.get('max_planes_killed', 0),
-            pvp.get('max_planes_killed_vehicle'),
-            pvp.get('max_scouting_damage', 0),
-            pvp.get('max_scouting_damage_vehicle'),
-            pvp.get('max_total_agro', 0),
-            pvp.get('max_total_agro_vehicle')
-        ]
+        self.game_version = game_version
+        self.version_start = version_start
 
     @staticmethod
     def _build_ship_pvp_cache(pvp_data: dict) -> dict:
@@ -156,6 +94,7 @@ class UserCacheUpdater:
             
             ship_pvp_record[ship_id] = [
                 pvp.get('max_exp', 0),
+                pvp.get('max_frags', 0),
                 pvp.get('max_planes_killed', 0),
                 pvp.get('max_damage_dealt', 0),
                 pvp.get('max_scouting_damage', 0),
@@ -190,8 +129,7 @@ class UserCacheUpdater:
             diff_data[ship_id] = ship_diff
         return diff_data
 
-    @staticmethod
-    def _get_local_cache(cursor: Cursor, account_id: int) -> Optional[dict]:
+    def _get_local_cache(self, cursor: Cursor, account_id: int) -> Optional[dict]:
         """获取用户本地的船只缓存数据
 
         Args:
@@ -201,25 +139,14 @@ class UserCacheUpdater:
         Returns:
             船只缓存字典，无缓存时返回 None
         """
-        sql = """
-            SELECT 
-                short_name,
-                UNIX_TIMESTAMP(created_at) 
-            FROM T_game_version 
-            WHERE is_latest = TRUE 
-            LIMIT 1;
-        """
-        cursor.execute(sql)
-        version = cursor.fetchone()
-        if not version:
-            return None, None
+        if not self.game_version:
+            return None
         
         sql = """
             SELECT 
-                battles, 
-                ship_cache, 
+                cache, 
                 UNIX_TIMESTAMP(updated_at)
-            FROM T_user_pvp 
+            FROM T_user_cache 
             WHERE account_id = %s;
         """
         cursor.execute(
@@ -227,50 +154,12 @@ class UserCacheUpdater:
             [account_id]
         )
         data = cursor.fetchone()
-        if data and data[0] != 0 and version[1] < data[2]:
-            return version[0], json.loads(data[1])
-        return version[0], None
 
-    @staticmethod
-    def _handle_hidden_profile(
-        conn: Connection, 
-        account_id: int
-    ) -> Optional[str]:
-        """处理隐藏战绩或无数据的用户
+        if data and data[1] and self.version_start < data[1]:
+            return json.loads(data[0])
+        return None
 
-        清空该用户在 T_user_pvp 表中的所有缓存数据
-
-        Args:
-            conn: 数据库连接
-            account_id: 用户 ID
-
-        Returns:
-            None 表示成功，str 表示错误类型名称
-        """
-        try:
-            with conn.cursor() as cursor:
-                sql = """
-                    UPDATE T_user_pvp 
-                    SET 
-                        battles = 0, 
-                        win_rate = 0, 
-                        avg_damage = 0, 
-                        avg_frags = 0,  
-                        avg_exp = 0, 
-                        ship_cache = NULL, 
-                        updated_at = NOW() 
-                    WHERE account_id = %s;
-                """
-                cursor.execute(sql, [account_id])
-                
-            conn.commit()
-            return None
-        except Exception as e:
-            conn.rollback()
-            logger.error(traceback.format_exc())
-            return type(e).__name__
-
-    def _update_ship_records(self, ship_pvp_record: dict, account_id: int) -> list:
+    def _update_ship_records(self, ship_pvp_record: dict, account_id: int) -> None:
         """更新船只极值记录
 
         遍历用户各船只的数据列表，与当前服务器最高记录比较：
@@ -281,13 +170,7 @@ class UserCacheUpdater:
         Args:
             ship_pvp_record: {ship_id: [exp, planes, damage, scouting, potential]}
             account_id: 当前用户 ID
-
-        Returns:
-            需要写入数据库的更新记录列表，
-            每项为 (metric_value, users_count, top_user_ids_json, ship_id, metric_id)
         """
-        updated_record = []
-
         for ship_id, user_values_list in ship_pvp_record.items():
             if ship_id not in self.ship_record:
                 continue
@@ -295,30 +178,24 @@ class UserCacheUpdater:
             # ship_record[ship_id] 是按 METRIC_ID_TO_INDEX 顺序的列表
             # 每个元素为 [metric_value, users_count, top_user_ids_set]
             for idx, user_value in enumerate(user_values_list):
-                metric_id = INDEX_TO_METRIC_ID[idx]
                 current_value, _, current_set = self.ship_record[ship_id][idx]
 
                 # 超过当前最高值 → 新记录
                 if user_value > current_value:
                     new_set = {account_id}
                     self.ship_record[ship_id][idx] = [user_value, 1, new_set]
-                    updated_record.append((user_value, 1, json.dumps(list(new_set)), int(ship_id), metric_id))
 
                 # 平记录且数值大于0，且用户尚未在集合中 → 增加达成者
                 elif user_value == current_value and user_value > 0 and account_id not in current_set:
                     current_set.add(account_id)
                     new_count = len(current_set)
                     self.ship_record[ship_id][idx] = [user_value, new_count, current_set]
-                    updated_record.append((user_value, new_count, json.dumps(list(current_set)), int(ship_id), metric_id))
 
                 # 用户已在集合中或数值为0 → 无变化，跳过
 
-        return updated_record
-
     def _build_ranking_cache(
         self,
-        pvp_data: dict, 
-        ships_data: dict
+        pvp_data: dict
     ) -> dict:
         """构建船只排行榜缓存数据
 
@@ -327,12 +204,10 @@ class UserCacheUpdater:
 
         Args:
             pvp_data: 按船分组的 PvP 数据
-            ships_data: 按船分组的战斗统计数据（含 solo 信息）
 
         Returns:
-            ship_id -> [battles, rating, win_rate, solo_rate, avg_damage,
-                       damage_level, avg_frags, frags_level, avg_exp, hit_ratio,
-                       max_exp, max_damage]
+            ship_id -> [battles, rating, win_rate, avg_damage, damage_level, 
+                        avg_frags, frags_level, avg_exp, hit_ratio,max_exp, max_damage]
         """
         ship_ranking_cache = {}
         
@@ -347,16 +222,6 @@ class UserCacheUpdater:
             battles_limit = self.ship_info[ship_id][0]
             if pvp.get('battles_count', 0) < battles_limit:
                 continue
-            
-            battles_data = ships_data.get(ship_id, {})
-            
-            # 计算 solo 比例
-            if 'pvp_solo' in battles_data and battles_data['pvp_solo']:
-                solo_ratio = round(
-                    battles_data['pvp_solo']['battles_count'] / battles_data['pvp']['battles_count'] * 100, 4
-                )
-            else:
-                solo_ratio = 0
             
             # 计算命中率
             shots = pvp.get('shots_by_main', 0)
@@ -377,7 +242,6 @@ class UserCacheUpdater:
                 pvp['battles_count'],
                 personal_rating,
                 round(pvp['wins'] / pvp['battles_count'] * 100, 4),
-                solo_ratio,
                 int(pvp['damage_dealt'] / pvp['battles_count']),
                 damage_rating,
                 round(pvp['frags'] / pvp['battles_count'], 2),
@@ -389,101 +253,6 @@ class UserCacheUpdater:
             ]
         
         return ship_ranking_cache
-
-    @staticmethod
-    def _update_user_pvp(
-        cursor: Cursor, 
-        account_id: int, 
-        overall: dict, 
-        ship_pvp_cache: dict
-    ) -> None:
-        """更新用户 PvP 总体缓存数据
-
-        Args:
-            cursor: 数据库游标
-            account_id: 用户 ID
-            overall: 总体统计数据
-            ship_pvp_cache: 船只 PvP 缓存数据
-        """
-        sql = """
-            UPDATE T_user_pvp 
-            SET 
-                battles = %s, 
-                win_rate = %s, 
-                avg_damage = %s, 
-                avg_frags = %s, 
-                avg_exp = %s, 
-                ship_cache = %s, 
-                updated_at = NOW() 
-            WHERE account_id = %s;
-        """
-        cursor.execute(sql, [
-            overall['battles_count'],
-            overall['win_rate'],
-            overall['avg_damage'],
-            overall['avg_frags'],
-            overall['avg_exp'],
-            json.dumps(ship_pvp_cache),
-            account_id
-        ])
-
-    @staticmethod
-    def _update_user_pvp_record(
-        cursor: Cursor, 
-        account_id: int, 
-        record: list
-    ) -> None:
-        """更新用户 PvP 最高记录
-
-        Args:
-            cursor: 数据库游标
-            account_id: 用户 ID
-            record: 最高记录列表
-        """
-        sql = """
-            UPDATE T_user_pvp_record 
-            SET 
-                max_exp = %s, 
-                max_exp_id = %s, 
-                max_damage = %s, 
-                max_damage_id = %s, 
-                max_frags = %s, 
-                max_frags_id = %s, 
-                max_planes_killed = %s, 
-                max_planes_killed_id = %s, 
-                max_scouting_damage = %s, 
-                max_scouting_damage_id = %s, 
-                max_potential_damage = %s, 
-                max_potential_damage_id = %s, 
-                updated_at = NOW() 
-            WHERE account_id = %s;
-        """
-        cursor.execute(sql, record + [account_id])
-
-    @staticmethod
-    def _update_ship_pvp_record(
-        cursor: Cursor, 
-        updated_record: list
-    ) -> None:
-        """批量更新船只 PvP 极值记录
-
-        Args:
-            cursor: 数据库游标
-            updated_record: [(metric_value, users_count, top_user_ids_json, ship_id, metric_id), ...]
-        """
-        if not updated_record:
-            return
-
-        sql = """
-            UPDATE T_ship_pvp_record
-            SET
-                metric_value = %s,
-                users_count = %s,
-                top_user_ids = %s
-            WHERE ship_id = %s
-              AND metric_id = %s;
-        """
-        cursor.executemany(sql, updated_record)
 
     @staticmethod
     def _upsert_leaderboard(
@@ -509,31 +278,28 @@ class UserCacheUpdater:
                 data[0],     # battles
                 data[1],     # rating
                 data[2],     # win_rate
-                data[3],     # solo_rate
-                data[4],     # avg_damage
-                data[5],     # avg_damage_level
-                data[6],     # avg_frags
-                data[7],     # avg_frags_level
-                data[8],     # avg_exp
-                data[9],     # hit_ratio
-                data[10],    # max_exp
-                data[11]     # max_damage
+                data[3],     # avg_damage
+                data[4],     # avg_damage_level
+                data[5],     # avg_frags
+                data[6],     # avg_frags_level
+                data[7],     # avg_exp
+                data[8],     # hit_ratio
+                data[9],    # max_exp
+                data[10]     # max_damage
             ))
         
         sql = """
             INSERT INTO T_ship_pvp_leaderboard (
-                account_id, ship_id, battles, rating, win_rate, solo_rate, 
-                avg_damage, avg_damage_level, avg_frags, avg_frags_level, avg_exp, hit_ratio, 
-                max_exp, max_damage, updated_at
+                account_id, ship_id, battles, rating, win_rate, avg_damage, avg_damage_level, 
+                avg_frags, avg_frags_level, avg_exp, hit_ratio, max_exp, max_damage, updated_at
             )
             VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
             )
             ON DUPLICATE KEY UPDATE 
                 rating = VALUES(rating),
                 battles = VALUES(battles),
                 win_rate = VALUES(win_rate),
-                solo_rate = VALUES(solo_rate),
                 avg_damage = VALUES(avg_damage),
                 avg_damage_level = VALUES(avg_damage_level),
                 avg_frags = VALUES(avg_frags),
@@ -546,11 +312,10 @@ class UserCacheUpdater:
         """
         cursor.executemany(sql, values_to_insert)
 
-    @staticmethod
     def _insert_recent_diff_data(
+        self,
         cursor: Cursor, 
         account_id: int,
-        game_version: str,
         diff_data: dict
     ) -> None:
         """将船只近期数据变化写入暂存表
@@ -570,14 +335,44 @@ class UserCacheUpdater:
                 %s, %s, %s, %s
             );
         """
-        cursor.execute(sql, [str(uuid.uuid4()), game_version, account_id, json.dumps(diff_data)])
+        cursor.execute(sql, [str(uuid.uuid4()), self.game_version, account_id, json.dumps(diff_data)])
         return
 
-    async def main(
+    @staticmethod
+    def _update_user_cache(
+        cursor: Cursor, 
+        account_id: int,
+        pvp_cache: dict = None
+    ) -> None:
+        """标记用户已更新
+
+        Args:
+            cursor: 数据库游标
+        """
+        if not pvp_cache:
+            sql = """
+                UPDATE T_user_cache
+                SET
+                    is_due = FALSE
+                WHERE account_id = %s;
+            """
+            cursor.execute(sql, [account_id])
+        else:
+            sql = """
+                UPDATE T_user_cache
+                SET
+                    is_due = FALSE, 
+                    ships = %s,
+                    cache = %s, 
+                    updated_at = NOW() 
+                WHERE account_id = %s;
+            """
+            cursor.execute(sql, [len(pvp_cache.keys()), json.dumps(pvp_cache), account_id])
+
+    def main(
         self,
         mysql_connection: Connection,
         redis_client: Redis,
-        async_client: AsyncClient,
         account_id: int
     ) -> None:
         """更新用户缓存数据 - 主入口函数
@@ -600,70 +395,56 @@ class UserCacheUpdater:
         """
         # 获取用户PVP数据
         try:
-            responses = await fetch_user_pvp_data(async_client, redis_client, account_id)
-            if not responses:
+            response = fetch_user_pvp_data(redis_client, account_id)
+            if not response:
                 logger.error(f'{account_id} | Failed to obtain data')
                 return
             
             ship_pvp_cache = {}
-            update_record_list = []
             ship_ranking_cache = {}
             
-            basic_data = responses[0]
-            
-            # 刷新用户基础信息
-            refresh_result = UserStatsSyncer.refresh(mysql_connection, account_id, basic_data)
-            if refresh_result:
-                logger.error(f'{account_id} | Refresh failed: {refresh_result}')
-                return
-            
-            if basic_data:
-                basic_data = basic_data.get(str(account_id))
-            
-            # 处理隐藏战绩或无数据的用户
-            if self._is_invalid_or_hidden_profile(basic_data):
-                handle_result = self._handle_hidden_profile(mysql_connection, account_id)
-                if handle_result:
-                    logger.error(f'{account_id} | Handle hidden profile failed: {handle_result}')
-                return
-            
-            # 提取统计数据
-            overall = self._extract_overall_stats(basic_data)
-            record = self._extract_record_stats(basic_data)
-            
             # 构建船只PVP缓存
-            pvp_data = responses[2][str(account_id)]['statistics']
+            pvp_data = response[str(account_id)]['statistics']
             ship_pvp_cache = self._build_ship_pvp_cache(pvp_data)
             ship_pvp_record = self._build_ship_pvp_record(pvp_data)
             
             # 更新船只记录
-            update_record_list = self._update_ship_records(ship_pvp_record, account_id)
+            self._update_ship_records(ship_pvp_record, account_id)
             
             # 构建排行榜缓存
-            ships_data = responses[1][str(account_id)]['statistics']
-            ship_ranking_cache = self._build_ranking_cache(pvp_data, ships_data)
+            ship_ranking_cache = self._build_ranking_cache(pvp_data)
         except Exception as e:
             logger.error(traceback.format_exc())
             logger.error(f'{account_id} | Data processing error: {type(e).__name__}')
             return
+        
+        if ship_pvp_cache == {}:
+            try:
+                with mysql_connection.cursor() as cursor:
+                    self._update_user_cache(cursor, account_id, None)
+                
+                mysql_connection.commit()
+                return
+            except Exception as e:
+                mysql_connection.rollback()
+                logger.error(traceback.format_exc())
+                logger.error(f'{account_id} | Update database failed: {type(e).__name__}')
+                return
 
         # 数据库更新或者写入操作
         try:
             with mysql_connection.cursor() as cursor:
-            
                 # 获取本地缓存
-                game_version, local_cache = self._get_local_cache(cursor, account_id)
+                local_cache = self._get_local_cache(cursor, account_id)
                 
                 # 更新各项数据
-                self._update_user_pvp(cursor, account_id, overall, ship_pvp_cache)
-                self._update_user_pvp_record(cursor, account_id, record)
-                self._update_ship_pvp_record(cursor, update_record_list)
+                self._update_user_cache(cursor, account_id, ship_pvp_cache)
                 self._upsert_leaderboard(cursor, ship_ranking_cache, account_id)
                 
                 # 处理近期数据变化
-                if game_version and local_cache:
+                if local_cache:
                     diff_data = self._calc_recent_diff(local_cache, ship_pvp_cache)
-                    self._insert_recent_diff_data(cursor, account_id, game_version, diff_data)
+                    self._insert_recent_diff_data(cursor, account_id, diff_data)
             
             mysql_connection.commit()
         except Exception as e:

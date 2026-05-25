@@ -1,62 +1,8 @@
-"""
-数据库读写操作模块
-
-封装统计服务所需的 MySQL 查询与写入操作，包括：
-- 数据追踪状态检查（need_update）
-- SQLite 文件分析（analyze_db_files）
-- 原始缓存数据读取（get_max_id / get_ship_ids / get_ship_data / get_pvp_cache）
-- 统计结果批量写入（update_battles_stats_table / update_users_stats_table / ...）
-- 排行榜数据刷新（MySQL + Redis）
-"""
-
-import json
 import traceback
-from redis import Redis
 from pymysql import Connection
 from pymysql.cursors import Cursor
 
 from logger import logger
-from utils import get_current_timestamp
-from settings import DATA_DIR
-
-def analyze_db_files() -> None:
-    """递归扫描 db 目录下的所有 .db 文件，统计数量与总大小，并将结果写入 JSON"""
-    logger.info('Analyzing SQLite3 Files...')
-
-    db_files_dir = DATA_DIR / 'db'
-    # 递归查找所有 .db 文件
-    db_files = list(db_files_dir.rglob("*.db"))
-    file_count = len(db_files)
-    total_size = 0
-
-    # 累加每个文件的大小，忽略无法读取的文件
-    for f in db_files:
-        try:
-            total_size += f.stat().st_size
-        except Exception:
-            continue
-
-    # 计算平均大小
-    avg_size = total_size / file_count if file_count else 0
-
-    # 构造结果字典
-    result = {
-        "update_time": get_current_timestamp(),
-        "file_count": file_count,
-        "total_size_bytes": total_size,
-        "avg_size_bytes": int(avg_size)
-    }
-
-    # 确保输出目录存在，写入 JSON 文件
-    output_file = DATA_DIR / "json/db_stats.json"
-    with output_file.open("w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2)
-
-    logger.info(
-        f"Files: {file_count}  "
-        f"Size: {round(total_size / 1024 / 1024, 2)} MB  "
-        f"Avg: {round(avg_size / 1024 / 1024, 2)} MB"
-    )
 
 def need_update(conn: Connection, tracking_key: str, tracking_type: str) -> bool:
     """检查并更新数据追踪状态，判断是否需要执行更新任务
@@ -78,7 +24,7 @@ def need_update(conn: Connection, tracking_key: str, tracking_type: str) -> bool
                 SELECT 
                     CASE
                         WHEN tracking_value IS NULL THEN TRUE
-                        WHEN UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(tracking_value) > 108000 THEN TRUE  -- 30 小时
+                        WHEN UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(tracking_value) > 10800 THEN TRUE  -- 3 小时
                         ELSE FALSE
                     END AS need_update
                 FROM T_tracking_meta 
@@ -118,7 +64,7 @@ def reset_tracking_time(cursor: Cursor, tracking_key: str, tracking_type: str):
 
 def get_max_id(cursor: Cursor) -> int:
     """
-    获取 T_user_pvp 表中最大的 id 值
+    获取 T_user_cache 表中最大的 id 值
     
     Args:
         cursor: 数据库游标对象
@@ -129,28 +75,11 @@ def get_max_id(cursor: Cursor) -> int:
     sql = """
         SELECT 
             MAX(id) 
-        FROM T_user_pvp;
+        FROM T_user_cache;
     """
     cursor.execute(sql)
     row = cursor.fetchone()
     return row[0] if row else 0
-
-def get_ship_ids(cursor: Cursor) -> list[int]:
-    """获取 T_ship_base 表中所有船只的 ship_id 列表
-    
-    Args:
-        cursor: 数据库游标对象
-        
-    Returns:
-        包含所有 ship_id 的列表
-    """
-    sql = """
-        SELECT 
-            ship_id 
-        FROM T_ship_base;
-    """
-    cursor.execute(sql)
-    return [row[0] for row in cursor.fetchall()]
   
 def read_ship_data(cursor: Cursor) -> dict:
     """加载船只排行榜基准数据
@@ -168,19 +97,19 @@ def read_ship_data(cursor: Cursor) -> dict:
     sql = """
         SELECT 
             ship_id, 
-            stats_battles, 
+            battles, 
             win_rate, 
             avg_damage, 
             avg_frags
-        FROM V_ship_ranking_stats;
+        FROM T_ship_stats_by_battles;
     """
     cursor.execute(sql)
     rows = cursor.fetchall()
     for row in rows:
         if row[1] < 1000:
-            ship_info[str(row[0])] = None
+            ship_info[row[0]] = None
         else:
-            ship_info[str(row[0])] = [row[2], row[3], row[4]]
+            ship_info[row[0]] = [row[2], row[3], row[4]]
     return ship_info
 
 def get_pvp_cache(cursor: Cursor, offset: int, batch_size: int):
@@ -196,8 +125,8 @@ def get_pvp_cache(cursor: Cursor, offset: int, batch_size: int):
     """
     sql = """
         SELECT 
-            ship_cache 
-        FROM T_user_pvp 
+            cache 
+        FROM T_user_cache 
         WHERE id BETWEEN %s AND %s;
     """
     cursor.execute(sql, [offset + 1, offset + batch_size])

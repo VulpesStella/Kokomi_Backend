@@ -1,42 +1,34 @@
-"""
-外部 API 请求模块
-
-封装对 WoWS Vortex API 的异步 HTTP 调用，支持 token 鉴权、
-多接口并发请求和请求指标记录。
-"""
-
 import random
-import asyncio
+import requests
 import traceback
 from redis import Redis
-from httpx import AsyncClient
 from typing import Optional, Union
 
 from logger import logger
-from settings import VORTEX_API
 from utils import get_current_iso_time
+from settings import VORTEX_API
 
 
-async def fetch_data(async_client: AsyncClient, url: str):
+def fetch_data(url: str) -> Union[dict, str]:
     """发送 GET 请求并解析 JSON 响应
 
     Args:
-        async_client: HTTP 异步客户端
         url: 请求地址
 
     Returns:
         成功时返回解析后的 dict，失败时返回错误标识字符串（如 'HTTP_STATUS_404'）
     """
     try:
-        res = await async_client.get(url)
-        request_code = res.status_code
-        request_result = res.json()
-        if request_code == 200:
-            return request_result['data']
-        # 处理用户不存在的特殊情况
-        if request_code == 404:
+        resp = requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('status') == 'ok':
+                return data.get('data', {})
+            else:
+                return "Game_API_Failed"
+        elif resp.status_code == 404:
             return {}
-        return f'HTTP_STATUS_{request_code}'
+        return f'HTTP_STATUS_{resp.status_code}'
     except Exception as e:
         return f'ERROR_{type(e).__name__}'
 
@@ -76,20 +68,18 @@ def record_http_metrics(
 
     return error
 
-async def fetch_user_pvp_data(
-    async_client: AsyncClient,
+def fetch_user_pvp_data(
     redis_client: Redis,
     account_id: int
 ) -> Optional[list[Union[dict, str]]]:
     """获取用户的三个接口数据（基本信息、船只统计、PvP 详细）
 
     Args:
-        async_client: HTTP 客户端
         redis_client: Redis 客户端（用于指标记录和 token 获取）
         account_id: 用户 ID
 
     Returns:
-        成功时返回 [basic_data, ships_data, pvp_data] 三个响应
+        成功时返回 {}
         失败时返回 None
     """
     try:
@@ -97,20 +87,13 @@ async def fetch_user_pvp_data(
         ac = redis_client.get(redis_key)
         base_url = random.choice(VORTEX_API)
 
-        urls = [
-            f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else ''),
-            f'{base_url}/api/accounts/{account_id}/ships/' + (f'?ac={ac}' if ac else ''),
-            f'{base_url}/api/accounts/{account_id}/ships/pvp/' + (f'?ac={ac}' if ac else '')
-        ]
+        url = f'{base_url}/api/accounts/{account_id}/ships/pvp/' + (f'?ac={ac}' if ac else '')
 
-        tasks = [fetch_data(async_client, url) for url in urls]
-        responses = await asyncio.gather(*tasks)
-
-        # 统计 API 请求的指标
-        error = record_http_metrics(redis_client, responses, urls)
+        result = fetch_data(url)
+        error = record_http_metrics(redis_client, [result], [url])
         if error:
             return
 
-        return responses
+        return result
     except Exception:
         logger.error(traceback.format_exc())
