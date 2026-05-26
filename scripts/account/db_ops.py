@@ -1,29 +1,12 @@
 import json
-import traceback
-from redis import Redis
-from pymysql import Connection
 from pymysql.cursors import Cursor
 from collections import defaultdict
 from typing import Optional
 
 from logger import logger
-from api import fetch_latest_version
-from rebalance import (
-    calc_imbalance_score,
-    rebalance_interval,
-    find_rebalance_intervals,
-)
-from utils import (
-    get_current_iso_time, 
-    get_current_timestamp,
-    get_seconds_until_end_of_day
-)
-from settings import (
-    BATCH_SIZE,
-    REBALANCE_ENABLED,
-    MIN_IMBALANCE_SCORE,
-    STAGING_DELETE_DELAY_ENABLED
-)
+from utils import get_current_iso_time
+from settings import STAGING_DELETE_DELAY_ENABLED
+
 
 def _read_ship_ids(cursor: Cursor) -> list[int]:
     """读取所有已记录的船只 ID 列表
@@ -257,18 +240,18 @@ def _cleanup_ship_recent(cursor: Cursor) -> int:
 
     return cursor.rowcount
 
-def refresh_version(cursor: Cursor, redis_client: Redis) -> None:
-    """每小时检查并更新数据库中的游戏版本记录
+def get_max_id(cursor: Cursor) -> int:
+    """读取 T_user_stats 表中自增 ID 最大值确定数据读取的终点"""
+    sql = "SELECT MAX(id) FROM T_user_stats;"
+    cursor.execute(sql)
 
-    从远程 API 获取最新版本信息，与本地最新版本比较：
-        - 版本未变：更新 full_name 和 updated_at
-        - 版本变更：插入新版本记录并切换 is_latest 标记
-        - 确保永远只有一个版本 is_latest = TRUE
+    data = cursor.fetchone()
+    if data is None:
+        return 0
+    
+    return data[0]
 
-    Args:
-        cursor: 数据库游标
-        redis_client: Redis 客户端
-    """
+def get_version(cursor: Cursor) -> tuple:
     sql = """
         SELECT 
             short_name, 
@@ -282,19 +265,11 @@ def refresh_version(cursor: Cursor, redis_client: Redis) -> None:
         LIMIT 1;
     """
     cursor.execute(sql)
-    local_version = cursor.fetchone()
-    if local_version and not local_version[1]:
-        # 有数据且当前不需要更新
-        logger.debug('Skip to refresh version data step')
-        return
-    
-    latest = fetch_latest_version(redis_client)
-    if not latest:
-        logger.warning(f'Failed to obtain latest version')
-        return
-    
+    return cursor.fetchone()
+
+def refresh_version(cursor: Cursor, local: str, latest: dict):
     # 版本未变，更新 full_name 和 updated_at
-    if local_version and local_version[0] == latest['short']:
+    if local == latest['short']:
         # 确保永远只有一个version是latest
         sql = """
             UPDATE T_game_version 
@@ -356,8 +331,24 @@ def refresh_version(cursor: Cursor, redis_client: Redis) -> None:
 
     logger.info(
         f"Game Version: "
-        f"{local_version[0] if local_version else 'NULL'} -> {latest['short']}"
+        f"{local if local else 'NULL'} -> {latest['short']}"
     )
+
+def read_table_batch(cursor: Cursor, start_id: int, end_id: int) -> tuple:
+    """从 T_user_stats 表中读取一个批次的数据"""
+    sql = f"""
+        SELECT 
+            account_id, 
+            is_enabled,
+            UNIX_TIMESTAMP(next_refresh_at), 
+            UNIX_TIMESTAMP(updated_at) 
+        FROM T_user_stats
+        WHERE id BETWEEN %s AND %s;
+    """
+    cursor.execute(sql, [start_id, end_id])
+    rows = cursor.fetchall()
+
+    return rows
 
 def aggregate_recent_data(cursor: Cursor) -> None:
     # 读取所有的船只 ID
@@ -384,16 +375,40 @@ def aggregate_recent_data(cursor: Cursor) -> None:
         processed, deleted
     )
 
-def archive_base_table(cursor: Cursor) -> int:
+def archive_base_table(cursor: Cursor) -> None:
     """归档 user、clan、ship 基础表的行数到 ARCH 表
 
     Args:
         cursor: 数据库游标
     """
+    # 检查更新时间，每 10 分钟更新一次
+    sql = """
+        SELECT 
+            CASE 
+                WHEN tracking_value IS NULL THEN TRUE
+                WHEN UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(tracking_value) > 600 THEN TRUE
+                ELSE FALSE
+            END AS need_update
+        FROM T_tracking_meta 
+        WHERE tracking_key = %s 
+            AND tracking_type = %s;
+    """
+    cursor.execute(sql, ['base_table', 'archive_time'])
+    result = cursor.fetchone()
+    if not result[0]:
+        return
+
     base_count_list = [0,0,0,0]
+    id_col_dict = {
+        'user': 'account_id',
+        'clan': 'clan_id',
+        'ship': 'ship_id'
+    }
     # 查询当前数据行数
     i = 1
     for index in ['user', 'clan', 'ship']:
+        id_col = id_col_dict.get(index)
+
         sql = f"SELECT COUNT(*) FROM T_{index}_base;"
         cursor.execute(sql)
         base_count = cursor.fetchone()[0]
@@ -405,6 +420,24 @@ def archive_base_table(cursor: Cursor) -> int:
             WHERE metric_key = %s;
         """
         cursor.execute(sql, [base_count, f'base_{index}s'])
+
+        sql_range = f"""
+            SELECT 
+                COALESCE(MIN({id_col}), 0), 
+                COALESCE(MAX({id_col}), 0) 
+            FROM T_{index}_base;
+        """
+        cursor.execute(sql_range)
+        min_id, max_id = cursor.fetchone()
+
+        sql = """
+            UPDATE T_base_id 
+            SET 
+                min_id = %s, 
+                max_id = %s 
+            WHERE meta = %s;
+        """
+        cursor.execute(sql, [min_id, max_id, index])
 
         base_count_list[0] += base_count
         base_count_list[i] += base_count
@@ -440,216 +473,48 @@ def archive_base_table(cursor: Cursor) -> int:
         """
         cursor.execute(sql, base_count_list + [today])
 
+    sql = """
+        UPDATE T_tracking_meta 
+        SET 
+            tracking_value = NOW() 
+        WHERE tracking_key = %s 
+            AND tracking_type = %s;
+    """
+    cursor.execute(sql, ['base_table', 'archive_time'])
+
     logger.info(
         'Base table archived - User: %s | Clan: %s | Ship: %s',
         base_count_list[1], base_count_list[2], base_count_list[3]
     )
 
-def get_update_ids(
-    conn: Connection, 
-    redis_client: Redis
-) -> list:
-    """分批查询需要更新的 ID 并通过 Redis 分布式锁去重
-
-    使用 id 范围分页，每批 10000 行，调用相应判断函数筛选 due 的 ID，
-    批量获取 Redis 锁后返回成功获取锁的 ID
-
-    Args:
-        conn: 数据库连接
-        redis_client: Redis 客户端
-
-    Returns:
-        成功获取锁的 ID 列表
-    """
-
-    update_list = []
-
-    total_count = 0
-    planned_count = 0
-    today_remained_count = 0
-
-    total_due = 0
-    locked = 0
-
-    refresh_stats = [0] * 5
-    buckets = [[] for _ in range(24)]
-    all_migrations = []
-
-    current_timestamp = get_current_timestamp()
-    seconds_until_end_of_day = get_seconds_until_end_of_day()
-
-    try:
-        with conn.cursor() as cursor:
-            # 获取最大 id
-            cursor.execute(f"SELECT MAX(id) FROM T_user_stats;")
-            max_id = cursor.fetchone()[0] or 0
-
-            # 按 id 区间循环
-            for start_id in range(1, max_id + 1, BATCH_SIZE):
-                end_id = start_id + BATCH_SIZE - 1
-
-                sql = f"""
-                    SELECT 
-                        account_id, 
-                        is_enabled,
-                        UNIX_TIMESTAMP(next_refresh_at), 
-                        UNIX_TIMESTAMP(updated_at) 
-                    FROM T_user_stats
-                    WHERE id BETWEEN %s AND %s;
-                """
-                cursor.execute(sql, [start_id, end_id])
-                rows = cursor.fetchall()
-
-                if not rows:
-                    continue
-
-                due_ids = []
-
-                for row in rows:
-                    if not row[1]:
-                        # 不可用用户不更新
-                        continue
-
-                    planned_count += 1
-
-                    # 计算下次更新时间到现在时间的差值，-1表示需要更新
-                    if row[3] is None:
-                        remaining_seconds = -1
-                    elif row[2] and row[2] > current_timestamp:
-                        remaining_seconds = row[2] - current_timestamp
-                    else:
-                        remaining_seconds = -1
-
-                    if remaining_seconds < seconds_until_end_of_day:
-                        today_remained_count += 1
-
-                    # overdue：需要立即刷新
-                    if remaining_seconds == -1:
-                        due_ids.append(row[0])
-                        refresh_stats[0] += 1
-                        total_count += 1
-                        # overdue 也算进 hourly_stats 的第 0 小时
-                        buckets[0].append(row[0])
-                        continue
-
-                    # 统计 refresh_stats：within_24h / within_week / within_month / within_quarter
-                    if remaining_seconds <= 86400:
-                        refresh_stats[1] += 1  # within_24h
-                    elif remaining_seconds <= 604800:
-                        refresh_stats[2] += 1  # within_week
-                    elif remaining_seconds <= 2592000:
-                        refresh_stats[3] += 1  # within_month
-                    elif remaining_seconds <= 7776000:
-                        refresh_stats[4] += 1  # within_quarter
-
-                    # 统计 refresh_hourly_stats：按小时分桶
-                    if remaining_seconds < 86400:
-                        hour_index = remaining_seconds // 3600
-                        if hour_index < 24:
-                            total_count += 1
-                            buckets[hour_index].append(row[0])
-
-                total_due += len(due_ids)
-
-                if due_ids:
-                    # 通过redis去重
-                    pipe = redis_client.pipeline()
-                    keys = [f"refresh_lock:user:{uid}" for uid in due_ids]
-                    for key in keys:
-                        pipe.set(key, 1, nx=True, ex=4*3600)
-                    results = pipe.execute()
-                    batch_locked = [due_ids[i] for i, r in enumerate(results) if r]
-                    update_list.extend(batch_locked)
-                    locked += len(batch_locked)
-
-    except Exception:
-        logger.error(traceback.format_exc())
-        return []
-
-    skipped = total_due - locked
-    logger.info(
-        'User update schedule - Total: %s | Locked: %s | Skipped: %s',
-        total_due, locked, skipped
+def write_stats_to_db(cursor, stats_data: dict) -> None:
+    """ 将 RefreshPlanStats 的统计数据写入数据库"""
+    # 更新统计总数：planned_users
+    cursor.execute(
+        "UPDATE T_table_meta SET metric_value = %s WHERE metric_key = %s",
+        [stats_data['planned_count'], 'planned_users']
     )
 
-    counts = [len(b) for b in buckets]
-    score = calc_imbalance_score(counts)
-    logger.debug('Refresh plan (%s): %s', score, counts)
-    if REBALANCE_ENABLED and score >= MIN_IMBALANCE_SCORE:
-        min_peak_abs = max(100, total_count // 10000 * 100)
-        min_interval_total = 2 * min_peak_abs
-        intervals = find_rebalance_intervals(
-            counts,
-            min_peak_abs=min_peak_abs,
-            min_interval_total=min_interval_total
+    # 更新各刷新状态的人数
+    status_names = ['overdue', 'within_24h', 'within_week', 'within_month', 'within_quarter']
+    for status, count in zip(status_names, stats_data['refresh_stats']):
+        cursor.execute(
+            "UPDATE T_refresh_stats SET user_count = %s, updated_at = NOW() WHERE status = %s",
+            [count, status]
         )
-        if intervals:
-            logger.info("Found %d intervals to rebalance: %s", len(intervals), intervals)
-            for left, right in intervals:
-                bucket_slice = buckets[left:right+1]  # 子列表引用，修改会作用到原桶
-                migrations = rebalance_interval(bucket_slice)
-                all_migrations.extend(migrations)
 
-                # 更新全局 counts 供后续区间使用
-                for h in range(left, right+1):
-                    counts[h] = len(buckets[h])
-            score = calc_imbalance_score(counts)
-            logger.debug('Rebalanced plan (%s): %s', score, counts)
-        else:
-            logger.debug("No interval needs rebalancing")
-    else:
-        logger.debug("No interval needs rebalancing")
-    
-    try:
-        with conn.cursor() as cursor:
-            # 1. 更新 planned_count
-            sql = """
-                UPDATE T_table_meta 
-                SET 
-                    metric_value = %s 
-                WHERE metric_key = %s;
-            """
-            cursor.execute(sql, [planned_count, 'planned_users'])
+    # 更新每小时的计划人数（planned_hour 1~24）
+    for hour_index, count in enumerate(stats_data['hourly_counts']):
+        planned_hour = hour_index + 1
+        cursor.execute(
+            "UPDATE T_refresh_hourly_stats SET planned_users = %s, updated_at = NOW() WHERE planned_hour = %s",
+            [count, planned_hour]
+        )
 
-            # 2. 更新 refresh_stats
-            status_names = ['overdue', 'within_24h', 'within_week', 'within_month', 'within_quarter']
-            for status, count in zip(status_names, refresh_stats):
-                sql = """
-                    UPDATE T_refresh_stats
-                    SET 
-                        user_count = %s,
-                        updated_at = NOW()
-                    WHERE status = %s;
-                """
-                cursor.execute(sql, [count, status])
-
-            # 3. 更新 refresh_hourly_stats（planned_hour 对应 1~24）
-            for hour_index, count in enumerate(counts):
-                planned_hour = hour_index + 1
-                sql = """
-                    UPDATE T_refresh_hourly_stats
-                    SET 
-                        planned_users = %s,
-                        updated_at = NOW()
-                    WHERE planned_hour = %s;
-                """
-                cursor.execute(sql, [count, planned_hour])
-            
-            if all_migrations:
-                sql = """
-                    UPDATE T_user_stats
-                    SET 
-                        next_refresh_at = next_refresh_at - INTERVAL %s HOUR
-                    WHERE account_id = %s
-                """
-                params = [(hours, uid) for uid, hours in all_migrations]
-                cursor.executemany(sql, params)
-                logger.info("Applied %d user migrations to database", len(all_migrations))
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        logger.error(traceback.format_exc())
-
-    logger.info('Planned user updates within today: %s', today_remained_count)
-
-    return update_list
+    # 应用重均衡产生的用户迁移（调整 next_refresh_at）
+    migrations = stats_data.get('all_migrations', [])
+    if migrations:
+        cursor.executemany(
+            "UPDATE T_user_stats SET next_refresh_at = next_refresh_at - INTERVAL %s HOUR WHERE account_id = %s",
+            [(hours, uid) for uid, hours in migrations]
+        )

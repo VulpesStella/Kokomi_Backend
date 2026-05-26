@@ -13,8 +13,9 @@ from pymysql import Connection
 from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
-from updater import update_clan_season
 from api import fetch_clan_leagues
+from exception import write_exception
+from updater import update_clan_season
 from db_ops import (
     need_update,
     get_update_ids,
@@ -87,7 +88,6 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         need_update(mysql_connection, 'clan_season', 'refresh_time') or 
         is_cb_active(season_data['start'], season_data['finish'])
     ):
-        success_count = 0
         total_list = []
         league_count = {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0}
 
@@ -105,15 +105,14 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
                 league=league,
                 division=division
             )
-            if type(league_data) == list:
-                if not league_data:
-                    success_count += 1
+            if isinstance(league_data, list):
+                if league_data == []:
                     continue 
 
                 latest_season_id = league_data[0][4]
                 # 赛季变化处理
                 if latest_season_id != season_id:
-                    if total_list:
+                    if total_list != []:
                         logger.warning(f'Clan battle season changed: {season_id} -> {latest_season_id}')
                         return
                     
@@ -123,7 +122,6 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
                     refresh_season_data(season_id)
                     redis_client.delete('leaderboard:clan')
 
-                success_count += 1
                 league_count[league] += len(league_data)
                 total_list.extend(league_data)
         logger.disable_tqdm()
@@ -134,18 +132,45 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         )
         
         # 确保当前赛季的工会战数据表存在
-        table_status = ensure_clan_battle_table(mysql_connection, season_id)
-        if table_status is None:
+        try:
+            with mysql_connection.cursor() as cursor:
+                table_status = ensure_clan_battle_table(cursor, season_id)
+        
+            mysql_connection.commit()
+        except Exception as e:
+            mysql_connection.rollback()
+            error_name = type(e).__name__
+            logger.error(f"Database operation exception: {error_name}")
             logger.warning(f'Failed to check if Table T_clan_battle_s{season_id} exists')
+            write_exception(
+                error_type="DatabaseError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
+            return 
+        
         if table_status:
             logger.info(f'New table T_clan_battle_s{season_id} has been successfully created.')
         else:
             logger.debug(f'Table T_clan_battle_s{season_id} is already exists')
 
         # 比较最新数据和数据库数据，确定需要更新的工会ID列表
-        update_ids = get_update_ids(mysql_connection, season_id, total_list, success_count == EXPECTED_LEAGUE_COUNT)
-        len_update_ids = len(update_ids)
+        try:
+            with mysql_connection.cursor() as cursor:
+                update_ids = get_update_ids(cursor, season_id, total_list)
+            mysql_connection.commit()
+        except Exception as e:
+            mysql_connection.rollback()
+            error_name = type(e).__name__
+            logger.error(f"Database operation exception: {error_name}")
+            write_exception(
+                error_type="DatabaseError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
+            return 
             
+        len_update_ids = len(update_ids)
         if len_update_ids > 0:
             # 更新需要更新的工会数据
             logger.info(f'Clans update numbers: {len_update_ids}')
@@ -183,14 +208,23 @@ def main():
                 mysql_connection=mysql_connection,
                 redis_client=redis_client
             )
-        except Exception:
-            logger.error(traceback.format_exc())
+        except Exception as e:
+            # 记录错误信息
+            error_name = type(e).__name__
+            logger.error(f"A fatal error occurred in the loop: {error_name}")
+            write_exception(
+                error_type="ProgramError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
+
             # 严重错误导致的循环中断，删除用于标记服务状态的key
             try:
                 if redis_client:
                     redis_client.delete(f'status:{CLIENT_NAME}')
             except Exception as e:
-                logger.error(f'Failed to delete status key: {e}')
+                error_name = type(e).__name__
+                logger.error(f'Failed to delete status key: {error_name}')
         finally:
             # 大部分情况下每次循环运行时间远小于刷新间隔，大部分时间都处于sleep状态
             # 为了减少相关资源占用，每次循环结束后关闭所有连接，释放资源空间
@@ -201,6 +235,7 @@ def main():
                 mysql_connection.close()
             redis_client = None
             mysql_connection = None
+
             gc.collect()
 
         # 计算本次循环的实际运行时间，并根据刷新间隔决定是否需要sleep

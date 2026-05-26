@@ -14,5 +14,6 @@ redis.conf
 /data/json/*
 /data/trash/*
 /logs/error/*
+/logs/exception/*
 /logs/metrics/*
 /logs/scripts/*

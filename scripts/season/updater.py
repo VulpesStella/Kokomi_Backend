@@ -5,6 +5,7 @@ from pymysql import Connection
 from typing import Optional
 
 from logger import logger
+from exception import write_exception
 from api import fetch_clan_season
 from utils import formtime_to_timestamp
 from db_ops import (
@@ -274,5 +275,11 @@ def update_clan_season(
             'leaderboard:clan', {str(clan_id): float(clan_rating)}
         )
 
-    except Exception:
-        logger.error(traceback.format_exc())
+    except Exception as e:
+        error_name = type(e).__name__
+        logger.error(f"{clan_id} | Update clan season failed: {error_name}")
+        write_exception(
+            error_type="DatabaseError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )

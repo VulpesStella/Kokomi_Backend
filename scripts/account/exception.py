@@ -1,11 +1,12 @@
 import uuid
-import traceback
 from pathlib import Path
 from typing import Optional
 
-from .utils import get_current_iso_time
-from .settings import LOG_DIR, CLIENT_NAME
-
+from utils import get_current_iso_time
+from settings import (
+    LOG_DIR,
+    CLIENT_NAME
+)
 
 def write_exception(
     error_type: str,
@@ -34,20 +35,3 @@ def write_exception(
         f.write(f"[NAME]:    {error_name}\n")
         f.write("-" * 100 + "\n")
         f.write(error_info)
-
-
-def handle_program_exception_sync(func):
-    "负责异步程序异常信息的捕获"
-    def wrapper(*args, **kwargs):
-        try:
-            result = func(*args, **kwargs)
-            return result
-        except Exception as e:
-            write_exception(
-                error_type = 'ProgramError',
-                error_name = type(e).__name__,
-                error_info = traceback.format_exc()
-            )
-            return 'Program Error'
-    return wrapper
-    

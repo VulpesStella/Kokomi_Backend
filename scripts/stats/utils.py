@@ -1,10 +1,3 @@
-"""
-工具函数模块
-
-提供时间戳生成和船只综合 PR 值计算等通用工具函数。
-PR 值基于玩家数据与服务器均值的比值，经过归一化后得出的综合评分。
-"""
-
 from datetime import datetime, timezone
 
 from settings import DATE_FMT

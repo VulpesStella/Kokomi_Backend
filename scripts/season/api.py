@@ -4,6 +4,7 @@ from redis import Redis
 from typing import Optional, Union
 
 from logger import logger
+from exception import write_exception
 from utils import (
     get_current_iso_time,
     formtime_to_timestamp
@@ -22,8 +23,10 @@ def fetch_data(url: str) -> Union[dict, str]:
     """
     try:
         resp = requests.get(url, timeout=5)
+
         if resp.status_code == 200:
             return resp.json()
+        
         return f'HTTP_STATUS_{resp.status_code}'
     except Exception as e:
         return f'ERROR_{type(e).__name__}'
@@ -45,22 +48,27 @@ def record_http_metrics(
     Returns:
         错误字符串，全部成功则返回 None
     """
-    today = get_current_iso_time()[:10]
     error_count = 0
     error = None
 
+    today = get_current_iso_time()[:10]
+
+    # 检查所有的返回数据
     for i, response in enumerate(responses):
         if isinstance(response, str):
             logger.warning(f'{response} {urls[i]}')
             error_count += 1
             error = response
     
+    # 记录游戏 API 调用的统计数据
     try:
-        redis_client.incrby(f'metrics:http_total:{today}', len(responses))
+        redis_client.incrby(f'metrics:total:http', len(urls))
+        redis_client.incrby(f'metrics:http_total:{today}', len(urls))
+
         if error_count > 0:
             redis_client.incrby(f'metrics:http_error:{today}', error_count)
     except Exception:
-        logger.warning('Failed to update HTTP metrics')
+        logger.warning('Failed to record HTTP metrics')
 
     return error
 
@@ -88,12 +96,13 @@ def fetch_clan_leagues(
             f'{CLAN_API}/api/ladder/structure/'
             f'?realm={realm}&league={league}&division={division}&limit=1000'
         )
-        result = fetch_data(url)
-        error = record_http_metrics(redis_client, [result], [url])
+        response = fetch_data(url)
+
+        error = record_http_metrics(redis_client, [response], [url])
         if error:
             return
         
-        for temp_data in result:
+        for temp_data in response:
             clan_data_list.append([
                 temp_data['id'],
                 temp_data['tag'],
@@ -103,8 +112,14 @@ def fetch_clan_leagues(
             ])
         
         return clan_data_list
-    except Exception:
-        logger.error(traceback.format_exc())
+    except Exception as e:
+        error_name = type(e).__name__
+        logger.error(f"Fetch user data failed: {error_name}")
+        write_exception(
+            error_type="NetworkError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )
 
 def fetch_clan_season(redis_client: Redis, clan_id: int) -> Optional[dict]:
     """获取指定公会的当前赛季详情数据
@@ -118,11 +133,18 @@ def fetch_clan_season(redis_client: Redis, clan_id: int) -> Optional[dict]:
     """
     try:
         url = f'{CLAN_API}/api/clanbase/{clan_id}/claninfo/'
-        result = fetch_data(url)
-        error = record_http_metrics(redis_client, [result], [url])
+        response = fetch_data(url)
+
+        error = record_http_metrics(redis_client, [response], [url])
         if error:
             return
         
-        return result
-    except Exception:
-        logger.error(traceback.format_exc())
+        return response
+    except Exception as e:
+        error_name = type(e).__name__
+        logger.error(f"Fetch user data failed: {error_name}")
+        write_exception(
+            error_type="NetworkError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )

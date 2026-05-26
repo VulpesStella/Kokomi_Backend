@@ -125,6 +125,22 @@ CREATE TABLE IF NOT EXISTS T_database_meta (
     PRIMARY KEY (id),
 
     UNIQUE KEY uk_key (metric_key)
+
+-- 元数据ID信息表
+-- 记录实体ID的范围
+CREATE TABLE IF NOT EXISTS T_base_id (
+    id              INT           AUTO_INCREMENT,
+
+    meta            VARCHAR(5)    NOT NULL,         -- 统计键，通常为表名
+    min_id          BIGINT        DEFAULT 0,        -- 数据行数
+    max_id          BIGINT        DEFAULT 0,        -- 数据行数
+
+    created_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+
+    UNIQUE KEY uk_meta (meta)
 );
 
 -- 指标等级阈值表

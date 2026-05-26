@@ -10,6 +10,10 @@ from app.loggers import ExceptionLogger
 
 class ServiceMetrics:
     @ExceptionLogger.handle_cache_exception_async
+    async def total_incr(key: str, amount: int):
+        await RedisClient.incrby(f"metrics:total:{key}", amount)
+
+    @ExceptionLogger.handle_cache_exception_async
     async def requests_incr(key: str, date: str):
         await RedisClient.incr(f"metrics:{key}:{date}")
 
@@ -144,7 +148,7 @@ class ServiceMetrics:
         for i in range(30, -1, -1):
             day = now - timedelta(days=i)
             celery_keys.append(day.date().isoformat())
-            celery_redis_keys.append(f"metrics:celery:{day.date().isoformat()}")
+            celery_redis_keys.append(f"metrics:celery_total:{day.date().isoformat()}")
         
         values = await RedisClient.get_by_pipe(celery_redis_keys)
         if values['code'] != 1000:

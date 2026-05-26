@@ -1,37 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-舰船数据统计服务 —— 主调度模块
-
-# 功能概述：
-以后台常驻进程方式运行，周期性从 MySQL 读取用户 PvP 缓存数据，聚合计算三类
-统计数据（服务器场次平均、用户场均表现、Rating 百分位分布），并将结果写入
-MySQL 统计表和 Redis 排行榜有序集合。
-
-# 模块分工：
-- main.py       （本文件）—— 主调度循环、连接管理、进度展示
-- analytics.py             —— 数据聚合引擎（ShipStatsAggregator + HistogramBins）
-- db_ops.py                —— 数据库读写操作（缓存读取、统计写入、排行榜刷新）
-- utils.py                 —— 时间工具、Rating 计算
-- logger.py                —— tqdm 兼容日志器
-- settings.py              —— 环境变量加载与全局配置常量
-
-# 主循环流程：
-    1. 建立 Redis / MySQL 连接，写入服务状态 key
-    2. 调用 worker()：
-        a. 检查 need_update 追踪状态（UTC 23 点为强制更新时间）
-        b. 分析 SQLite 数据库文件状态
-        c. 分批次读取 T_user_pvp.ship_cache，喂入 ShipStatsAggregator
-        d. 聚合计算后批量写入 T_ship_stats_by_battles / _by_users / _rating_distribution
-           及 T_ship_pvp_stats / T_table_meta
-        e. 设置维护锁 → 刷新每条船的 MySQL 排行榜 + Redis 排行榜 → 释放锁
-           （维护锁防止刷新期间外部读取到不完整数据，有效期 1 小时）
-        f. 写入 leaderboard:users 哈希表（上榜用户数）
-    3. finally 块释放连接并 gc.collect()
-    4. 计算耗时，按 REFRESH_INTERVAL 补齐 sleep
-"""
-
 import os
 import gc
 import time
@@ -39,12 +8,12 @@ import redis
 import pymysql
 import traceback
 from tqdm import tqdm
-from redis import Redis
 from pymysql import Connection
 from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
 from analytics import ShipStatsAggregator
+from exception import write_exception
 from db_ops import (
     need_update,
     reset_tracking_time,
@@ -97,12 +66,11 @@ def progress_iterable(
             logger_obj.info('%s - [%d/%d] | Current: %s', desc, idx, total, item)
             yield item
 
-def worker(mysql_connection: Connection, redis_client: Redis) -> None:
+def worker(mysql_connection: Connection) -> None:
     """执行统计聚合和排行榜刷新
 
     Args:
         mysql_connection: MySQL 数据库连接对象
-        redis_client: Redis 客户端对象
     """
     if not need_update(mysql_connection, 'ship_stats', 'update_time'):
         logger.info(f'Update time not yet reached')
@@ -144,9 +112,17 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
                 # 将这批数据添加到聚合器
                 aggregator.add_batch(rows)
             logger.disable_tqdm()
-    except Exception:
-        logger.error(traceback.format_exc())
         
+    except Exception as e:
+        error_name = type(e).__name__
+        logger.error(f"Database operation exception: {error_name}")
+        write_exception(
+            error_type="DatabaseError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )
+        return 
+    
     # 3. 更新 MySQL 统计表
     try:
         with mysql_connection.cursor() as cursor:
@@ -170,9 +146,16 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
             refresh_table_meta(cursor, aggregator.aggregation_stats())
 
             mysql_connection.commit()
-    except Exception:
+    except Exception as e:
         mysql_connection.rollback()
-        logger.error(traceback.format_exc())
+        error_name = type(e).__name__
+        logger.error(f"Database operation exception: {error_name}")
+        write_exception(
+            error_type="DatabaseError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )
+        return 
 
 def main():
     """主服务入口，按配置的刷新间隔（REFRESH_INTERVAL）周期执行统计任务"""
@@ -194,18 +177,25 @@ def main():
             
             # 执行核心统计任务
             worker(
-                mysql_connection=mysql_connection,
-                redis_client=redis_client
+                mysql_connection=mysql_connection
+            )
+        except Exception as e:
+            # 记录错误信息
+            error_name = type(e).__name__
+            logger.error(f"A fatal error occurred in the loop: {error_name}")
+            write_exception(
+                error_type="ProgramError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
             )
 
-        except Exception:
-            logger.error(traceback.format_exc())
             # 严重错误导致的循环中断，删除用于标记服务状态的key
             try:
                 if redis_client:
                     redis_client.delete(f'status:{CLIENT_NAME}')
             except Exception as e:
-                logger.error(f'Failed to delete status key: {e}')
+                error_name = type(e).__name__
+                logger.error(f'Failed to delete status key: {error_name}')
         finally:
             # 大部分情况下每次循环运行时间远小于刷新间隔，大部分时间都处于sleep状态
             # 为了减少相关资源占用，每次循环结束后关闭所有连接，释放资源空间

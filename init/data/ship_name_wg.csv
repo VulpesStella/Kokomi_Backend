@@ -1,4 +1,4 @@
-ship_id,tier,type,nation,is_old,premium,special,rarity,index,en_short,en_full,zh_cn,zh_sg,zh_tw,ja,ru,verify
+﻿ship_id,tier,type,nation,is_old,premium,special,rarity,index,en_short,en_full,zh_cn,zh_sg,zh_tw,ja,ru,verify
 3765319664,5,Destroyer,usa,0,1,0,Uncommon,PASD505_Hill,Hill,Hill,希尔,希尔,Hill,Hill,Hill,1
 3760142032,10,Battleship,japan,0,0,1,Rare,PJSB510_Shikishima,Shikishima,Shikishima,鲙,敷岛,Shikishima,敷島,Shikishima,1
 3553572848,7,Battleship,usa,0,1,0,Uncommon,PASB707_California,California,California,加利福尼亚,加利福尼亚,California,California,California,1
@@ -981,11 +981,11 @@ ship_id,tier,type,nation,is_old,premium,special,rarity,index,en_short,en_full,zh
 3542005040,8,Cruiser,europe,0,1,0,,PWSC718_Regele_Carol_I,Regele Carol I,Regele Carol I,卡罗尔一世国王,卡罗尔一世,Regele Carol I,Regele Carol I,Regele Carol I,1
 4248745968,5,Cruiser,usa,0,1,0,Uncommon,PASC044_Marblehead_1924,Marblehead,Marblehead,马布尔黑德,马布尔黑德,Marblehead,Marblehead,Marblehead,1
 3655251664,10,Cruiser,japan,0,0,1,Legendary,PJSC610_Kitakami,Kitakami,Kitakami,獚,北上,Kitakami,北上,Kitakami,1
-3552524080,8,Battleship,germany,0,0,1,,PGSB708_Bismarck_1941,Bismarck '41,Bismarck '41,俾斯麦 '41,俾斯麦41,Bismarck '41,Bismarck '41,Bismarck '41,1
+3552524080,8,Battleship,germany,0,1,0,,PGSB708_Bismarck_1941,Bismarck '41,Bismarck '41,俾斯麦 '41,俾斯麦41,Bismarck '41,Bismarck '41,Bismarck '41,1
 4183209712,6,Submarine,italy,0,0,1,,PISS106_Foca,Foca,Foca,海豹,福卡,Foca,Foca,Foca,1
 4181112560,8,Submarine,italy,0,0,1,,PISS108_Pietro_Micca,Pietro Micca,Pietro Micca,皮耶特罗·米卡,皮耶特罗·米卡,Pietro Micca,Pietro Micca,Pietro Micca,1
 4179015408,10,Submarine,italy,0,0,1,,PISS110_Calvi,Calvi,Calvi,卡尔维,卡尔维,Calvi,Calvi,Calvi,1
-3552524240,8,Battleship,uk,0,0,1,,PBSB708_Prince_of_Wales,Prince of Wales,Prince of Wales,威尔士亲王,威尔士亲王,Prince of Wales,Prince of Wales,Prince of Wales,1
+3552524240,8,Battleship,uk,0,1,0,,PBSB708_Prince_of_Wales,Prince of Wales,Prince of Wales,威尔士亲王,威尔士亲王,Prince of Wales,Prince of Wales,Prince of Wales,1
 3530471408,9,Cruiser,usa,0,0,1,,PASC729_Fort_Worth,Fort Worth,Fort Worth,沃斯堡,沃斯堡,Fort Worth,Fort Worth,Fort Worth,1
 3550426448,10,Battleship,pan_america,0,0,1,,PVSB710_Sete_de_Setembro,Sete de Setembro,Sete de Setembro,九月七日,九月七日,Sete de Setembro,Sete de Setembro,Sete de Setembro,1
 3331208656,9,Destroyer,ussr,0,1,0,,PRSD919_Azur_Tashkent,AL Tashkent,AL Tashkent,AL 塔什干,AL塔什干,AL Tashkent,AL Tashkent,AL Ташкент,1
@@ -995,3 +995,9 @@ ship_id,tier,type,nation,is_old,premium,special,rarity,index,en_short,en_full,zh
 3342808912,8,Battleship,france,0,1,0,,PFSB908_Azur_Richelieu,AL Richelieu,AL Richelieu,AL 黎塞留,AL黎塞留,AL Richelieu,AL Richelieu,AL Richelieu,1
 3530470608,9,Cruiser,pan_asia,0,0,1,,PZSC729_Baotou,Baotou,Baotou,朔海,包头,Baotou,Baotou,Baotou,1
 3341760240,9,Battleship,italy,0,1,0,,PISB909_Azur_Marco_Polo,AL Marco Polo,AL Marco Polo,AL 马可·波罗,AL马可波罗,AL Marco Polo,AL Marco Polo,AL Marco Polo,1
+3550361040,10,Destroyer,ussr,0,0,1,,PRSD710_Peredovoy,Peredovoy,Peredovoy,先进,先进,Peredovoy,Peredovoy,Передовой,1
+3550361296,10,Destroyer,japan,0,0,1,,PJSD710_Fuyutsuki,Fuyutsuki,Fuyutsuki,柚,冬月,Fuyutsuki,冬月,Fuyutsuki,1
+4272862928,11,Cruiser,japan,0,0,1,,PJSC021_Kurama,Kurama,Kurama,夔,鞍马,Kurama,鞍馬,Kurama,1
+3539941104,10,Battleship,italy,0,0,1,,PISB720_Conte_Verde,Conte Verde,Conte Verde,绿伯爵,绿伯爵,Conte Verde,Conte Verde,Conte Verde,1
+3551409520,9,Destroyer,commonwealth,0,0,1,,PUSD709_Cayuga,Cayuga,Cayuga,卡尤加,卡尤加,Cayuga,Cayuga,Cayuga,1
+3321837360,8,Battleship,germany,0,1,0,,PGSB928_Hunt_Bismarck_1941,Eiserner Kanzler,Eiserner Kanzler,铁血宰相,铁血宰相,Eiserner Kanzler,Eiserner Kanzler,Eiserner Kanzler,1

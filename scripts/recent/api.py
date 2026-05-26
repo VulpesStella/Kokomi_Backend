@@ -68,6 +68,7 @@ def record_http_metrics(
             error = response
     
     try:
+        redis_client.incrby(f'metrics:total:http', len(responses))
         redis_client.incrby(f'metrics:http_total:{today}', len(responses))
         if error_count > 0:
             redis_client.incrby(f'metrics:http_error:{today}', error_count)

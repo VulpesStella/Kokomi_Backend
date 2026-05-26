@@ -50,7 +50,7 @@ class TqdmAwareLogger(logging.Logger):
         log_path.parent.mkdir(parents=True, exist_ok=True)
         
         handler = logging.FileHandler(log_path, mode='a', encoding='utf-8')
-        handler.setLevel(logging.ERROR)  # 只记录 error 信息
+        handler.setLevel(logging.WARNING)  # 记录 warning/error 信息
         handler.setFormatter(logging.Formatter(
             '%(asctime)s [%(levelname)s] %(message)s',
             datefmt=DATE_FMT

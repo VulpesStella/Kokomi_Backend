@@ -6,6 +6,7 @@ from typing import Optional, Union
 
 from logger import logger
 from utils import get_current_iso_time
+from exception import write_exception
 from settings import VORTEX_API
 
 
@@ -21,8 +22,10 @@ def fetch_data(url: str) -> Union[dict, str]:
     try:
         body = [{"query":"query Version {\n  version\n}"}]
         resp = requests.post(url,json=body,timeout=5)
+
         if resp.status_code == 200:
             return resp.json()
+        
         return f'HTTP_STATUS_{resp.status_code}'
     except Exception as e:
         return f'ERROR_{type(e).__name__}'
@@ -44,22 +47,27 @@ def record_http_metrics(
     Returns:
         错误字符串，全部成功则返回 None
     """
-    today = get_current_iso_time()[:10]
     error_count = 0
     error = None
 
+    today = get_current_iso_time()[:10]
+
+    # 检查所有的返回数据
     for i, response in enumerate(responses):
         if isinstance(response, str):
             logger.warning(f'{response} {urls[i]}')
             error_count += 1
             error = response
     
+    # 记录游戏 API 调用的统计数据
     try:
-        redis_client.incrby(f'metrics:http_total:{today}', len(responses))
+        redis_client.incrby(f'metrics:total:http', len(urls))
+        redis_client.incrby(f'metrics:http_total:{today}', len(urls))
+
         if error_count > 0:
             redis_client.incrby(f'metrics:http_error:{today}', error_count)
     except Exception:
-        logger.warning('Failed to update HTTP metrics')
+        logger.warning('Failed to record HTTP metrics')
 
     return error
 
@@ -70,21 +78,39 @@ def fetch_latest_version(redis_client: Redis) -> Optional[dict]:
         redis_client: Redis 客户端，用于记录请求指标
 
     Returns:
-        包含 'short' 和 'full' 键的 Dict
+        包含 'short' 和 'full' 键的 Dict，
         失败时返回 None
     """
     try:
         base_url = random.choice(VORTEX_API)
+
         url = f'{base_url}/api/v2/graphql/glossary/version/'
-        result = fetch_data(url)
-        error = record_http_metrics(redis_client, [result], [url])
+        response = fetch_data(url)
+
+        error = record_http_metrics(redis_client, [response], [url])
         if error:
             return
         
-        version = result[0]['data']['version']
+        if not isinstance(response, list) or len(response) != 1:
+            logger.warning("Game_API_Error")
+            return
+        
+        response = response[0]
+        result = response.get('data', {}).get('version')
+
+        if result is None:
+            logger.warning("Game_API_Error")
+            return
+        
         return {
-            'short': ".".join(version.split(".")[:2]),
-            'full': version
+            'short': ".".join(result.split(".")[:2]),
+            'full': result
         }
-    except Exception:
-        logger.error(traceback.format_exc())
+    except Exception as e:
+        error_name = type(e).__name__
+        logger.error(f"Fetch latest version failed: {error_name}")
+        write_exception(
+            error_type="NetworkError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )

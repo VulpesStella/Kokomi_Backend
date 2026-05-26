@@ -13,7 +13,10 @@ def fetch_data(url: str, params: dict = None):
         resp = requests.get(url, params=params, timeout=5)
         if resp.status_code == 200:
             result = resp.json()
-            return result
+            if result.get('status') == 'ok':
+                return result.get('data', {})
+            else:
+                return "Game_API_Failed"
         elif resp.status_code == 404:
             return {}
         return f'HTTP_STATUS_{resp.status_code}'
@@ -23,11 +26,11 @@ def fetch_data(url: str, params: dict = None):
 @handle_program_exception_sync
 def refresh_user(account_id: int):
     now_date = get_current_iso_time()[:10]
-    redis_client.incr(f'metrics:celery:{now_date}')
+    redis_client.incr('metrics:total:celery')
+    redis_client.incr(f'metrics:celery_total:{now_date}')
 
     # 删除redis的key
-    key = f"refresh_lock:user:{account_id}"
-    redis_client.delete(key)
+    redis_client.delete(f"refresh_lock:user:{account_id}")
 
     # 请求接口
     redis_key = f"token:ac:{account_id}"
@@ -37,19 +40,18 @@ def refresh_user(account_id: int):
     url = f'{base_url}/api/accounts/{account_id}/' + (f'?ac={ac}' if ac else '')
     response = fetch_data(url)
 
-    key = f"metrics:http_total:{now_date}"
-    redis_client.incr(key)
+    redis_client.incr("metrics:total:http")
+    redis_client.incr(f"metrics:http_total:{now_date}")
     if isinstance(response, str):
-        key = f"metrics:http_error:{now_date}"
-        redis_client.incr(key)
+        redis_client.incr(f"metrics:http_error:{now_date}")
+        redis_client.incr(f'metrics:celery_error:{now_date}')
         return response  
-    
-    # 处理异常情况
-    if response.get('status') != 'ok':
-        return 'GameAPI Error'
-    response = response.get('data', {})
 
     with db_pool.connection() as conn:
         result = UserStatsSyncer.refresh(conn, account_id, response)
-        
-    return result if isinstance(result, str) else 'Success'
+    
+    if isinstance(result, str):
+        redis_client.incr(f'metrics:celery_error:{now_date}')
+        return result
+    else:
+        return 'Success'

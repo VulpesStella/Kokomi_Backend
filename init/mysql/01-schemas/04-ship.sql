@@ -245,7 +245,7 @@ CREATE TABLE IF NOT EXISTS ARCH_ship_stats_by_recent (
 CREATE TABLE IF NOT EXISTS STAGING_ship_recent_data (
     uuid            CHAR(36)     NOT NULL,          -- 唯一标识
 
-    status          ENUM('pending','done') DEFAULT 'pending',  -- 处理状态
+    status          ENUM('pending', 'done', 'error') DEFAULT 'pending',  -- 处理状态
     game_version    VARCHAR(10)  NOT NULL,          -- 游戏版本号
     account_id      BIGINT       NOT NULL,          -- 用户 ID
     payload         JSON         NOT NULL,          -- 原始数据

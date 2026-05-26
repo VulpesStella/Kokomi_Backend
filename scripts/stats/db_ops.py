@@ -3,6 +3,7 @@ from pymysql import Connection
 from pymysql.cursors import Cursor
 
 from logger import logger
+from exception import write_exception
 
 def need_update(conn: Connection, tracking_key: str, tracking_type: str) -> bool:
     """检查并更新数据追踪状态，判断是否需要执行更新任务
@@ -45,9 +46,15 @@ def need_update(conn: Connection, tracking_key: str, tracking_type: str) -> bool
                   AND tracking_type = %s;
             """
             cursor.execute(sql, [tracking_key, tracking_type])
-    except Exception:
+    except Exception as e:
         conn.rollback()
-        logger.error(traceback.format_exc())
+        error_name = type(e).__name__
+        logger.error(f"Database operation exception: {error_name}")
+        write_exception(
+            error_type="DatabaseError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )
         return False
 
     return True

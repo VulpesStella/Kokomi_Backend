@@ -14,6 +14,7 @@ from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, logger
 from updater import UserCacheUpdater
+from exception import write_exception
 from utils import get_formatted_date
 from db_ops import (
     get_update_ids,
@@ -69,16 +70,13 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
     # 加载待更新用户列表、船只基准数据和极值记录
     try:
         with mysql_connection.cursor() as cursor:
-            update_ids = get_update_ids(cursor)
+            # 读取需要更新的用户id列表
+            update_ids = get_update_ids(cursor, REFRESH_INTERVAL * 4)
 
             len_update_ids = len(update_ids)
+            logger.info(f'Current loop plan update count: {len_update_ids}')
             if len_update_ids == 0:
                 return
-            if len_update_ids > REFRESH_INTERVAL * 4:
-                update_ids = update_ids[:REFRESH_INTERVAL * 4]
-                len_update_ids = len(update_ids)
-            
-            logger.info(f'Current loop update numbers: {len_update_ids}')
 
             # 加载符合排行榜统计船只的数据
             ship_data = read_ship_data(cursor)
@@ -86,9 +84,17 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
             # 读取船只相关字段的最高记录信息
             ship_record = read_ship_record(cursor)
 
+            # 读取最新版本信息
             game_version, version_start = read_game_version(cursor)
-    except Exception:
-        logger.error(traceback.format_exc())
+        
+    except Exception as e:
+        error_name = type(e).__name__
+        logger.error(f"Database operation exception: {error_name}")
+        write_exception(
+            error_type="DatabaseError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )
         return
     
     # 主更新循环
@@ -108,11 +114,19 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
 
     try:
         with mysql_connection.cursor() as cursor:
-            update_ship_record(cursor, updater.ship_record)
+            row_count = update_ship_record(cursor, updater.ship_record)
+            logger.info(f"Highest record of ships refreshed: {row_count}")
+            
         mysql_connection.commit()
-    except Exception:
+    except Exception as e:
         mysql_connection.rollback()
-        logger.error(traceback.format_exc())
+        error_name = type(e).__name__
+        logger.error(f"Database operation exception: {error_name}")
+        write_exception(
+            error_type="DatabaseError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )
 
 def main():
     """主调度循环
@@ -137,14 +151,23 @@ def main():
                 mysql_connection=mysql_connection,
                 redis_client=redis_client
             )
-        except Exception:
-            logger.error(traceback.format_exc())
+        except Exception as e:
+            # 记录错误信息
+            error_name = type(e).__name__
+            logger.error(f"A fatal error occurred in the loop: {error_name}")
+            write_exception(
+                error_type="ProgramError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
+
             # 严重错误导致的循环中断，删除用于标记服务状态的key
             try:
                 if redis_client:
                     redis_client.delete(f'status:{CLIENT_NAME}')
             except Exception as e:
-                logger.error(f'Failed to delete status key: {e}')
+                error_name = type(e).__name__
+                logger.error(f'Failed to delete status key: {error_name}')
         finally:
             # 大部分情况下每次循环运行时间远小于刷新间隔，大部分时间都处于sleep状态
             # 为了减少相关资源占用，每次循环结束后关闭所有连接，释放资源空间
@@ -155,6 +178,7 @@ def main():
                 mysql_connection.close()
             redis_client = None
             mysql_connection = None
+
             gc.collect()
 
         # 计算本次循环的实际运行时间，并根据刷新间隔决定是否需要sleep

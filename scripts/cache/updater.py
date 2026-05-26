@@ -7,9 +7,9 @@ from pymysql.cursors import Cursor
 from typing import Optional
 
 from logger import logger
+from exception import write_exception
 from api import fetch_user_pvp_data
 from utils import calc_ship_rating
-
 
 
 class UserCacheUpdater:
@@ -414,49 +414,49 @@ class UserCacheUpdater:
             # 构建排行榜缓存
             ship_ranking_cache = self._build_ranking_cache(pvp_data)
         except Exception as e:
-            logger.error(traceback.format_exc())
-            logger.error(f'{account_id} | Data processing error: {type(e).__name__}')
+            error_name = type(e).__name__
+            logger.error(f'{account_id} | Data processing error: {error_name}')
+            write_exception(
+                error_type="ProgramError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
             return
-        
-        if ship_pvp_cache == {}:
-            try:
-                with mysql_connection.cursor() as cursor:
-                    self._update_user_cache(cursor, account_id, None)
-                
-                mysql_connection.commit()
-                return
-            except Exception as e:
-                mysql_connection.rollback()
-                logger.error(traceback.format_exc())
-                logger.error(f'{account_id} | Update database failed: {type(e).__name__}')
-                return
 
         # 数据库更新或者写入操作
         try:
             with mysql_connection.cursor() as cursor:
-                # 获取本地缓存
-                local_cache = self._get_local_cache(cursor, account_id)
-                
-                # 更新各项数据
-                self._update_user_cache(cursor, account_id, ship_pvp_cache)
-                self._upsert_leaderboard(cursor, ship_ranking_cache, account_id)
-                
-                # 处理近期数据变化
-                if local_cache:
-                    diff_data = self._calc_recent_diff(local_cache, ship_pvp_cache)
-                    self._insert_recent_diff_data(cursor, account_id, diff_data)
+                if ship_pvp_cache == {}:
+                    self._update_user_cache(cursor, account_id, None)
+                else:
+                    # 获取本地缓存
+                    local_cache = self._get_local_cache(cursor, account_id)
+                    
+                    # 更新各项数据
+                    self._update_user_cache(cursor, account_id, ship_pvp_cache)
+                    self._upsert_leaderboard(cursor, ship_ranking_cache, account_id)
+                    
+                    # 处理近期数据变化
+                    if local_cache:
+                        diff_data = self._calc_recent_diff(local_cache, ship_pvp_cache)
+                        self._insert_recent_diff_data(cursor, account_id, diff_data)
             
             mysql_connection.commit()
         except Exception as e:
             mysql_connection.rollback()
-            logger.error(traceback.format_exc())
-            logger.error(f'{account_id} | Update database failed: {type(e).__name__}')
+            error_name = type(e).__name__
+            logger.error(f'{account_id} | Update database failed: {error_name}')
+            write_exception(
+                error_type="DatabaseError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
             return
         
         # 更新 Redis
         try:
             # 更新Redis中的排行榜数据
-            if not ship_ranking_cache:
+            if ship_ranking_cache == {}:
                 return
             
             pipe = redis_client.pipeline()
@@ -467,5 +467,10 @@ class UserCacheUpdater:
                 pipe.zadd(key, {str(account_id): values[1]})
             pipe.execute()
         except Exception as e:
-            logger.error(traceback.format_exc())
+            error_name = type(e).__name__
             logger.error(f'{account_id} | Refresh redis failed: {type(e).__name__}')
+            write_exception(
+                error_type="DatabaseError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )

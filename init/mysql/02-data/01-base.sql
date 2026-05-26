@@ -103,6 +103,13 @@ VALUES
     ('planes'),
     ('rating');
 
+INSERT INTO T_base_id
+    (meta)
+VALUES
+    ('user'),
+    ('clan'),
+    ('ship');
+
 INSERT INTO T_metric_level_thresholds 
     (metric_id, threshold)
 VALUES
@@ -112,6 +119,7 @@ VALUES
 INSERT INTO T_tracking_meta 
     (tracking_key, tracking_type) 
 VALUES
+    ('base_table', 'archive_time')
     ('ship_stats', 'update_time'),
     ('clan_season', 'refresh_time');
 

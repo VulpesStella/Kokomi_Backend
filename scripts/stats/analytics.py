@@ -1,17 +1,3 @@
-"""
-舰船统计数据聚合模块
-
-提供 ShipStatsAggregator 聚合器和 HistogramBins 直方图管理器。
-
-ShipStatsAggregator 从用户 PvP 缓存数据中聚合四类统计：
-  1. 服务器场次平均 —— 所有用户原始数据累加后求均值
-  2. 服务器用户平均 —— 有效用户（battles > 10）的场均表现均值
-  3. Rating 分布直方图 —— 用于计算各百分位数阈值
-  4. 船只持有统计 —— 每艘船的用户数和总场次
-
-HistogramBins 提供固定桶宽直方图的落桶与百分位数反算。
-"""
-
 import json
 from collections import defaultdict
 

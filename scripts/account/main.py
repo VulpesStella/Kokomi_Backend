@@ -14,11 +14,17 @@ from pymysql import Connection
 from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
+from updater import RefreshPlanStats
+from api import fetch_latest_version
+from exception import write_exception
 from db_ops import (
+    get_max_id,
+    get_version,
+    read_table_batch,
     refresh_version,
     aggregate_recent_data,
     archive_base_table,
-    get_update_ids,
+    write_stats_to_db
 )
 from settings import (
     REGION, 
@@ -27,7 +33,8 @@ from settings import (
     REFRESH_INTERVAL, 
     MYSQL_CONFIG, 
     REDIS_CONFIG,
-    RABBITMQ_CONFIG
+    RABBITMQ_CONFIG,
+    BATCH_SIZE
 )
 
 
@@ -51,7 +58,13 @@ def send_task(celery_app: Celery, task_name: str, entity_id: int, queue: str) ->
         )
         return True
     except Exception as e:
-        logger.error(f"Send Task failed: {entity_id} | {type(e).__name__}")
+        error_name = type(e).__name__
+        logger.error(f"Send Task failed: {entity_id} | {error_name}")
+        write_exception(
+            error_type="CeleryError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )
         return False
     
 def progress_iterable(
@@ -93,30 +106,110 @@ def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery
     # 1.检测游戏版本是否更新
     try:
         with mysql_connection.cursor() as cursor:
-            refresh_version(cursor, redis_client)
+            # 读取本地数据中的最新赛季
+            local_version = get_version(cursor)
+            if local_version and not local_version[1]:
+                # 有数据且当前不需要更新
+                logger.debug('Skip to refresh version data step')
+            else:
+                # 请求 API 获取最新版本信息
+                latest_version = fetch_latest_version(redis_client)
+                if not isinstance(latest_version, dict):
+                    logger.warning(f'Failed to obtain latest version')
+                else:
+                    # 刷新数据库
+                    refresh_version(cursor, local_version[0], latest_version)
 
         mysql_connection.commit()
-    except Exception:
+    except Exception as e:
         mysql_connection.rollback()
-        logger.error(traceback.format_exc())
-
+        error_name = type(e).__name__
+        logger.error(f"Database operation exception: {error_name}")
+        write_exception(
+            error_type="DatabaseError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )
+    
     # 2. 归档近期和基本数据
     try:
         with mysql_connection.cursor() as cursor:
-            aggregate_recent_data(cursor)
             archive_base_table(cursor)
+            aggregate_recent_data(cursor)
+
         mysql_connection.commit()
-    except Exception:
+    except Exception as e:
         mysql_connection.rollback()
-        logger.error(traceback.format_exc())
-
+        error_name = type(e).__name__
+        logger.error(f"Database operation exception: {error_name}")
+        write_exception(
+            error_type="DatabaseError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )
+        
     # 3.更新玩家的基本数据
-    update_ids = get_update_ids(mysql_connection, redis_client)
-    len_update_ids = len(update_ids)
-    if len_update_ids != 0:
-        logger.info(f'Current user update numbers: {len_update_ids}')
+    refresh_plan = RefreshPlanStats()
+    try:
+        with mysql_connection.cursor() as cursor:
+            # 读取自增 ID 列最大值作为终止值
+            max_id = get_max_id(cursor)
 
+            # 分批读取并处理数据
+            for start_id in range(1, max_id + 1, BATCH_SIZE):
+                end_id = start_id + BATCH_SIZE - 1
+                rows = read_table_batch(cursor, start_id, end_id)
+                if not rows:
+                    continue
+                
+                # 统计并获取本批到期 ID
+                due_ids = refresh_plan.add_batch(rows)
+                if len(due_ids) == 0:
+                    continue
+
+                # 通过 Redis 批量加锁
+                try:
+                    pipe = redis_client.pipeline()
+                    keys = [f"refresh_lock:user:{uid}" for uid in due_ids]
+                    for key in keys:
+                        pipe.set(key, 1, nx=True, ex=4*3600)
+                    results = pipe.execute()
+
+                    locked_ids = [due_ids[i] for i, r in enumerate(results) if r]
+                    refresh_plan.add_locked_ids(locked_ids)
+                except Exception:
+                    logger.warning('Failed to set the distributed lock')
+
+            # 平衡未来 24h 内的计划更新分布
+            refresh_plan.rebalance_plan()
+            
+            # 将统计结果写入数据库
+            write_stats_to_db(cursor, refresh_plan.get_db_update_data())
+        mysql_connection.commit()
+    except Exception as e:
+        mysql_connection.rollback()
+        error_name = type(e).__name__
+        logger.error(f"Database operation exception: {error_name}")
+        write_exception(
+            error_type="DatabaseError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )
+
+    skipped = refresh_plan.total_due - refresh_plan.locked
+    logger.info(
+        'User update schedule - Total: %s | Locked: %s | Skipped: %s',
+        refresh_plan.total_due, refresh_plan.locked, skipped
+    )
+    logger.info('Planned user updates within today: %s', refresh_plan.today_remained_count)
+
+    update_ids = refresh_plan.get_update_ids()
+    len_update_ids = len(update_ids)
+    logger.info(f'Current loop plan update count: {len_update_ids}')
+
+    if len_update_ids != 0:
         failed_count = 0
+
         logger.enable_tqdm()
         for update_data in progress_iterable(
             items=update_ids, 
@@ -127,6 +220,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery
                 redis_client.delete(f"refresh_lock:user:{update_data}")
                 failed_count += 1
         logger.disable_tqdm()
+        
         logger.info(f'Task sent completed - Success: {len_update_ids - failed_count} | Failed: {failed_count}')
 
 def main():
@@ -158,14 +252,23 @@ def main():
                 redis_client=redis_client,
                 celery_app=celery_app
             )
-        except Exception:
-            logger.error(traceback.format_exc())
+        except Exception as e:
+            # 记录错误信息
+            error_name = type(e).__name__
+            logger.error(f"A fatal error occurred in the loop: {error_name}")
+            write_exception(
+                error_type="ProgramError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
+
             # 严重错误导致的循环中断，删除用于标记服务状态的key
             try:
                 if redis_client:
                     redis_client.delete(f'status:{CLIENT_NAME}')
             except Exception as e:
-                logger.error(f'Failed to delete status key: {e}')
+                error_name = type(e).__name__
+                logger.error(f'Failed to delete status key: {error_name}')
         finally:
             # 大部分情况下每次循环运行时间远小于刷新间隔，大部分时间都处于sleep状态
             # 为了减少相关资源占用，每次循环结束后关闭所有连接，释放资源空间
@@ -176,6 +279,7 @@ def main():
                 mysql_connection.close()
             redis_client = None
             mysql_connection = None
+
             gc.collect()
 
         # 计算本次循环的实际运行时间，并根据刷新间隔决定是否需要sleep

@@ -1,4 +1,4 @@
-ship_id,tier,type,nation,is_old,premium,special,rarity,index,en_short,en_full,zh_cn,zh_sg,zh_tw,ja,ru,verify
+﻿ship_id,tier,type,nation,is_old,premium,special,rarity,index,en_short,en_full,zh_cn,zh_sg,zh_tw,ja,ru,verify
 3765319664,5,Destroyer,usa,0,1,0,,PASD505_Hill,Hill,Hill,,希尔,,Hill,Hill,1
 3760109552,9,Cruiser,usa,0,1,0,,PASC510_Alaska,Alaska,Alaska,,阿拉斯加,,Alaska,Alaska,1
 3553572848,7,Battleship,usa,0,1,0,,PASB707_California,California,California,,加利福尼亚,,California,California,1
@@ -924,12 +924,18 @@ ship_id,tier,type,nation,is_old,premium,special,rarity,index,en_short,en_full,zh
 3718166224,10,Cruiser,japan,0,0,1,,PJSC550_Kaimon,Kaimon,Kaimon,,海门,,Kaimon,Kaimon,1
 3256792912,10,Cruiser,france,0,0,1,,PFSC990_Cruiser_test,Marseille (ЭМ),Marseille (ЭМ),,马赛（测试）,,Marseille (ЭМ),Marseille (ЭМ),1
 3759028208,11,Destroyer,usa,0,0,1,,PASD511_Stonewall,Stonewall,Stonewall,,石墙,,Stonewall,Stonewall,1
-3759028176,11,Destroyer,uk,0,0,1,,PBSD511_Waterloo,Waterloo,Waterloo,,Waterloo,,Waterloo,Waterloo,0
-3970906096,9,Battleship,usa,0,0,1,,PASB309_Indiana,Indiana,Indiana,,Indiana,,Indiana,Indiana,0
-3739137840,10,Cruiser,germany,0,0,1,,PGSC530_Wotan,Wotan,Wotan,,Wotan,,Wotan,Wotan,0
-3749590800,10,Destroyer,netherlands,0,0,1,,PHSD520_Utrecht,Utrecht,Utrecht,,Utrecht,,Utrecht,Utrecht,0
-3728652272,10,Cruiser,usa,0,0,1,,PASC540_Shenandoah,Shenandoah,Shenandoah,,Shenandoah,,Shenandoah,Shenandoah,0
-3969857520,10,Battleship,usa,0,0,1,,PASB310_New_Jersey,New Jersey,New Jersey,,New Jersey,,New Jersey,New Jersey,0
-3971954672,8,Battleship,usa,0,0,1,,PASB308_Washington,Washington,Washington,,Washington,,Washington,Washington,0
-4073666544,11,Battleship,usa,0,0,1,,PASB211_Virginia,Virginia,Virginia,,Virginia,,Virginia,Virginia,0
-3973003248,7,Battleship,usa,0,0,1,,PASB307_Connecticut,Connecticut,Connecticut,,Connecticut,,Connecticut,Connecticut,0
+3759028176,11,Destroyer,uk,0,0,1,,PBSD511_Waterloo,Waterloo,Waterloo,,滑铁卢,,Waterloo,Waterloo,1
+3970906096,9,Battleship,usa,0,0,1,,PASB309_Indiana,Indiana,Indiana,,印第安纳,,Indiana,Indiana,1
+3739137840,10,Cruiser,germany,0,0,1,,PGSC530_Wotan,Wotan,Wotan,,沃坦,,Wotan,Wotan,1
+3749590800,10,Destroyer,netherlands,0,0,1,,PHSD520_Utrecht,Utrecht,Utrecht,,乌得勒支,,Utrecht,Utrecht,1
+3728652272,10,Cruiser,usa,0,0,1,,PASC540_Shenandoah,Shenandoah,Shenandoah,,谢南多厄,,Shenandoah,Shenandoah,1
+3969857520,10,Battleship,usa,0,0,1,,PASB310_New_Jersey,New Jersey,New Jersey,,新泽西,,New Jersey,New Jersey,1
+3971954672,8,Battleship,usa,0,0,1,,PASB308_Washington,Washington,Washington,,华盛顿,,Washington,Washington,1
+4073666544,11,Battleship,usa,0,0,1,,PASB211_Virginia,Virginia,Virginia,,弗吉尼亚,,Virginia,Virginia,1
+3973003248,7,Battleship,usa,0,0,1,,PASB307_Connecticut,Connecticut,Connecticut,,康涅狄格,,Connecticut,Connecticut,1
+3762271952,8,AirCarrier,japan,0,1,0,,PJSA508_Akagi,Akagi,Akagi,,赤城,,Akagi,Akagi,1
+3446584784,9,Cruiser,ussr,0,1,0,,PRSC809_Colorful_Riga,Рига CLR,Рига CLR,,里加 CLR,,Рига CLR,Рига CLR,1
+3749623792,10,Cruiser,usa,0,0,1,,PASC520_Northampton,Northampton,Northampton,,北安普顿,,Northampton,Northampton,1
+3435018224,10,Destroyer,usa,0,0,1,,PASD820_Colorful_Lynch,Lynch CLR,Lynch CLR,,林奇 CLR,,Lynch CLR,Lynch CLR,1
+3444520912,11,Battleship,uk,0,0,1,,PBSB811_Colorful_Devastation,Devastation CLR,Devastation CLR,,毁灭 CLR,,Devastation CLR,Devastation CLR,1
+3447633232,8,Cruiser,pan_america,0,1,0,,PVSC808_Colorful_Ignacio_Allende,I. Allende CLR,I. Allende CLR,,伊格纳西奥·阿连德 CLR,,I. Allende CLR,I. Allende CLR,1

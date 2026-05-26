@@ -78,8 +78,7 @@ def read_ship_record(cursor: Cursor) -> dict:
 def update_ship_record(cursor: Cursor, data: dict) -> None:
     """将船只 PvP 极值记录字典写回数据库
 
-    根据传入的嵌套字典结构，更新或插入 T_ship_pvp_record 表中的记录。
-    未在字典中出现的 ship_id 与 metric_id 组合不会被删除或修改。
+    根据传入的嵌套字典结构，更新或插入 T_ship_pvp_record 表中的记录
 
     Args:
         cursor: 数据库游标
@@ -110,8 +109,11 @@ def update_ship_record(cursor: Cursor, data: dict) -> None:
             top_user_ids_json = json.dumps(list(top_user_ids_set)) if len(top_user_ids_set) != None else None
             params_list.append((ship_id, metric_id, metric_value, users_count, top_user_ids_json))
     
-    if params_list:
-        cursor.executemany(sql, params_list)
+    if len(params_list) == 0:
+        return 0
+    
+    cursor.executemany(sql, params_list)
+    return cursor.rowcount
 
 def read_ship_data(cursor: Cursor) -> dict:
     """加载船只排行榜基准数据
@@ -151,7 +153,7 @@ def read_ship_data(cursor: Cursor) -> dict:
             ]
     return ship_info
 
-def get_update_ids(cursor: Cursor) -> list:
+def get_update_ids(cursor: Cursor, limit: int) -> list:
     """获取需要更新 PvP 缓存的用户 ID 列表
 
     Args:
@@ -164,7 +166,8 @@ def get_update_ids(cursor: Cursor) -> list:
         SELECT 
             account_id
         FROM T_user_cache 
-        WHERE is_due = 1;
+        WHERE is_due = 1
+        LIMIT %s;
     """
-    cursor.execute(sql)
+    cursor.execute(sql, [limit])
     return [row[0] for row in cursor.fetchall()]

@@ -1,7 +1,6 @@
 import json
 import time
 from redis import Redis
-from pymysql import Connection
 from pymysql.cursors import Cursor
 
 from logger import logger
@@ -27,16 +26,18 @@ def acquire_lock(
         max_retries: 最大重试次数
         retry_interval: 重试间隔
     """
+    try:
+        for _ in range(1, max_retries + 1):
+            acquired = redis_client.set(
+                lock_key, 1, nx=True, ex=expire_seconds
+            )
 
-    for _ in range(1, max_retries + 1):
-        acquired = redis_client.set(
-            lock_key, 1, nx=True, ex=expire_seconds
-        )
+            if acquired:
+                return True
 
-        if acquired:
-            return True
-
-        time.sleep(retry_interval)
+            time.sleep(retry_interval)
+    except Exception:
+        logger.warning('Failed to set the distributed lock')
 
     return False
 
@@ -50,7 +51,10 @@ def release_lock(
         redis_client: Redis 客户端
         lock_key: 锁的键名
     """
-    redis_client.delete(lock_key)
+    try:
+        redis_client.delete(lock_key)
+    except Exception:
+        logger.warning('Failed to release the distributed lock')
 
 class ClanUsersSyncer:
     @staticmethod
@@ -293,7 +297,7 @@ class ClanUsersSyncer:
             cursor.execute(sql, [clan_id, removed_id, 2])
 
     @classmethod
-    def refresh(cls, redis_client: Redis, conn: Connection, clan_id: int, users: dict) -> None:
+    def refresh(cls, redis_client: Redis, cursor: Cursor, clan_id: int, users: dict) -> int:
         """基于公会成员接口数据刷新数据库中的公会成员信息
 
         Args:
@@ -306,31 +310,27 @@ class ClanUsersSyncer:
         activity_level = cls._get_activity_level(len(user_ids))
 
         if len(user_ids) == 0:
-            with conn.cursor() as cursor:
-                cls._disable_empty_clan(cursor, clan_id)
-                conn.commit()
-                return
-             
-        with conn.cursor() as cursor:
-            old_data = cls._get_existing_members(cursor, clan_id)
-            existing_ids = cls._get_existing_users(cursor, user_ids)
-            missing_ids = [uid for uid in user_ids if uid not in existing_ids]
+            cls._disable_empty_clan(cursor, clan_id)
+            return 0
+            
+        old_data = cls._get_existing_members(cursor, clan_id)
+        existing_ids = cls._get_existing_users(cursor, user_ids)
+        missing_ids = [uid for uid in user_ids if uid not in existing_ids]
 
-            if missing_ids:
-                # 尽量避免并发写可能存在的问题，先获取锁再写
-                lock_key = 'refresh_lock:user_insert'
-                lock = acquire_lock(redis_client, lock_key)
-                if not lock:
-                    logger.warning('Acquire refesh lock failed')
-                    return
-                cls._init_new_users(cursor, missing_ids, users)
-                # 写入完成直接提交
-                conn.commit()
-                release_lock(redis_client, lock_key)
+        if missing_ids:
+            # 尽量避免并发写可能存在的问题，先获取锁再写
+            lock_key = 'refresh_lock:user_insert'
+            lock = acquire_lock(redis_client, lock_key)
+            if not lock:
+                logger.warning('Acquire distributed lock failed')
+                return 0
+            cls._init_new_users(cursor, missing_ids, users)
+            # 写入完成直接提交
+            release_lock(redis_client, lock_key)
 
-            cls._remove_left_members(cursor, clan_id, set(user_ids))
-            cls._update_member_relations(cursor, clan_id, user_ids)
-            cls._update_clan_users(cursor, clan_id, activity_level, user_ids)
-            cls._record_member_changes(cursor, clan_id, old_data, user_ids)
-            conn.commit()
-            return
+        cls._remove_left_members(cursor, clan_id, set(user_ids))
+        cls._update_member_relations(cursor, clan_id, user_ids)
+        cls._update_clan_users(cursor, clan_id, activity_level, user_ids)
+        cls._record_member_changes(cursor, clan_id, old_data, user_ids)
+
+        return len(missing_ids)

@@ -14,15 +14,22 @@ from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
 from syncer import ClanUsersSyncer
-from db_ops import get_update_ids
+from updater import RefreshPlanStats
 from api import fetch_clan_members
+from exception import write_exception
+from db_ops import (
+    get_max_id,
+    read_table_batch,
+    write_stats_to_db
+)
 from settings import (
     REGION, 
     USE_TQDM,
     CLIENT_NAME, 
     REFRESH_INTERVAL, 
     MYSQL_CONFIG, 
-    REDIS_CONFIG
+    REDIS_CONFIG,
+    BATCH_SIZE
 )
 
     
@@ -54,27 +61,53 @@ def progress_iterable(
 def worker(mysql_connection: Connection, redis_client: Redis) -> None:
     """单轮维护调度执行体
 
-    执行版本同步、暂存数据聚合、用户/公会刷新 ID 筛选与 Celery 任务分发、
-    以及统计数据归档共四个阶段的维护操作。
-
     Args:
         mysql_connection: MySQL 数据库连接
         redis_client: Redis 客户端
-        celery_app: Celery 应用实例
     """
-    
+    refresh_plan = RefreshPlanStats()
+    try:
+        with mysql_connection.cursor() as cursor:
+            # 读取自增 ID 列最大值作为终止值
+            max_id = get_max_id(cursor)
 
-    # 更新工会的基本数据
-    update_ids = get_update_ids(mysql_connection)
+            # 分批读取并处理数据
+            for start_id in range(1, max_id + 1, BATCH_SIZE):
+                end_id = start_id + BATCH_SIZE - 1
+                rows = read_table_batch(cursor, start_id, end_id)
+                if not rows:
+                    continue
+                
+                # 统计并获取本批到期 ID
+                refresh_plan.add_batch(rows)
 
+            # 平衡未来 24h 内的计划更新分布
+            refresh_plan.rebalance_plan()
+            
+            # 将统计结果写入数据库
+            write_stats_to_db(cursor, refresh_plan.get_db_update_data())
+        mysql_connection.commit()
+    except Exception as e:
+        mysql_connection.rollback()
+        error_name = type(e).__name__
+        logger.error(f"Database operation exception: {error_name}")
+        write_exception(
+            error_type="DatabaseError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )
+
+    logger.info('Planned clan updates within today: %s', refresh_plan.today_remained_count)
+
+    new_count = 0
+    refresh_limit = REFRESH_INTERVAL * 4
+
+    update_ids = refresh_plan.get_update_ids(limit=refresh_limit)
     len_update_ids = len(update_ids)
+    logger.info(f'Current loop plan update count: {len_update_ids}')
+
     if len_update_ids == 0:
         return
-    if len_update_ids > REFRESH_INTERVAL * 4:
-        update_ids = update_ids[:REFRESH_INTERVAL * 4]
-        len_update_ids = len(update_ids)
-        
-    logger.info(f'Current loop update numbers: {len_update_ids}')
 
     logger.enable_tqdm()
     for update_data in progress_iterable(
@@ -84,15 +117,31 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
     ):
         response = fetch_clan_members(redis_client, update_data)
 
-        if not response:
+        if not isinstance(response, list):
+            logger.error(f'{update_data} | Failed to obtain data')
             continue
         
         users = {}
-        for user_info in response.get('items', []):
+        for user_info in response:
             users[user_info['id']] = user_info['name']
+        try:
+            with mysql_connection.cursor() as cursor:
+                new_count += ClanUsersSyncer.refresh(redis_client, cursor, update_data, users)
 
-        ClanUsersSyncer.refresh(redis_client, mysql_connection, update_data, users)
+            mysql_connection.commit()
+        except Exception as e:
+            mysql_connection.rollback()
+            error_name = type(e).__name__
+            logger.error(f"Database operation exception: {error_name}")
+            write_exception(
+                error_type="DatabaseError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
     logger.disable_tqdm()
+
+    if new_count:
+        logger.info(f'New users inserted this loop: {new_count}')
 
 def main():
     """主调度循环"""
@@ -112,14 +161,23 @@ def main():
                 mysql_connection=mysql_connection,
                 redis_client=redis_client
             )
-        except Exception:
-            logger.error(traceback.format_exc())
+        except Exception as e:
+            # 记录错误信息
+            error_name = type(e).__name__
+            logger.error(f"A fatal error occurred in the loop: {error_name}")
+            write_exception(
+                error_type="ProgramError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
+
             # 严重错误导致的循环中断，删除用于标记服务状态的key
             try:
                 if redis_client:
                     redis_client.delete(f'status:{CLIENT_NAME}')
             except Exception as e:
-                logger.error(f'Failed to delete status key: {e}')
+                error_name = type(e).__name__
+                logger.error(f'Failed to delete status key: {error_name}')
         finally:
             # 大部分情况下每次循环运行时间远小于刷新间隔，大部分时间都处于sleep状态
             # 为了减少相关资源占用，每次循环结束后关闭所有连接，释放资源空间

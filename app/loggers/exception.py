@@ -4,7 +4,7 @@ import httpx
 import traceback
 import aiomysql
 
-from .error_log import write_error_info
+from .error_log import write_exception
 from app.response import JSONResponse
 
 
@@ -18,12 +18,11 @@ class ExceptionLogger:
                 return result
             except Exception as e:
                 error_id = str(uuid.uuid4())
-                write_error_info(
-                    error_id = error_id,
-                    error_type = 'ProgramError',
-                    error_name = str(type(e).__name__),
-                    error_args = str(args) + str(kwargs),
-                    error_info = traceback.format_exc()
+                write_exception(
+                    error_type = "ProgramError",
+                    error_name = type(e).__name__,
+                    error_info = traceback.format_exc(),
+                    error_id=error_id
                 )
                 return JSONResponse.get_error_response(3000,'ProgramError',error_id)
         return wrapper
@@ -49,12 +48,11 @@ class ExceptionLogger:
                 return JSONResponse.get_error_response(3106, 'HttpxHTTPStatusError')
             except Exception as e:
                 error_id = str(uuid.uuid4())
-                write_error_info(
-                    error_id = error_id,
-                    error_type = 'NetworkError',
-                    error_name = str(type(e).__name__),
-                    error_args = str(args) + str(kwargs),
-                    error_info = traceback.format_exc()
+                write_exception(
+                    error_type = "NetworkError",
+                    error_name = type(e).__name__,
+                    error_info = traceback.format_exc(),
+                    error_id=error_id
                 )
                 return JSONResponse.get_error_response(3100,'NetworkError',error_id)
         return wrapper
@@ -68,51 +66,47 @@ class ExceptionLogger:
                 return result
             except aiomysql.ProgrammingError as e:
                 error_id = str(uuid.uuid4())
-                write_error_info(
-                    error_id = error_id,
-                    error_type = "MySQL",
+                write_exception(
+                    error_type = "DatabaseError",
                     error_name = "MySQLProgrammingError",
-                    error_args = str(args) + str(kwargs),
-                    error_info = f'ERROR_{e.args[0]}\n' + str(e.args[1]) + f'\n{traceback.format_exc()}'
+                    error_info = traceback.format_exc(),
+                    error_id=error_id
                 )
                 return JSONResponse.get_error_response(3002,'MySQLProgrammingError',error_id)
             except aiomysql.OperationalError as e:
                 error_id = str(uuid.uuid4())
-                write_error_info(
-                    error_id = error_id,
-                    error_type = "MySQL",
+                write_exception(
+                    error_type = "DatabaseError",
                     error_name = "MySQLOperationalError",
-                    error_args = str(args) + str(kwargs),
-                    error_info = f'ERROR_{e.args[0]}\n' + str(e.args[1]) + f'\n{traceback.format_exc()}'
+                    error_info = traceback.format_exc(),
+                    error_id=error_id
                 )
                 return JSONResponse.get_error_response(3003,'MySQLOperationalError',error_id)
             except aiomysql.IntegrityError as e:
                 error_id = str(uuid.uuid4())
-                write_error_info(
-                    error_id = error_id,
-                    error_type = "MySQL",
+                write_exception(
+                    error_type = "DatabaseError",
                     error_name = "MySQLIntegrityError",
-                    error_args = str(args) + str(kwargs),
-                    error_info = f'ERROR_{e.args[0]}\n' + str(e.args[1]) + f'\n{traceback.format_exc()}'
+                    error_info = traceback.format_exc(),
+                    error_id=error_id
                 )
                 return JSONResponse.get_error_response(3004,'MySQLIntegrityError',error_id)
             except aiomysql.DatabaseError as e:
                 error_id = str(uuid.uuid4())
-                write_error_info(
-                    error_id = error_id,
-                    error_type = "MySQL",
+                write_exception(
+                    error_type = "DatabaseError",
                     error_name = "MySQLDatabaseError",
-                    error_args = str(args) + str(kwargs),
-                    error_info = f'ERROR_{e.args[0]}\n' + str(e.args[1]) + f'\n{traceback.format_exc()}'
+                    error_info = traceback.format_exc(),
+                    error_id=error_id
                 )
                 return JSONResponse.get_error_response(3001,'MySQLDatabaseError',error_id)
             except Exception as e:
                 error_id = str(uuid.uuid4())
-                write_error_info(
-                    error_id = error_id,
+                write_exception(
                     error_type = 'ProgramError',
-                    error_name = str(type(e).__name__),
-                    error_info = traceback.format_exc()
+                    error_name = type(e).__name__,
+                    error_info = traceback.format_exc(),
+                    error_id=error_id
                 )
                 return JSONResponse.get_error_response(3000,'ProgramError',error_id)
         return wrapper
@@ -126,22 +120,20 @@ class ExceptionLogger:
                 return result
             except redis.RedisError as e:
                 error_id = str(uuid.uuid4())
-                write_error_info(
-                    error_id = error_id,
+                write_exception(
                     error_type = 'RedisError',
-                    error_name = str(type(e).__name__),
-                    error_args = str(args) + str(kwargs),
-                    error_info = f'\n{traceback.format_exc()}'
+                    error_name = type(e).__name__,
+                    error_info = traceback.format_exc(),
+                    error_id=error_id
                 )
                 return JSONResponse.get_error_response(3005,'RedisError',error_id)
             except Exception as e:
                 error_id = str(uuid.uuid4())
-                write_error_info(
-                    error_id = error_id,
+                write_exception(
                     error_type = 'ProgramError',
-                    error_name = str(type(e).__name__),
-                    error_args = str(args) + str(kwargs),
-                    error_info = traceback.format_exc()
+                    error_name = type(e).__name__,
+                    error_info = traceback.format_exc(),
+                    error_id=error_id
                 )
                 return JSONResponse.get_error_response(3000,'ProgramError',error_id)
         return wrapper
