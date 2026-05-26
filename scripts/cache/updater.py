@@ -404,15 +404,17 @@ class UserCacheUpdater:
             ship_ranking_cache = {}
             
             # 构建船只PVP缓存
-            pvp_data = response[str(account_id)]['statistics']
-            ship_pvp_cache = self._build_ship_pvp_cache(pvp_data)
-            ship_pvp_record = self._build_ship_pvp_record(pvp_data)
-            
-            # 更新船只记录
-            self._update_ship_records(ship_pvp_record, account_id)
-            
-            # 构建排行榜缓存
-            ship_ranking_cache = self._build_ranking_cache(pvp_data)
+            pvp_data = response.get(str(account_id), {}).get('statistics')
+
+            if pvp_data:
+                ship_pvp_cache = self._build_ship_pvp_cache(pvp_data)
+                ship_pvp_record = self._build_ship_pvp_record(pvp_data)
+                
+                # 更新船只记录
+                self._update_ship_records(ship_pvp_record, account_id)
+                
+                # 构建排行榜缓存
+                ship_ranking_cache = self._build_ranking_cache(pvp_data)
         except Exception as e:
             error_name = type(e).__name__
             logger.error(f'{account_id} | Data processing error: {error_name}')
