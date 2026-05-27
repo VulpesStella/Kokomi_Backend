@@ -1,0 +1,104 @@
+/* ========== 现代化加宽加高搜索栏 ========== */
+.err-search-wrapper {
+    margin-bottom: 12px;
+    width: 100%;
+}
+
+.err-search-form {
+    display: flex;
+    align-items: center;
+    gap: 14px;            /* 输入框与按钮的现代感间距 */
+    width: 100%;
+    max-width: 720px;     /* 💡 核心：大幅加宽搜索区域，大气不拥挤 */
+}
+
+/* 输入框组合容器 */
+.err-input-group {
+    position: relative;
+    flex: 1;              /* 撑满外层 720px 减去按钮后的剩余空间 */
+    display: flex;
+    align-items: center;
+}
+
+/* 内置放大镜图标位置微调 */
+.err-search-icon {
+    position: absolute;
+    left: 16px;
+    color: #94a3b8;
+    pointer-events: none;
+    transition: color 0.2s ease;
+}
+
+/* 现代化输入框主体（加高加宽） */
+.err-search-input {
+    width: 100%;
+    padding: 14px 44px 14px 48px; /* 💡 核心：纵向 padding 提升至 14px，高度明显变饱满 */
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 12px;         /* 略微微调圆角，匹配更大气的外观 */
+    font-size: 15px;             /* 字号同步放大，极具现代高级感 */
+    outline: none;
+    font-family: inherit;
+    color: var(--text-primary, #1e293b);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 输入框激活/聚焦动效 */
+.err-search-input:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+    background: #ffffff;
+}
+
+.err-search-input:focus + .err-search-icon {
+    color: #4f46e5;
+}
+
+.err-search-input::placeholder {
+    color: #a1a1aa;
+}
+
+/* 清除按钮位置同步居中 */
+.err-search-clear-btn {
+    position: absolute;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    color: #94a3b8;
+    border-radius: 50%;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.err-search-clear-btn:hover {
+    background: #f1f5f9;
+    color: #ef4444;
+}
+
+.err-search-btn {
+    padding: 14px 28px;          /* 💡 核心：上下高度与输入框完全严格同步 */
+    background: #4f46e5;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;             /* 字号同步放大 */
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 1px 2px 0 rgba(79, 70, 229, 0.2);
+    transition: all 0.2s ease;
+}
+
+.err-search-btn:hover {
+    background: #4338ca;
+    box-shadow: 0 4px 12px 0 rgba(79, 70, 229, 0.25);
+    transform: translateY(-1px);
+}
+
+.err-search-btn:active {
+    transform: translateY(0);
+}

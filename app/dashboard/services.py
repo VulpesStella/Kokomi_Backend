@@ -6,6 +6,9 @@ import json
 from datetime import datetime, timezone
 from typing import Dict, Any
 
+import math
+from pathlib import Path
+
 from app.core import EnvConfig
 from app.health import ServiceMetrics
 from app.models import PlatformModel
@@ -127,6 +130,10 @@ async def get_celery_data() -> Dict[str, Any]:
     memory_kb = round(queue['memory'] / 1024, 1) if queue['memory'] >= 0 else -1
     msg_kb = round(queue['message_bytes'] / 1024, 1) if queue['message_bytes'] >= 0 else -1
 
+    # 今日 Celery 失败任务数
+    today_str = now.date().isoformat()
+    celery_error_count = await ServiceMetrics.get_today_celery_error_count(today_str)
+
     return {
         "cards_row1": [
             {
@@ -186,10 +193,10 @@ async def get_celery_data() -> Dict[str, Any]:
                 "color": "#4facfe"
             },
             {
-                "title": "Reserved",
-                "value": "--",
-                "icon": "📌",
-                "color": "#a0a4b0"
+                "title": "Today's Failed Tasks",
+                "value": f"{celery_error_count:,}",
+                "icon": "❌",
+                "color": "#fa709a"
             },
         ],
         "celery_chart_json": json.dumps({
@@ -421,3 +428,63 @@ async def get_user_activity_data() -> Dict[str, Any]:
             "clan_values": hourly_clans,
         }),
     }
+
+
+def _parse_error_line(line: str) -> dict | None:
+    """解析单行错误日志: HH:MM:SS,Source,ErrorType,UUID"""
+    line = line.strip()
+    if not line:
+        return None
+    parts = line.split(",", 3)
+    if len(parts) < 4:
+        return None
+    return {
+        "time": parts[0],
+        "source": parts[1],
+        "error_type": parts[2],
+        "uuid": parts[3],
+    }
+
+
+def get_error_logs_data(today, log_dir, page: int = 1, per_page: int = 20, uuid_filter: str = "") -> dict:
+    """读取今日错误日志，支持分页和 UUID 精确查找"""
+    file = log_dir / f"error/{today.isoformat()}.log"
+    entries = []
+
+    if file.exists():
+        with open(file, "r", encoding="utf-8") as f:
+            for line in f:
+                parsed = _parse_error_line(line)
+                if parsed:
+                    entries.append(parsed)
+
+    # UUID 过滤
+    if uuid_filter:
+        entries = [e for e in entries if e["uuid"] == uuid_filter]
+
+    # 按时间倒序
+    entries.sort(key=lambda e: e["time"], reverse=True)
+
+    total = len(entries)
+    total_pages = max(1, math.ceil(total / per_page))
+    page = max(1, min(page, total_pages))
+    start = (page - 1) * per_page
+    page_entries = entries[start:start + per_page]
+
+    return {
+        "entries": page_entries,
+        "page": page,
+        "per_page": per_page,
+        "total": total,
+        "total_pages": total_pages,
+        "uuid_filter": uuid_filter,
+    }
+
+
+def get_exception_detail(uuid: str, log_dir) -> str | None:
+    """读取 UUID 对应的详细异常日志"""
+    file = log_dir / f"exception/{uuid}.log"
+    if file.exists():
+        with open(file, "r", encoding="utf-8") as f:
+            return f.read()
+    return None

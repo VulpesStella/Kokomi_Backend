@@ -1,6 +1,10 @@
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
+from app.core import EnvConfig
+
+
+METRIC_IDS = [3, 4, 5, 7, 8, 9]
 
 class ShipModel:
     @ExceptionLogger.handle_database_exception_async
@@ -75,3 +79,108 @@ class ShipModel:
                 }
             } 
             return JSONResponse.get_success_response(result)
+        
+    @ExceptionLogger.handle_database_exception_async
+    async def del_ships(ship_ids: list):
+        async with MySQLManager.auto_transaction_cursor as cur:
+            sql = """
+                UPDATE T_ship_base 
+                SET is_enabled = 0 
+                WHERE ship_id = %s;
+            """
+            await cur.executemany(sql, ship_ids)
+
+            return JSONResponse.API_1000_Success
+        
+    @ExceptionLogger.handle_database_exception_async
+    async def update_ships(update_list: list):
+        insert = 0
+        update = 0
+        constant = EnvConfig.get_constants()
+
+        async with MySQLManager.auto_transaction_cursor as cur:
+            for ship in update_list:
+                ship_id = ship['ship_id']
+                sql = """
+                    SELECT ship_id 
+                    FROM T_ship_base 
+                    WHERE ship_id = %s;
+                """
+                await cur.execute(sql, [ship_id])
+                existing = await cur.fetchone()
+                if existing:
+                    sql = """
+                        UPDATE T_ship_base 
+                        SET 
+                            is_old = %s, 
+                            rarity_id = %s, 
+                            premium = %s, 
+                            special = %s 
+                        WHERE ship_id = %s;
+                    """
+                    cur.execute(sql, [
+                        ship['is_old'], ship['rarity_id'], ship['premium'],
+                        ship['special'], ship_id
+                    ])
+
+                    sql = """
+                        UPDATE T_ship_name
+                        SET 
+                            zh_cn = %s, 
+                            zh_sg = %s, 
+                            zh_tw = %s, 
+                            en_short = %s, 
+                            en_full = %s, 
+                            ja = %s, 
+                            ru = %s, 
+                            verify = %s 
+                        WHERE ship_id = %s;
+                    """
+                    cur.execute(sql, [
+                        ship['zh_cn'], ship['zh_sg'], ship['zh_tw'],
+                        ship['en_short'], ship['en_full'], ship['ja'],
+                        ship['ru'], ship['verify'], ship_id
+                    ])
+
+                    update += 1
+                else:
+                    sql = """
+                        INSERT INTO T_ship_base (
+                            ship_id, is_enabled, is_old, tier, type_id,
+                            nation_id, rarity_id, premium, special, index_code
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+                    """
+                    cur.execute(sql, [
+                        ship['ship_id'], True, ship['is_old'], ship['tier'], ship['type_id'],
+                        ship['nation_id'], ship['rarity_id'], ship['premium'], ship['special'],
+                        ship['index_code']
+                    ])
+
+                    # 名称表
+                    sql = """
+                        INSERT INTO T_ship_name (
+                            ship_id, zh_cn, zh_sg, zh_tw, en_short, en_full, ja, ru, verify
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+                    """
+                    cur.execute(sql, [
+                        ship['ship_id'], ship['zh_cn'], ship['zh_sg'], ship['zh_tw'],
+                        ship['en_short'], ship['en_full'], ship['ja'], ship['ru'], ship['verify']
+                    ])
+
+                    # 统计表
+                    for table_name in constant.SHIP_INIT_TABLE_LIST:
+                        sql = f"""
+                            INSERT INTO {table_name} (ship_id) VALUES (%s);
+                        """
+                        cur.execute(sql, [ship['ship_id']])
+
+                    # PvP 极值记录
+                    for metric_id in METRIC_IDS:
+                        sql = """
+                            INSERT INTO T_ship_pvp_record
+                            (ship_id, metric_id)
+                            VALUES (%s, %s);
+                        """
+                        cur.execute(sql, [ship['ship_id'], metric_id])
+
+                    insert += 1

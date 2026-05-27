@@ -102,6 +102,56 @@ def parse_ship_row(row: dict) -> dict:
         'verify': bool(int(row.get('verify', 0))),
     }
 
+def read_ship_ids(cursor) -> list:
+    sql = """
+        SELECT ship_id FROM T_ship_base;
+    """
+    cursor.execute(sql)
+    rows = cursor.fetchall()
+    return [row[0] for row in rows]
+
+def delete_ship(cursor, ship_id: int) -> None:
+    sql = """
+        UPDATE T_ship_base 
+        SET is_enabled = 0 
+        WHERE ship_id = %s;
+    """
+    cursor.execute(sql, ship_id)
+
+def update_ship(cursor, ship: dict) -> None:
+    sql = """
+        UPDATE T_ship_base 
+        SET 
+            is_old = %s, 
+            rarity_id = %s, 
+            premium = %s, 
+            special = %s 
+        WHERE ship_id = %s;
+    """
+    cursor.execute(sql, [
+        ship['is_old'], ship['rarity_id'], ship['premium'],
+        ship['special'], ship['ship_id']
+    ])
+
+    sql = """
+        UPDATE T_ship_name
+        SET 
+            zh_cn = %s, 
+            zh_sg = %s, 
+            zh_tw = %s, 
+            en_short = %s, 
+            en_full = %s, 
+            ja = %s, 
+            ru = %s, 
+            verify = %s 
+        WHERE ship_id = %s;
+    """
+    cursor.execute(sql, [
+        ship['zh_cn'], ship['zh_sg'], ship['zh_tw'],
+        ship['en_short'], ship['en_full'], ship['ja'],
+        ship['ru'], ship['verify'], ship['ship_id']
+    ])
+
 def insert_ship(cursor, ship: dict) -> None:
     """插入一条船只数据"""
     sql = """
@@ -148,38 +198,68 @@ def main(filepath: Path):
     if not filepath.exists():
         logger.error(f"CSV file not found: {filepath}")
         return []
+
+    # 读取并解析CSV
     try:
         with open(filepath, 'r', encoding='utf-8-sig') as f:
             reader = csv.DictReader(f)
-            ships = list(reader)
-        logger.info(f'Found {len(ships)} ships in CSV')
+            raw_ships = list(reader)
+        logger.info(f'Found {len(raw_ships)} ships in CSV')
     except Exception as e:
         logger.error(f"Failed to read CSV: {e}")
         return
-    
-    if not ships:
-        print('No ships to process, exiting')
+
+    if not raw_ships:
+        logger.warning('No ships to process, exiting')
         return
+
+    # 解析所有船只数据为参数字典，同时记录最新ID集合
+    ships_parsed = []
+    latest_ship_ids = set()
+    for row in raw_ships:
+        ship = parse_ship_row(row)
+        ships_parsed.append(ship)
+        latest_ship_ids.add(ship['ship_id'])
     
     # 数据库操作
     conn = pymysql.connect(**DB_CONFIG)
     try:
         conn.begin()
         with conn.cursor() as cursor:
-            with tqdm(ships, desc="Inserting clans", total=len(ships)) as pbar:
-                for item in pbar:
-                    ship_id = int(item['ship_id'])
-                    pbar.set_postfix_str(str(ship_id))
-                    ship = parse_ship_row(item)
-                    insert_ship(cursor, ship)
+            # 获取数据库中现有船只ID
+            existing_ids = set(read_ship_ids(cursor))
+
+            # 1. 删除：在DB中但不在CSV中的船只
+            to_delete = existing_ids - latest_ship_ids
+            for ship_id in to_delete:
+                delete_ship(cursor, ship_id)
+                logger.debug(f"Deleted ship_id={ship_id}")
+            logger.info(f"Deleted {len(to_delete)} ships")
+
+            # 2. 更新：同时在DB和CSV中的船只
+            to_update = existing_ids & latest_ship_ids
+            # 建立ship_id到解析后字典的映射，便于快速查找
+            ship_dict = {s['ship_id']: s for s in ships_parsed}
+            for ship_id in to_update:
+                update_ship(cursor, ship_dict[ship_id])
+                logger.debug(f"Updated ship_id={ship_id}")
+            logger.info(f"Updated {len(to_update)} ships")
+
+            # 3. 插入：在CSV中但不在DB中的船只
+            to_insert = latest_ship_ids - existing_ids
+            for ship_id in to_insert:
+                insert_ship(cursor, ship_dict[ship_id])
+                logger.debug(f"Inserted ship_id={ship_id}")
+            logger.info(f"Inserted {len(to_insert)} ships")
+
         conn.commit()
-    except Exception:
+        logger.info("Ship initialization completed successfully")
+    except Exception as e:
         conn.rollback()
+        logger.error(f"Transaction failed, rolled back: {e}")
         raise
     finally:
         conn.close()
-    
-    logger.info("Initialization completed")
 
 
 if __name__ == '__main__':

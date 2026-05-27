@@ -25,6 +25,18 @@ class ServiceMetrics:
     async def http_error_incrby(date: str, amount: int):
         await RedisClient.incrby(f"metrics:http_error:{date}", amount)
 
+    @ExceptionLogger.handle_cache_exception_async
+    async def celery_error_incrby(date: str, amount: int):
+        await RedisClient.incrby(f"metrics:celery_error:{date}", amount)
+
+    @staticmethod
+    async def get_today_celery_error_count(date_str: str) -> int:
+        """获取今日 Celery 任务失败数量"""
+        result = await RedisClient.get(f"metrics:celery_error:{date_str}")
+        if result['code'] == 1000 and result['data'] is not None:
+            return int(result['data'])
+        return 0
+
     def get_hourly_request_stats(today, log_dir) -> Tuple[int, Dict[str, int], int, int]:
         """统计过去24h的请求数据
         Returns:
@@ -160,26 +172,28 @@ class ServiceMetrics:
 
     def get_hourly_error_stats(today, log_dir) -> Tuple[int, Dict[str, int]]:
         """统计今日错误日志数及每小时分布
-        
+
         Returns:
             error_count: 总错误数
             buckets: 按小时分组的错误数 {"08:00": 5, ...}
         """
         error_count = 0
         buckets = defaultdict(int)
-        file = log_dir / f"error/{today.isoformat()}.txt"
-        
+        file = log_dir / f"error/{today.isoformat()}.log"
+
         if file.exists():
             with open(file, "r", encoding="utf-8") as f:
                 for line in f:
-                    if line.startswith('>Error Time:'):
-                        # >Error Time:   2026-05-09T06:34:30+00:00
-                        current_hour = f"{line[26:28]}:00"
-                        if current_hour:
-                            buckets[current_hour] += 1
-                    elif line.startswith('>Platform:     KokomiAPI'):
-                        error_count += 1
-        
+                    line = line.strip()
+                    if not line:
+                        continue
+                    error_count += 1
+                    try:
+                        hour_key = f"{line[:2]}:00"
+                        buckets[hour_key] += 1
+                    except Exception:
+                        pass
+
         return error_count, buckets
 
     def get_celery_queue_stats(config) -> Dict[str, Any]:
@@ -229,7 +243,7 @@ class ServiceMetrics:
             total_count: 总服务数
         """
         active_count = 0
-        services = ['UserCache', 'Maintenance', 'ClanSeason', 'ServerStats', 'Recent']
+        services = ['Account', 'UserCache', 'Member', 'Recent', 'ClanSeason', 'ServerStats']
         for service in services:
             key = f'status:{service}'
             exists = await RedisClient.exists(key)

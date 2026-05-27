@@ -53,6 +53,7 @@ class EndpointsConfig:
 class ConstantsConfig:
     USER_INIT_TABLE_LIST: list[str]
     CLAN_INIT_TABLE_LIST: list[str]
+    SHIP_INIT_TABLE_LIST: list[str]
     USER_ACTIVITY_THRESHOLDS: list[list]
 
 class EnvConfig:
@@ -188,6 +189,7 @@ class EnvConfig:
         cls._constants = ConstantsConfig(
             USER_INIT_TABLE_LIST=data['USER_INIT_TABLE_LIST'],
             CLAN_INIT_TABLE_LIST=data['CLAN_INIT_TABLE_LIST'],
+            SHIP_INIT_TABLE_LIST=data['SHIP_INIT_TABLE_LIST'],
             USER_ACTIVITY_THRESHOLDS=data['USER_ACTIVITY_THRESHOLDS']
         )
 

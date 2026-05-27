@@ -5,3 +5,5 @@
 @import url("pages/overview.css");
 @import url("pages/database.css");
 @import url("pages/user-activity.css");
+@import url("pages/error-logs.css");
+@import url("pages/exception.css");
