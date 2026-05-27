@@ -64,7 +64,7 @@
 4179539376,10,Cruiser,spain,0,0,0,,PSSC110_Castilla,Castilla,Castilla,,卡斯蒂利亚,,Castilla,Castilla,1
 3363780304,8,Battleship,japan,0,1,0,,PJSB888_Ragnarok,Ragnarok,Ragnarok,,诸神黄昏,,Ragnarok,Ragnarok,1
 3761190896,9,Battleship,usa,0,1,0,,PASB509_Missouri,Missouri,Missouri,,密苏里,,Missouri,Missouri,1
-4292851696,5,AirCarrier,usa,0,0,1,,PASA002_Bogue_1942,Bogue (old),Bogue (< 23.01.2019),,博格（旧）,,Bogue (old),Bogue (old),1
+4292851696,5,AirCarrier,usa,1,0,1,,PASA002_Bogue_1942,Bogue (old),Bogue (< 23.01.2019),,博格（旧）,,Bogue (old),Bogue (old),1
 3765352176,5,Cruiser,italy,0,1,0,,PISC505_Genova,Genova,Genova,,热那亚,,Genova,Genova,1
 4184782800,5,Cruiser,uk,0,0,0,,PBSC105_Emerald,Emerald,Emerald,,翡翠,,Emerald,Emerald,1
 4179572688,10,Battleship,uk,0,0,0,,PBSB110_Conqueror,Conqueror,Conqueror,,征服者,,Conqueror,Conqueror,1
@@ -78,7 +78,7 @@
 3447600848,8,Destroyer,japan,0,1,0,,PJSD808_Colorful_Akizuki,Akizuki CLR,Akizuki CLR,,秋月 CLR,,Akizuki CLR,Akizuki CLR,1
 4291737584,2,Cruiser,usa,0,1,0,,PASC003_Albany_1898,Albany,Albany,,奥尔巴尼,,Albany,Albany,1
 4185798480,4,Destroyer,france,0,0,0,,PFSD104_Bourrasque,Bourrasque,Bourrasque,,狂风,,Bourrasque,Bourrasque,1
-4277057520,9,Cruiser,usa,0,0,1,,PASC017_Baltimore_1944,Baltimore (old),Baltimore (< 31.05.2018),,巴尔的摩（旧）,,Baltimore (old),Baltimore (old),1
+4277057520,9,Cruiser,usa,1,0,1,,PASC017_Baltimore_1944,Baltimore (old),Baltimore (< 31.05.2018),,巴尔的摩（旧）,,Baltimore (old),Baltimore (old),1
 4079957968,5,Battleship,uk,0,0,0,,PBSB205_Tiger,Tiger,Tiger,,虎,,Tiger,Tiger,1
 4074747856,10,AirCarrier,uk,0,0,0,,PBSA210_Audacious,Audacious,Audacious,,大胆,,Audacious,Audacious,1
 4185896752,4,AirCarrier,germany,0,0,0,,PGSA104_Rhein,Rhein,Rhein,,莱茵河,,Rhein,Rhein,1
@@ -175,7 +175,7 @@
 3267278288,10,Cruiser,ussr,0,0,1,,PRSC980_Vladimir_Monomakh,V. Monomakh,Vladimir Monomakh,,弗拉基米尔王子,,V. Monomakh,В. Мономах,1
 4076745936,8,Destroyer,pan_asia,0,1,0,,PZSD208_Siliwangi_1959,Siliwangi,Siliwangi,,西利旺义,,Siliwangi,Siliwangi,1
 3762239216,8,Battleship,italy,0,1,0,,PISB508_Roma,Roma,Roma,,罗马,,Roma,Roma,1
-4289607376,6,Destroyer,japan,0,0,1,,PJSD005_Mutsuki_1926,Mutsuki (old),Mutsuki (< 01.12.2016),,睦月 (旧),,睦月 (old),Mutsuki (old),1
+4289607376,6,Destroyer,japan,1,0,1,,PJSD005_Mutsuki_1926,Mutsuki (old),Mutsuki (< 01.12.2016),,睦月 (旧),,睦月 (old),Mutsuki (old),1
 4077828080,7,Cruiser,usa,0,0,0,,PASC207_Helena,Helena,Helena,,海伦娜,,Helena,Helena,1
 4188976976,1,Cruiser,france,0,0,0,,PFSC101_Bougainville,Bougainville,Bougainville,,布甘维尔,,Bougainville,Bougainville,1
 4183766864,6,Battleship,france,0,0,0,,PFSB106_Normandie,Normandie,Normandie,,诺曼底,,Normandie,Normandie,1
@@ -311,7 +311,7 @@
 3760109264,9,Cruiser,japan,0,1,0,,PJSC510_Azumaya,Azuma,Azuma,,吾妻,,吾妻,Azuma,1
 3553572560,5,Battleship,japan,0,1,0,,PJSB707_Haruna,ARP Haruna,ARP Haruna,,ARP 榛名,,ARP 榛名,ARP Haruna,1
 4286527472,7,Battleship,usa,0,0,0,,PASB008_Colorado_1945,Colorado,Colorado,,科罗拉多,,Colorado,Colorado,1
-4281317360,9,AirCarrier,usa,0,0,1,,PASA013_Essex_1945,Essex (old),Essex (< 23.01.2019),,埃塞克斯（旧）,,Essex (old),Essex (old),1
+4281317360,9,AirCarrier,usa,1,0,1,,PASA013_Essex_1945,Essex (old),Essex (< 23.01.2019),,埃塞克斯（旧）,,Essex (old),Essex (old),1
 3751786480,8,AirCarrier,usa,0,1,0,,PASA518_Enterprise,Enterprise,Enterprise,,企业,,Enterprise,Enterprise,1
 3765385168,5,Battleship,uk,0,1,0,,PBSB505_Agincourt,Agincourt,Agincourt,,阿金库尔,,Agincourt,Agincourt,1
 3760175056,10,AirCarrier,uk,0,0,1,,PBSA510_Malta,Malta,Malta,,马耳他,,Malta,Malta,1
@@ -392,7 +392,7 @@
 3750704592,9,Battleship,ussr,0,1,0,,PRSB519_Perm_Velikaya,Пермь Великая,Пермь Великая,,大彼尔姆,,Пермь Великая,Пермь Великая,1
 4183734256,6,Cruiser,usa,0,0,0,,PASC106_Pensacola_1944,Pensacola,Pensacola,,彭萨科拉,,Pensacola,Pensacola,1
 3761158128,9,Cruiser,usa,0,1,0,,PASC509_Vallejo,Vallejo,Vallejo,,瓦列霍,,Vallejo,Vallejo,1
-4292851408,4,AirCarrier,japan,0,0,1,,PJSA002_Hosho_1939,Hōshō (old),Hōshō (< 23.01.2019),,凤翔（旧）,,鳳翔 (old),Hōshō (old),1
+4292851408,4,AirCarrier,japan,1,0,1,,PJSA002_Hosho_1939,Hōshō (old),Hōshō (< 23.01.2019),,凤翔（旧）,,鳳翔 (old),Hōshō (old),1
 4183701456,6,Destroyer,uk,0,0,0,,PBSD106_Icarus,Icarus,Icarus,,伊卡洛斯,,Icarus,Icarus,1
 4184750032,5,Destroyer,uk,0,0,0,,PBSD105_Acasta,Acasta,Acasta,,阿卡斯塔,,Acasta,Acasta,1
 3709777872,8,Cruiser,uk,0,0,1,,PBSC558_AZUR_Cheshire,AL Cheshire,AL Cheshire,, ,,AL Cheshire,AL Cheshire,1
@@ -404,7 +404,7 @@
 4182718192,7,Battleship,italy,0,0,0,,PISB107_Francesco_Caracciolo,F. Caracciolo,Francesco Caracciolo,,弗朗切斯科·卡拉乔洛,,F. Caracciolo,F. Caracciolo,1
 4074649296,10,Destroyer,japan,0,0,0,,PJSD210_Harugumo,Harugumo,Harugumo,,春云,,春雲,Harugumo,1
 3532568272,7,Cruiser,japan,0,1,0,,PJSC727_Blue_Dragon,E. Dragon,Eastern Dragon,,东方神龙,,E. Dragon,E. Dragon,1
-4285511376,6,AirCarrier,japan,0,0,1,,PJSA009_Ryujo_1933,Ryūjō (old),Ryūjō (< 23.01.2019),,龙骧（旧）,,龍驤 (old),Ryūjō (old),1
+4285511376,6,AirCarrier,japan,1,0,1,,PJSA009_Ryujo_1933,Ryūjō (old),Ryūjō (< 23.01.2019),,龙骧（旧）,,龍驤 (old),Ryūjō (old),1
 4185798608,4,Destroyer,uk,0,0,0,,PBSD104_Wakeful,Wakeful,Wakeful,,清醒,,Wakeful,Wakeful,1
 4180555600,9,Destroyer,france,0,0,0,,PFSD109_Mogador,Mogador,Mogador,,莫加多尔,,Mogador,Mogador,1
 4079925200,5,Cruiser,uk,0,0,0,,PBSC205_Hawkins,Hawkins,Hawkins,,霍金斯,,Hawkins,Hawkins,1
@@ -566,7 +566,7 @@
 3764270864,6,Destroyer,netherlands,0,1,0,,PHSD506_Kortenaer,Kortenaer,Kortenaer,,科顿艾尔,,Kortenaer,Kortenaer,1
 4186879408,3,Cruiser,spain,0,0,0,,PSSC103_Navarra,Navarra,Navarra,,纳瓦拉,,Navarra,Navarra,1
 3752769520,7,Cruiser,usa,0,1,0,,PASC517_Chancellorsville,Chancellorsville,Chancellorsville,,钱斯勒斯维尔,,Chancellorsville,Chancellorsville,1
-3763320816,7,AirCarrier,usa,0,0,1,,PASA507_Saipan_1946,Saipan (old),Saipan (< 23.01.2019),,塞班（旧）,,Saipan (old),Saipan (old),1
+3763320816,7,AirCarrier,usa,1,0,1,,PASA507_Saipan_1946,Saipan (old),Saipan (< 23.01.2019),,塞班（旧）,,Saipan (old),Saipan (old),1
 3655251920,10,Cruiser,uk,0,0,1,,PBSC610_Gibraltar,Gibraltar,Gibraltar,,直布罗陀,,Gibraltar,Gibraltar,1
 4186912720,3,Battleship,uk,0,0,0,,PBSB103_Bellerophon,Bellerophon,Bellerophon,,柏勒罗丰,,Bellerophon,Bellerophon,1
 4181702608,8,AirCarrier,uk,0,0,0,,PBSA108_Implacable,Implacable,Implacable,,怨仇,,Implacable,Implacable,1
@@ -717,7 +717,7 @@
 3762206128,8,Cruiser,spain,0,1,0,,PSSC508_Numancia,Numancia,Numancia,,努曼西亚,,Numancia,Numancia,1
 3555636944,7,Cruiser,japan,0,1,0,,PJSC705_Myoko,ARP Myōkō,ARP Myōkō,,ARP 妙高,,ARP 妙高,ARP Myōkō,1
 3550394352,10,Cruiser,usa,0,0,1,,PASC710_Salem,Salem,Salem,,塞勒姆,,Salem,Salem,1
-4283414224,7,AirCarrier,japan,0,0,1,,PJSA011_Hiryu_1942,Hiryū (old),Hiryū (< 23.01.2019),,飞龙（旧）,,飛龍 (old),Hiryū (old),1
+4283414224,7,AirCarrier,japan,1,0,1,,PJSA011_Hiryu_1942,Hiryū (old),Hiryū (< 23.01.2019),,飞龙（旧）,,飛龍 (old),Hiryū (old),1
 3741300720,8,AirCarrier,usa,0,1,0,,PASA528_Saipan,Saipan,Saipan,,塞班,,Saipan,Saipan,1
 4076746736,8,Destroyer,usa,0,0,0,,PASD208_Hogg,Hogg,Hogg,,霍格,,Hogg,Hogg,1
 3762239440,8,Battleship,uk,0,1,0,,PBSB508_Vanguard,Vanguard,Vanguard,,前卫,,Vanguard,Vanguard,1

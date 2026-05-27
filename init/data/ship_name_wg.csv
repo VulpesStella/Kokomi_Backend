@@ -199,7 +199,7 @@
 3256858064,10,AirCarrier,ussr,0,0,1,Common,PRSA990_Admiral_Orlov,Orlov,Admiral Orlov,奥尔洛夫上将,奥尔洛夫,Orlov,Orlov,Орлов,1
 3341727696,9,Cruiser,uk,0,1,0,,PBSC909_Pirate_Neptune,Cursed Fang,Cursed Fang,诅咒之牙,诅咒之牙,Cursed Fang,Cursed Fang,Cursed Fang,1
 4185863920,4,Battleship,italy,0,0,0,Common,PISB104_Dante_Alighieri,D. Alighieri,Dante Alighieri,阿利吉耶里,但丁·阿利格伊切里,D. Alighieri,D. Alighieri,D. Alighieri,1
-4289607376,6,Destroyer,japan,0,0,1,Common,PJSD005_Mutsuki_1926,Mutsuki (old),Mutsuki (< 01.12.2016),松(旧),睦月 (旧),Mutsuki (old),睦月 (old),Mutsuki (old),1
+4289607376,6,Destroyer,japan,1,0,1,Common,PJSD005_Mutsuki_1926,Mutsuki (old),Mutsuki (< 01.12.2016),松(旧),睦月 (旧),Mutsuki (old),睦月 (old),Mutsuki (old),1
 4077828080,7,Cruiser,usa,0,0,0,Common,PASC207_Helena,Helena,Helena,海伦娜,海伦娜,Helena,Helena,Helena,1
 4188976976,1,Cruiser,france,0,0,0,Common,PFSC101_Bougainville,Bougainville,Bougainville,布甘维尔,布甘维尔,Bougainville,Bougainville,Bougainville,1
 4183766864,6,Battleship,france,0,0,0,Common,PFSB106_Normandie,Normandie,Normandie,诺曼底,诺曼底,Normandie,Normandie,Normandie,1
@@ -306,7 +306,7 @@
 4078843184,6,Destroyer,europe,0,0,0,Common,PWSD206_Stord,Stord,Stord,斯图尔,斯托德,Stord,Stord,Stord,1
 4076812080,8,Battleship,germany,0,0,0,Common,PGSB208_Zieten,Zieten,Zieten,齐藤,齐滕,Zieten,Zieten,Zieten,1
 4288591856,7,Cruiser,usa,0,1,0,Uncommon,PASC006_Atlanta_1942,Atlanta,Atlanta,亚特兰大,亚特兰大,Atlanta,Atlanta,Atlanta,1
-3550427120,10,Battleship,usa,0,0,0,Common,PASB710_Oregon,Oregon,Oregon,俄勒冈,俄勒冈,Oregon,Oregon,Oregon,1
+3550427120,10,Battleship,usa,1,0,0,Common,PASB710_Oregon,Oregon,Oregon,俄勒冈,俄勒冈,Oregon,Oregon,Oregon,1
 3760109264,9,Cruiser,japan,0,1,0,Uncommon,PJSC510_Azumaya,Azuma,Azuma,猉,吾妻,Azuma,吾妻,Azuma,1
 4292753392,2,Destroyer,usa,0,0,0,Common,PASD002_Sampson_1917,Sampson,Sampson,桑普森,桑普森,Sampson,Sampson,Sampson,1
 4293834192,3,Cruiser,ussr,0,1,0,Uncommon,PRSC001_Avrora_1917,Aurora,Aurora,阿芙乐尔,阿芙乐尔,Aurora,Aurora,Аврора,1
@@ -371,7 +371,7 @@
 3760076784,10,Destroyer,usa,0,0,1,Epic,PASD510_Somers,Somers,Somers,萨默斯,萨默斯,Somers,Somers,Somers,1
 4291737584,2,Cruiser,usa,0,1,0,Uncommon,PASC003_Albany_1898,Albany,Albany,奥尔巴尼,奥尔巴尼,Albany,Albany,Albany,1
 4286527472,7,Battleship,usa,0,0,0,Common,PASB008_Colorado_1945,Colorado,Colorado,科罗拉多,科罗拉多,Colorado,Colorado,Colorado,1
-4281317360,9,AirCarrier,usa,0,0,1,Common,PASA013_Essex_1945,Essex (old),Essex (< 23.01.2019),埃塞克斯,埃塞克斯（旧）,Essex (old),Essex (old),Essex (old),1
+4281317360,9,AirCarrier,usa,1,0,1,Common,PASA013_Essex_1945,Essex (old),Essex (< 23.01.2019),埃塞克斯,埃塞克斯（旧）,Essex (old),Essex (old),Essex (old),1
 3551409616,9,Destroyer,ussr,0,1,0,Epic,PRSD709_Pr_41_Neustrashimy,Neustrashimy,Neustrashimy,不惧,不惧,Neustrashimy,Neustrashimy,Неустрашимый,1
 3751786480,8,AirCarrier,usa,0,1,0,Epic,PASA518_Enterprise,Enterprise,Enterprise,企业,企业,Enterprise,Enterprise,Enterprise,1
 3553540080,7,Cruiser,usa,0,1,0,Epic,PASC707_Flint,Flint,Flint,弗林特,弗林特,Flint,Flint,Flint,1
@@ -428,7 +428,7 @@
 3655218992,10,Destroyer,germany,0,0,1,Rare,PGSD610_Z_42,Z-42,Z-42,Z-42,Z-42,Z-42,Z-42,Z-42,1
 4186879792,3,Cruiser,germany,0,0,0,Common,PGSC103_Kolberg,Kolberg,Kolberg,科尔贝格,科尔贝格,Kolberg,Kolberg,Kolberg,1
 4181669680,8,Battleship,germany,0,0,0,Common,PGSB108_Bismarck,Bismarck,Bismarck,俾斯麦,俾斯麦,Bismarck,Bismarck,Bismarck,1
-4292851696,5,AirCarrier,usa,0,0,1,Common,PASA002_Bogue_1942,Bogue (old),Bogue (< 23.01.2019),博格,博格（旧）,Bogue (old),Bogue (old),Bogue (old),1
+4292851696,5,AirCarrier,usa,1,0,1,Common,PASA002_Bogue_1942,Bogue (old),Bogue (< 23.01.2019),博格,博格（旧）,Bogue (old),Bogue (old),Bogue (old),1
 3542004944,8,Cruiser,pan_asia,0,1,0,,PZSC718_Narai,Narai,Narai,那莱,那莱,Narai,Narai,Narai,1
 3540989680,9,Battleship,italy,0,1,0,,PISB719_Olympian_Giuseppe_Verdi,Pilus Posterior,Pilus Posterior,后百夫长,副百夫长,Pilus Posterior,Pilus Posterior,Pilus Posterior,1
 4184782160,5,Cruiser,pan_america,0,0,0,Common,PVSC105_La_Argentina,La Argentina,La Argentina,阿根廷,阿根廷,La Argentina,La Argentina,La Argentina,1
@@ -516,7 +516,7 @@
 4184782032,5,Cruiser,pan_asia,0,0,0,Common,PZSC105_Chung_King,Chungking,Chungking,巴海,重庆,重慶,Chungking,Chungking,1
 3552490832,8,Cruiser,pan_america,0,1,0,,PVSC708_Comandante_Aguirre,C. Aguirre,Comandante Aguirre,阿吉雷司令,阿吉雷,C. Aguirre,C. Aguirre,C. Aguirre,1
 3532568272,7,Cruiser,japan,0,1,0,Rare,PJSC727_Blue_Dragon,E. Dragon,Eastern Dragon,昆仑,东方神龙,E. Dragon,E. Dragon,E. Dragon,1
-4277057520,9,Cruiser,usa,0,0,1,Common,PASC017_Baltimore_1944,Baltimore (old),Baltimore (< 31.05.2018),巴尔的摩,巴尔的摩（旧）,Baltimore (old),Baltimore (old),Baltimore (old),1
+4277057520,9,Cruiser,usa,1,0,1,Common,PASC017_Baltimore_1944,Baltimore (old),Baltimore (< 31.05.2018),巴尔的摩,巴尔的摩（旧）,Baltimore (old),Baltimore (old),Baltimore (old),1
 4184815344,5,Battleship,italy,0,0,0,Common,PISB105_Conte_di_Cavour,Cavour,Conte di Cavour,加富尔伯爵,加富尔伯爵,Cavour,Cavour,Cavour,1
 3540923600,9,Destroyer,pan_asia,0,1,0,Rare,PZSD719_Nanning,Nanning,Nanning,邕安,南宁,Nanning,Nanning,Nanning,1
 3765384944,5,Battleship,italy,0,1,0,Epic,PISB505_Giulio_Cesare,Giulio Cesare,Giulio Cesare,朱利奥·恺撒,尤里乌斯-恺撒,Giulio Cesare,Giulio Cesare,Giulio Cesare,1
@@ -569,7 +569,7 @@
 4293866960,4,Battleship,ussr,0,1,0,Epic,PRSB001_Nikolay_I,Nikolai I,Imperator Nikolai I,沙皇尼古拉一世,沙皇尼古拉一世,Nikolai I,Nikolai I,Николай I,1
 3543020848,7,Destroyer,europe,0,1,0,Uncommon,PWSD717_Stord_1943,Stord '43,Stord '43,斯图尔 '43,斯托德43,Stord '43,Stord '43,Stord '43,1
 4179015472,10,Submarine,germany,1,0,1,Common,PGSS110_U_2501,U-2501 (old),U-2501 (< 04.10.2022),U-2501 (旧),U-2501 (old),U-2501 (old),U-2501 (old),U-2501 (old),1
-4285511376,6,AirCarrier,japan,0,0,1,Common,PJSA009_Ryujo_1933,Ryūjō (old),Ryūjō (< 23.01.2019),枭,龙骧（旧）,Ryūjō (old),龍驤 (old),Ryūjō (old),1
+4285511376,6,AirCarrier,japan,1,0,1,Common,PJSA009_Ryujo_1933,Ryūjō (old),Ryūjō (< 23.01.2019),枭,龙骧（旧）,Ryūjō (old),龍驤 (old),Ryūjō (old),1
 3550360912,10,Destroyer,pan_america,0,0,1,Rare,PVSD710_La_Pampa,La Pampa,La Pampa,拉潘帕,拉潘帕,La Pampa,La Pampa,La Pampa,1
 3763222256,7,Destroyer,italy,0,1,0,Uncommon,PISD507_FR25,FR25,FR25,FR25,FR25,FR25,FR25,FR25,1
 4181636304,8,Cruiser,pan_asia,0,0,0,Common,PZSC108_Harbin,Harbin,Harbin,会海,哈尔滨,Harbin,Harbin,Harbin,1
@@ -673,7 +673,7 @@
 3550426896,10,Battleship,netherlands,0,0,1,Rare,PHSB710_Willem_de_Eerste,Willem de Eerste,Willem de Eerste,威廉一世,威廉一世,Willem de Eerste,Willem de Eerste,Willem de Eerste,1
 4186879408,3,Cruiser,spain,0,0,0,Common,PSSC103_Navarra,Navarra,Navarra,纳瓦拉,纳瓦拉,Navarra,Navarra,Navarra,1
 3752802000,7,Battleship,japan,0,1,0,Uncommon,PJSB517_Hyuga,Hyūga,Hyūga,螯,日向,Hyūga,日向,Hyūga,1
-3763320816,7,AirCarrier,usa,0,0,1,Common,PASA507_Saipan_1946,Saipan (old),Saipan (< 23.01.2019),塞班,塞班（旧）,Saipan (old),Saipan (old),Saipan (old),1
+3763320816,7,AirCarrier,usa,1,0,1,Common,PASA507_Saipan_1946,Saipan (old),Saipan (< 23.01.2019),塞班,塞班（旧）,Saipan (old),Saipan (old),Saipan (old),1
 3655251920,10,Cruiser,uk,0,0,1,Rare,PBSC610_Gibraltar,Gibraltar,Gibraltar,直布罗陀,直布罗陀,Gibraltar,Gibraltar,Gibraltar,1
 4186912720,3,Battleship,uk,0,0,0,Common,PBSB103_Bellerophon,Bellerophon,Bellerophon,柏勒罗丰,柏勒罗丰,Bellerophon,Bellerophon,Bellerophon,1
 4181702608,8,AirCarrier,uk,0,0,0,Common,PBSA108_Implacable,Implacable,Implacable,怨仇,怨仇,Implacable,Implacable,Implacable,1
@@ -848,7 +848,7 @@
 3553539792,7,Cruiser,japan,0,1,0,Rare,PJSC707_Ashigara,ARP Ashigara,ARP Ashigara,ARP狳,ARP Ashigara,ARP Ashigara,ARP 足柄,ARP Ashigara,1
 3555636944,7,Cruiser,japan,0,1,0,Rare,PJSC705_Myoko,ARP Myōkō,ARP Myōkō,ARP鬣,ARP Myōkō,ARP Myōkō,ARP 妙高,ARP Myōkō,1
 3751720944,8,Cruiser,usa,0,1,0,Epic,PASC518_Anchorage,Anchorage,Anchorage,安克雷奇,安克雷奇,Anchorage,Anchorage,Anchorage,1
-4283414224,7,AirCarrier,japan,0,0,1,Common,PJSA011_Hiryu_1942,Hiryū (old),Hiryū (< 23.01.2019),龙,飞龙（旧）,Hiryū (old),飛龍 (old),Hiryū (old),1
+4283414224,7,AirCarrier,japan,1,0,1,Common,PJSA011_Hiryu_1942,Hiryū (old),Hiryū (< 23.01.2019),龙,飞龙（旧）,Hiryū (old),飛龍 (old),Hiryū (old),1
 3741300720,8,AirCarrier,usa,0,1,0,Uncommon,PASA528_Saipan,Saipan,Saipan,塞班,塞班,Saipan,Saipan,Saipan,1
 3550361584,10,Destroyer,usa,0,0,1,Epic,PASD710_Laffey,Laffey,Laffey,拉菲,拉菲,Laffey,Laffey,Laffey,1
 3762239440,8,Battleship,uk,0,1,0,Uncommon,PBSB508_Vanguard,Vanguard,Vanguard,前卫,前卫,Vanguard,Vanguard,Vanguard,1
@@ -945,14 +945,14 @@
 3540956368,9,Cruiser,pan_asia,0,1,0,Uncommon,PZSC719_Tianjin,Tianjin,Tianjin,津海,天津,Tianjin,Tianjin,Tianjin,1
 4183733584,6,Cruiser,pan_america,0,0,0,Common,PVSC106_Almirante_Cochrane,Almte. Cochrane,Almirante Cochrane,科克伦海军上将,科克伦海军上将,Almte. Cochrane,Almte. Cochrane,Almte. Cochrane,1
 3751786288,8,AirCarrier,germany,0,1,0,Uncommon,PGSA518_Graf_Zeppelin,Graf Zeppelin,Graf Zeppelin,齐柏林伯爵,齐柏林伯爵,Graf Zeppelin,Graf Zeppelin,Graf Zeppelin,1
-3551442384,9,Cruiser,ussr,0,0,0,Common,PRSC709_Vyazma,Vyazma,Vyazma,维亚济马,维亚济马,Vyazma,Vyazma,Вязьма,1
+3551442384,9,Cruiser,ussr,1,0,0,Common,PRSC709_Vyazma,Vyazma,Vyazma,维亚济马,维亚济马,Vyazma,Vyazma,Вязьма,1
 4255037136,8,Cruiser,japan,0,1,0,Uncommon,PJSC038_Atago_1944,Atago,Atago,犬,爱宕,Atago,愛宕,Atago,1
 3763254992,7,Cruiser,japan,0,1,0,Rare,PJSC507_Tokachi,Tokachi,Tokachi,狲,十胜,Tokachi,十勝,Tokachi,1
 3752802288,7,Battleship,usa,0,1,0,Uncommon,PASB517_Florida,Florida,Florida,佛罗里达,佛罗里达,Florida,Florida,Florida,1
 4281251184,3,Cruiser,commonwealth,0,0,0,Common,PUSC013_Caradoc,Caradoc,Caradoc,卡拉多克,卡拉多克,Caradoc,Caradoc,Caradoc,1
 4183734032,6,Cruiser,netherlands,0,0,0,Common,PHSC106_Kijkduin,Kijkduin,Kijkduin,凯敦,凯敦,Kijkduin,Kijkduin,Kijkduin,1
 4181604304,8,Destroyer,uk,0,0,0,Common,PBSD108_Lightning,Lightning,Lightning,雷电,雷电,Lightning,Lightning,Lightning,1
-4292851408,4,AirCarrier,japan,0,0,1,Common,PJSA002_Hosho_1939,Hōshō (old),Hōshō (< 23.01.2019),凤,凤翔（旧）,Hōshō (old),鳳翔 (old),Hōshō (old),1
+4292851408,4,AirCarrier,japan,1,0,1,Common,PJSA002_Hosho_1939,Hōshō (old),Hōshō (< 23.01.2019),凤,凤翔（旧）,Hōshō (old),鳳翔 (old),Hōshō (old),1
 3750672176,9,Cruiser,germany,0,1,0,Uncommon,PGSC519_Aegir,Ägir,Ägir,埃吉尔,埃吉尔,Ägir,Ägir,Ägir,1
 4081006384,4,Battleship,germany,0,0,0,Common,PGSB204_Moltke,Moltke,Moltke,毛奇,毛奇,Moltke,Moltke,Moltke,1
 4184749264,5,Destroyer,pan_asia,0,0,0,Common,PZSD105_Jian_Wei,Jianwei,Jianwei,建威,建威,建威,Jianwei,Jianwei,1
