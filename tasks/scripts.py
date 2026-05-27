@@ -44,7 +44,6 @@ def refresh_user(account_id: int):
     redis_client.incr(f"metrics:http_total:{now_date}")
     if isinstance(response, str):
         redis_client.incr(f"metrics:http_error:{now_date}")
-        redis_client.incr(f'metrics:celery_error:{now_date}')
         return response  
 
     with db_pool.connection() as conn:

@@ -51,8 +51,10 @@ def analyze_sqlite_files() -> tuple:
             except Exception:
                 continue
             pbar.update()
-
-    avg_size_kb = total_size_kb // file_count
+    if file_count == 0:
+        avg_size_kb = 0
+    else:
+        avg_size_kb = total_size_kb // file_count
     if total_size_kb // 1024 // 1024 != 0:
         total_size_gb = round(total_size_kb / 1024 / 1024, 2)
     else:
