@@ -1,10 +1,3 @@
-"""
-外部 API 请求模块
-
-封装对 WoWS Vortex API 的异步 HTTP 调用，支持 token 鉴权、
-多接口并发请求和请求指标记录。
-"""
-
 import random
 import asyncio
 import traceback
@@ -13,8 +6,9 @@ from httpx import AsyncClient
 from typing import Optional, Union
 
 from logger import logger
-from settings import VORTEX_API
+from exception import write_exception
 from utils import get_current_iso_time
+from settings import VORTEX_API
 
 
 async def fetch_data(async_client: AsyncClient, url: str):
@@ -28,15 +22,18 @@ async def fetch_data(async_client: AsyncClient, url: str):
         成功时返回解析后的 dict，失败时返回错误标识字符串（如 'HTTP_STATUS_404'）
     """
     try:
-        res = await async_client.get(url)
-        request_code = res.status_code
-        request_result = res.json()
-        if request_code == 200:
-            return request_result['data']
-        # 处理用户不存在的特殊情况
-        if request_code == 404:
+        resp = await async_client.get(url)
+
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('status') == 'ok':
+                return data.get('data', {})
+            else:
+                return "Game_API_Error"
+        elif resp.status_code == 404:
             return {}
-        return f'HTTP_STATUS_{request_code}'
+        
+        return f'HTTP_STATUS_{resp.status_code}'
     except Exception as e:
         return f'ERROR_{type(e).__name__}'
 
@@ -57,23 +54,27 @@ def record_http_metrics(
     Returns:
         错误字符串，全部成功则返回 None
     """
-    today = get_current_iso_time()[:10]
     error_count = 0
     error = None
 
+    today = get_current_iso_time()[:10]
+
+    # 检查所有的返回数据
     for i, response in enumerate(responses):
         if isinstance(response, str):
             logger.warning(f'{response} {urls[i]}')
             error_count += 1
             error = response
     
+    # 记录游戏 API 调用的统计数据
     try:
-        redis_client.incrby(f'metrics:total:http', len(responses))
-        redis_client.incrby(f'metrics:http_total:{today}', len(responses))
+        redis_client.incrby(f'metrics:total:http', len(urls))
+        redis_client.incrby(f'metrics:http_total:{today}', len(urls))
+
         if error_count > 0:
             redis_client.incrby(f'metrics:http_error:{today}', error_count)
     except Exception:
-        logger.warning('Failed to update HTTP metrics')
+        logger.warning('Failed to record HTTP metrics')
 
     return error
 
@@ -96,6 +97,7 @@ async def fetch_user_recent_data(
     try:
         redis_key = f"token:ac:{account_id}"
         ac = redis_client.get(redis_key)
+
         base_url = random.choice(VORTEX_API)
 
         urls = [
@@ -115,5 +117,11 @@ async def fetch_user_recent_data(
             return
 
         return responses
-    except Exception:
-        logger.error(traceback.format_exc())
+    except Exception as e:
+        error_name = type(e).__name__
+        logger.error(f"Fetch user data failed: {error_name}")
+        write_exception(
+            error_type="NetworkError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )

@@ -46,7 +46,7 @@ class UserStatsSyncer:
         return 9
 
     @classmethod
-    def _extract_user_data(cls, account_id: int, api_result: dict) -> dict:
+    def _extract_user_data(cls, account_id: int, response: dict) -> dict:
         """从 API 响应中提取用户基础数据"""
         user_data = {
             'username': None,
@@ -66,7 +66,7 @@ class UserStatsSyncer:
             'ranked_stats': {}
         }
         
-        user_info = api_result.get(str(account_id)) if api_result else None
+        user_info = response.get(str(account_id))
 
         # 隐藏战绩
         if 'hidden_profile' in user_info:

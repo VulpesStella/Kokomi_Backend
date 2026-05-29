@@ -162,5 +162,8 @@ CREATE TABLE IF NOT EXISTS T_user_config (
 
     PRIMARY KEY (id),
 
-    UNIQUE INDEX idx_rid_aid (account_id)
+    UNIQUE INDEX idx_aid (account_id),
+    
+
+    UNIQUE INDEX idx_level_and_aid (user_level, account_id)
 );

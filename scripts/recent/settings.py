@@ -67,5 +67,4 @@ with open(file_path, "r", encoding="utf-8") as f:
 file_path = DATA_DIR / 'const/recent.sql'
 with open(file_path, "r", encoding="utf-8") as f:
     CREATE_SQL = f.read()
-    
 print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Configuration data loading complete")

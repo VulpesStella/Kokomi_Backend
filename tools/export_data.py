@@ -22,7 +22,7 @@ else:
     raise FileNotFoundError('No environment file found')
 
 DB_CONFIG = {
-    "host": 'localhost',
+    "host": '134.175.195.154',
     "port": int(os.getenv("MYSQL_PORT", 3306)),
     "user": 'root',
     "password": os.getenv("MYSQL_ROOT_PASSWORD"),
@@ -368,7 +368,7 @@ def main():
     exporter = None
     try:
         exporter = ShipDataExporter(DB_CONFIG, output_file)
-        exporter.export_rating_distribution()
+        exporter.export_pvp_record()
     finally:
         if exporter:
             exporter.close()
