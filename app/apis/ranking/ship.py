@@ -8,7 +8,6 @@ from app.models import ShipModel, PlayerModel, RankingModel
 
 
 class ShipRankingAPI:
-    @staticmethod
     def _build_leaderboard(start_rank: int, user_ids: list, users_data: dict) -> list[dict]:
         """构建排行榜数据列表
 
@@ -60,35 +59,8 @@ class ShipRankingAPI:
         return leaderboard
 
     @classmethod
-    async def _get_ship_ids(cls) -> tuple[Optional[Any], Optional[dict]]:
-        """获取所有参与排行的船只ID列表
-
-        Returns:
-            (error, ship_ids): error为None时ship_ids有效，否则ship_ids为错误响应
-        """
-        error, ship_ids = JSONResponse.extract_data_strict(
-            response=await ShipModel.get_ranking_ship_ids()
-        )
-        return error, ship_ids
-
-    @classmethod
-    async def _get_ship_info(cls, ship_id: int) -> tuple[Optional[Any], Optional[dict]]:
-        """获取船只详细信息
-
-        Args:
-            ship_id: 船只ID
-
-        Returns:
-            (error, ship_info): error为None时ship_info有效，否则ship_info为错误响应
-        """
-        error, ship_info = JSONResponse.extract_data_strict(
-            response=await ShipModel.get_ship_info(ship_id)
-        )
-        return error, ship_info
-
-    @classmethod
     @ExceptionLogger.handle_program_exception_async
-    async def get_ship_ranking(cls, ship_id: int, page_index: int = 1, page_size: int = 50) -> ResponseDict:
+    async def get_ship_ranking(cls, ship_id: int, language: str, page_index: int = 1, page_size: int = 50) -> ResponseDict:
         """获取指定船只排行榜的分页数据
 
         Args:
@@ -101,7 +73,9 @@ class ShipRankingAPI:
         """
 
         # 获取并验证符合条件的船只ID列表
-        error, ship_ids = await cls._get_ship_ids()
+        error, ship_ids = JSONResponse.extract_data_strict(
+            response=await ShipModel.get_ranking_ship_ids()
+        )
         if error:
             return ship_ids
 
@@ -110,7 +84,9 @@ class ShipRankingAPI:
             return JSONResponse.API_1000_Success
 
         # 获取船只详细信息
-        error, ship_info = await cls._get_ship_info(ship_id)
+        error, ship_info = JSONResponse.extract_data_strict(
+            response=await ShipModel.get_ship_info_by_id(ship_id, language)
+        )
         if error:
             return ship_info
 
@@ -172,7 +148,7 @@ class ShipRankingAPI:
 
     @classmethod
     @ExceptionLogger.handle_program_exception_async
-    async def get_ship_user_ranking(cls, ship_id: int, account_id: int, page_size: int = 50) -> ResponseDict:
+    async def get_ship_user_ranking(cls, ship_id: int, account_id: int, language: str, page_size: int = 50) -> ResponseDict:
         """获取指定用户在船只排行榜中的排名及所在页数据
 
         Args:
@@ -190,7 +166,9 @@ class ShipRankingAPI:
             return record
 
         # 获取并验证符合条件的船只ID列表
-        error, ship_ids = await cls._get_ship_ids()
+        error, ship_ids = JSONResponse.extract_data_strict(
+            response=await ShipModel.get_ranking_ship_ids()
+        )
         if error:
             return ship_ids
 
@@ -233,7 +211,9 @@ class ShipRankingAPI:
             return JSONResponse.API_1000_Success
 
         # 获取船只详细信息
-        error, ship_info = await cls._get_ship_info(ship_id)
+        error, ship_info = JSONResponse.extract_data_strict(
+            response=await ShipModel.get_ship_info_by_id(ship_id, language)
+        )
         if error:
             return ship_info
 

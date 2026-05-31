@@ -2,9 +2,17 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.templating import Jinja2Templates
 
-from .services import get_overview_data, get_celery_data, get_game_api_data, get_database_data, get_user_activity_data, get_error_logs_data, get_exception_detail
-
 from app.core import EnvConfig
+from .services import (
+    get_overview_data, 
+    get_celery_data, 
+    get_game_api_data, 
+    get_database_data, 
+    get_user_activity_data, 
+    get_error_logs_data, 
+    get_exception_detail
+)
+
 
 PROJECT_GITHUB_URL = "https://github.com/SangonomiyaKoko/Kokomi_Backend"
 

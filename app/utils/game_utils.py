@@ -1,7 +1,5 @@
 from app.core import EnvConfig
 
-from .time_utils import TimeUtils
-
 
 class GameUtils:
     """存放和游戏相关的工具函数"""
@@ -13,7 +11,6 @@ class GameUtils:
         "获取工会的默认名称"
         return f'N/A'
     
-    @staticmethod
     def get_insignias(data: dict):
         if not data:
             return None
@@ -28,7 +25,6 @@ class GameUtils:
             return None
         return "-".join(str(data[k]) for k in keys)
     
-    @staticmethod
     def get_dog_tag(data: str):
         if data is None or data == "":
             return {}
@@ -41,10 +37,45 @@ class GameUtils:
             "background_id": data[4]
         }
 
-    @staticmethod
     def check_uid(account_id: int) -> bool:
         "检查account_id是否合法"
         uid_rule = EnvConfig.UID_RULE
         if uid_rule[0] <= account_id <= uid_rule[1]:
             return True
         return False
+    
+    def format_nation(nation: str) -> str:
+        NATION_DISPLAY = {
+            "commonwealth": "Commonwealth",
+            "europe": "Europe",
+            "france": "France",
+            "germany": "Germany",
+            "italy": "Italy",
+            "japan": "Japan",
+            "netherlands": "Netherlands",
+            "pan_america": "Pan America",
+            "pan_asia": "Pan Asia",
+            "spain": "Spain",
+            "uk": "UK",
+            "usa": "USA",
+            "ussr": "USSR",
+        }
+
+        return NATION_DISPLAY.get(nation, nation.capitalize())
+    
+    def format_tier(tier: int) -> str:
+        ROMAN_MAP = {
+            1: 'Ⅰ',
+            2: 'Ⅱ',
+            3: 'Ⅲ',
+            4: 'Ⅳ',
+            5: 'Ⅴ',
+            6: 'Ⅵ',
+            7: 'Ⅶ',
+            8: 'Ⅷ',
+            9: 'Ⅸ',
+            10: 'Ⅹ',
+            11: '★',
+        }
+
+        return ROMAN_MAP.get(tier, str(tier))

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Query, Path
 
+from app.core import EnvConfig
 from app.schemas import ACResponse, AuthResponse
 from app.apis.platform import TokenAPI, SearchAPI, RefreshAPI
 from app.response import JSONResponse
@@ -30,6 +31,9 @@ async def searchClan(
 
 @router.patch("/user/{user_id}/", summary="刷新用户基本信息的缓存")
 async def getUserBasic(user_id: int = Path(...)):
+    if EnvConfig.DEV_MODE:
+        return JSONResponse.API_2018_Maintenance
+    
     if GameUtils.check_uid(user_id) == False:
         return JSONResponse.API_2001_IllegalAccountID
     result = await RefreshAPI.refresh_user(user_id)

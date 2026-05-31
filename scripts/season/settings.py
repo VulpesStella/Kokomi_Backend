@@ -10,6 +10,10 @@ REFRESH_INTERVAL = 60
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
 USE_TQDM = sys.stdout.isatty()  # 只有在交互式终端中才使用 tqdm 显示进度条
 
+ROOT_DIR = Path(os.getcwd())
+LOG_DIR = ROOT_DIR / 'logs'
+DATA_DIR = ROOT_DIR / 'data'
+
 # 生产环境下的环境变量由 Docker Compose 注入 env.prod，开发环境下则通过加载 env.dev 文件来设置
 if not os.getenv('PLATFORM') or not os.getenv('PLATFORM').startswith('KokomiAPI'):
     # 关闭代理，避免请求外部API时被本地环境变量干扰
@@ -24,8 +28,6 @@ else:
     print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: env.prod")
 
 LOG_LEVEL = os.getenv("LOG_LEVEL")
-LOG_DIR = Path(os.getenv("LOG_DIR"))
-DATA_DIR = Path(os.getenv("DATA_DIR"))
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST"),
     "port": int(os.getenv("MYSQL_PORT", 3306)),

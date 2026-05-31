@@ -48,7 +48,8 @@ CREATE TABLE IF NOT EXISTS T_ship_base (
     rarity_id        TINYINT      DEFAULT NULL,     -- 稀有度 ID
     premium          BOOLEAN      DEFAULT FALSE,    -- 是否为金币船
     special          BOOLEAN      DEFAULT FALSE,    -- 是否为特种船
-    index_code       VARCHAR(50)  DEFAULT NULL,     -- 索引代码
+    index_code       VARCHAR(10)  DEFAULT NULL,     -- 索引代码
+    ship_name        VARCHAR(50)  DEFAULT NULL,     -- 船只名称
 
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

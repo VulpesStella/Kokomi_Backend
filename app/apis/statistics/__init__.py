@@ -1,5 +1,9 @@
-from .stats import StatsAPI
+from .pve import PVEAPI
+from .random import RandomAPI
+from .ranked import RankedAPI
 
 __all__ = [
-    'StatsAPI'
+    'PVEAPI',
+    'RandomAPI',
+    'RankedAPI'
 ]

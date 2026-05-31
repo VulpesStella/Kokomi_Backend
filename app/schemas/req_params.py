@@ -1,6 +1,13 @@
 from enum import Enum
 
 
+class Language(str, Enum):
+    ZHSG = 'zh_sg'
+    ZHCN = 'zh_cn'
+    EN = 'en'
+    JA = 'ja'
+    RU = 'ru'
+
 class ShipType(str, Enum):
     AIRCARRIER = "AirCarrier"
     BATTLESHIP = "Battleship"
@@ -42,7 +49,6 @@ class RecentLevel(str, Enum):
     plus = "plus"
 
 class PVPField(str, Enum):
-    PVP = 'pvp'
-    PVP_SOLO = 'pvp_solo'
-    PVP_DIV2 = 'pvp_div2'
-    PVP_DIV3 = 'pvp_div3'
+    SOLO = 'solo'
+    DIV2 = 'div2'
+    DIV3 = 'div3'

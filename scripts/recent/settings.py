@@ -10,6 +10,10 @@ REFRESH_INTERVAL = 60
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
 USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
 
+ROOT_DIR = Path(os.getcwd())
+LOG_DIR = ROOT_DIR / 'logs'
+DATA_DIR = ROOT_DIR / 'data'
+
 SERVER_RESET_OFFSET = 5
 
 # 生产环境下的环境变量由Docker Compose注入env.prod，开发环境下则通过加载env.dev文件来设置
@@ -26,13 +30,10 @@ else:
     print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: env.prod")
 
 LOG_LEVEL = os.getenv("LOG_LEVEL")
-LOG_DIR = Path(os.getenv("LOG_DIR"))
-DATA_DIR = Path(os.getenv("DATA_DIR"))
 if os.getenv("SQLITE_DIR") == "":
-    SQLITE_DIR = DATA_DIR / 'db'
+    SQLITE_DIR = ROOT_DIR / 'data/db'
 else:
     SQLITE_DIR = Path(os.getenv("SQLITE_DIR"))
-
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST"),
     "port": int(os.getenv("MYSQL_PORT", 3306)),

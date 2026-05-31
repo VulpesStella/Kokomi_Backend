@@ -95,9 +95,13 @@ class JSONResponse:
     API_2015_UserHiddenProfile = {'status': 'ok', 'code': 2015, 'message': 'UserHiddenProfile'}
     API_2016_UserNotInDB = {'status': 'ok', 'code': 2016, 'message': 'UserNotInDB'}
     API_2017_ClanNotInDB = {'status': 'ok', 'code': 2017, 'message': 'ClanNotInDB'}
-    API_2018_LeaderboardUnderMaintenance = {'status': 'ok', 'code': 2018, 'message': 'LeaderboardUnderMaintenance'}
+    API_2018_Maintenance = {'status': 'ok', 'code': 2018, 'message': 'Maintenance'}
     API_2019_AcqurieLockFailed = {'status': 'ok', 'code': 2019, 'message': 'AcqurieLockFailed'}
     API_2020_DataIntegrityError = {'status': 'ok', 'code': 2020, 'message': 'DataIntegrityError'}
+    API_2021_InvalidFilter = {'status': 'ok', 'code': 2021, 'message': 'InvalidFilter'}
+    API_2022_NoStatisticsData = {'status': 'ok', 'code': 2022, 'message': 'NoStatisticsData'}
+    API_2022_RecentNotEnable = {'status': 'ok', 'code': 2022, 'message': 'NoStatisticsData'}
+    API_2023_UserRecentDisabled = {'status': 'ok', 'code': 2023, 'message': 'UserRecentDisabled'}
 
     # 通用程序错误
     _API_3000_ProgramError = {'status': 'ok', 'code': 3000, 'message': 'ProgramError'}
@@ -140,6 +144,37 @@ class JSONResponse:
             'code': 1000,
             'message': 'Success',
             'data': data
+        }
+    
+    @staticmethod
+    def get_error_response(
+        code: int,
+        message: str,
+        error_id: Optional[str] = None
+    ) -> ErrorResponseDict:
+        """构造错误响应
+
+        返回指定错误码和错误信息的失败响应，自动生成 trace_id
+        并注入当前平台标识，便于后期问题定位
+
+        Args:
+            code: 业务错误码，格式遵循类级别定义的分段规则
+            message: 面向调用方的错误描述信息
+            error_id: 链路追踪 ID。未提供时自动生成 UUID
+
+        Returns:
+            符合 ErrorResponseDict 结构的字典
+        """
+        if error_id is None:
+            error_id = str(uuid.uuid4())
+        return {
+            'status': ResponseStatus.ERROR,
+            'code': code,
+            'message': message,
+            'error': {
+                'trace_id': error_id,
+                'platform': EnvConfig.PLATFORM
+            }
         }
     
     @staticmethod

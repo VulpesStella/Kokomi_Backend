@@ -17,7 +17,9 @@ from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
 from exception import write_exception
-from updater import UserConfig, UserStats, UserUpdater, UserRecentUpdater
+from updater import UserStats, UserUpdater, UserRecentUpdater
+from syncer import UserStatsSyncer
+from api import fetch_user_recent_data
 from db_ops import get_recent_users
 from utils import get_current_timestamp
 from settings import (
@@ -69,14 +71,12 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
                     continue
 
                 # 用户level信息
-                user_config = UserConfig(
-                    level=row[1],
-                    limit=row[2]
-                )
+                user_level=row[1]
+                user_limit=row[2]
 
                 # updated_at 为 NULL 说明该用户是新添加
                 if row[10] is None:
-                    update_list.append([row[0],user_config,None,None])
+                    update_list.append([row[0],user_level,user_limit,None,None])
                     continue
                 
                 # 用户在数据库中的最新stats数据
@@ -88,10 +88,7 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
                     ranked_battles=row[8],
                     karma=row[9]
                 )
-                update_list.append([row[0],user_config,user_stats,row[10]])
-                    
-                # 测试用代码，，记得删除
-                break
+                update_list.append([row[0],user_level,user_limit,user_stats,row[10]])
     except Exception as e:
         error_name = type(e).__name__
         logger.error(f"Database operation exception: {error_name}")
@@ -101,19 +98,11 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
             error_info=traceback.format_exc()
         )
     
-    for account_id, user_config, user_stats, update_time in update_list:
-        # 设置分布式锁防止出现并发写问题
-        lock_key = f"refresh_lock:recent:{account_id}"
-        lock_acquired = redis_client.set(lock_key, 1, nx=True, ex=60)
-
-        if not lock_acquired:
-            logger.info(f'{account_id} | Failed to acquire lock')
-            continue
+    for account_id, user_level, user_limit, user_stats, update_time in update_list:
+        # 只读取一次时间戳避免计算日期时出现不一致问题
+        current_timestamp = get_current_timestamp()
         
         try:
-            # 只读取一次时间戳避免计算日期时出现不一致问题
-            current_timestamp = get_current_timestamp()
-
             # 对比mysql和sqlite数据库中用户的基本数据
             # 找出需要更新的用户
             result = UserUpdater.main(
@@ -122,19 +111,66 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
                 user_latest_stats=user_stats,
                 user_update_time=update_time
             )
-            if result:
-                await UserRecentUpdater.main(
-                    mysql_connection=mysql_connection,
-                    redis_client=redis_client,
-                    async_client=async_client,
-                    account_id=account_id,
-                    user_config=user_config,
-                    current_timestamp=current_timestamp
-                )
-        except Exception:
-            logger.error(traceback.format_exc())
+            if not result:
+                continue
 
-        redis_client.delete(lock_key)
+            responses = await fetch_user_recent_data(async_client, redis_client, account_id)
+            if not responses:
+                logger.error(f'{account_id} | Failed to obtain data')
+                continue
+                
+            basic_data = responses[0]
+            
+            # 刷新 MySQL 的用户基础信息
+            try:
+                update_timestamp = UserStatsSyncer.refresh(mysql_connection, account_id, basic_data)
+            except Exception as e:
+                error_name = type(e).__name__
+                logger.error(f'{account_id} | Database operation error')
+                write_exception(
+                    error_type="DatabaseError",
+                    error_name=error_name,
+                    error_info=traceback.format_exc()
+                )
+                continue
+            
+            # 没有刷新时间说明刷新失败
+            if update_timestamp is None:
+                logger.error(f'{account_id} | Refresh failed')
+                continue
+                
+            # 用户数据不存在
+            basic_data = basic_data.get(str(account_id))
+            if basic_data is None or 'statistics' not in basic_data:
+                logger.info(f'{account_id} | User not found')
+                continue
+
+            # 设置分布式锁防止出现并发写问题
+            lock_key = f"refresh_lock:recent:{account_id}"
+            lock_acquired = redis_client.set(lock_key, 1, nx=True, ex=60)
+            if not lock_acquired:
+                logger.info(f'{account_id} | Failed to acquire lock')
+                continue
+
+            try:
+                await UserRecentUpdater.main(
+                    account_id=account_id,
+                    user_level=user_level,
+                    user_limit=user_limit,
+                    responses=responses,
+                    current_timestamp=current_timestamp,
+                    update_timestamp=update_timestamp
+                )
+            finally:
+                redis_client.delete(lock_key)
+        except Exception as e:
+            error_name = type(e).__name__
+            logger.error(f'{account_id} | Refresh failed: {error_name}')
+            write_exception(
+                error_type="DatabaseError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
 
 async def main():
     redis_client = None

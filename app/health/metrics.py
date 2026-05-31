@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Tuple
 
+from app.core import EnvConfig
 from app.middlewares import RedisClient
 from app.loggers import ExceptionLogger
 
@@ -11,22 +12,37 @@ from app.loggers import ExceptionLogger
 class ServiceMetrics:
     @ExceptionLogger.handle_cache_exception_async
     async def total_incr(key: str, amount: int):
+        if EnvConfig.DEV_MODE:
+            return
+        
         await RedisClient.incrby(f"metrics:total:{key}", amount)
 
     @ExceptionLogger.handle_cache_exception_async
     async def requests_incr(key: str, date: str):
+        if EnvConfig.DEV_MODE:
+            return
+        
         await RedisClient.incr(f"metrics:{key}:{date}")
 
     @ExceptionLogger.handle_cache_exception_async
     async def http_incrby(date: str, amount: int):
+        if EnvConfig.DEV_MODE:
+            return
+        
         await RedisClient.incrby(f"metrics:http_total:{date}", amount)
 
     @ExceptionLogger.handle_cache_exception_async
     async def http_error_incrby(date: str, amount: int):
+        if EnvConfig.DEV_MODE:
+            return
+        
         await RedisClient.incrby(f"metrics:http_error:{date}", amount)
 
     @ExceptionLogger.handle_cache_exception_async
     async def celery_error_incrby(date: str, amount: int):
+        if EnvConfig.DEV_MODE:
+            return
+        
         await RedisClient.incrby(f"metrics:celery_error:{date}", amount)
 
     @staticmethod

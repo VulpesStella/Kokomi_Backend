@@ -1,18 +1,127 @@
-"""
-Dashboard 数据服务层
-各页面通过此模块调用 models / health 获取数据并组装为模板上下文
-"""
 import json
 from datetime import datetime, timezone
 from typing import Dict, Any
 
 import math
-from pathlib import Path
 
 from app.core import EnvConfig
 from app.health import ServiceMetrics
 from app.models import PlatformModel
 from app.utils import JsonUtils
+
+
+def _is_dev_mode() -> bool:
+    return EnvConfig.DEV_MODE
+
+
+def _dev_overview():
+    empty_24h = [[f"{h:02d}:00" for h in range(24)], [0] * 24]
+    empty_30d = [[], []]
+    return {
+        "cards": [
+            {"title": "Today's API Calls", "value": "0", "icon": "📡", "color": "#667eea"},
+            {"title": "Average Response Time", "value": "0ms", "icon": "⚡", "color": "#f093fb"},
+            {"title": "Success Rate (200)", "value": "0%", "icon": "✅", "color": "#43e97b"},
+            {"title": "Today's Error", "value": "0", "icon": "⚠️", "color": "#fa709a"},
+            {"title": "Active Services", "value": "0 / 5", "icon": "🖥️", "color": "#4facfe"},
+        ],
+        "overview_chart_json": json.dumps({
+            "labels": empty_24h[0], "request_values": empty_24h[1], "error_values": empty_24h[1],
+        }),
+        "monthly_line_chart_json": json.dumps({
+            "labels": empty_30d[0], "values": empty_30d[1],
+        }),
+    }
+
+
+def _dev_celery():
+    empty_30d = [[], []]
+    return {
+        "cards_row1": [
+            {"title": "Total Published", "value": "--", "icon": "📤", "color": "#43e97b"},
+            {"title": "Total Consumed", "value": "--", "icon": "📥", "color": "#667eea"},
+            {"title": "Pending Tasks", "value": "--", "icon": "📦", "color": "#4facfe"},
+            {"title": "Ready Tasks", "value": "--", "icon": "✅", "color": "#43e97b"},
+            {"title": "Unacknowledged", "value": "--", "icon": "⏳", "color": "#f093fb"},
+        ],
+        "cards_row2": [
+            {"title": "Consumers", "value": "--", "icon": "🔗", "color": "#667eea"},
+            {"title": "Consumer Utilisation", "value": "--", "icon": "📊", "color": "#fa709a"},
+            {"title": "Queue Memory", "value": "--", "icon": "🧠", "color": "#f093fb"},
+            {"title": "Message Payload", "value": "--", "icon": "💾", "color": "#4facfe"},
+            {"title": "Today's Failed Tasks", "value": "0", "icon": "❌", "color": "#fa709a"},
+        ],
+        "celery_chart_json": json.dumps({
+            "labels": empty_30d[0], "values": empty_30d[1],
+        }),
+    }
+
+
+def _dev_game_api():
+    empty_30d = [[], []]
+    return {
+        "http_total_chart_json": json.dumps({"labels": empty_30d[0], "values": empty_30d[1]}),
+        "http_error_rate_chart_json": json.dumps({"labels": empty_30d[0], "values": empty_30d[1]}),
+    }
+
+
+def _dev_database():
+    return {
+        "db_cards": [
+            {
+                "title": "MySQL Main Database",
+                "kpis": [
+                    {"icon": "📋", "label": "Tables", "value": "--"},
+                    {"icon": "💿", "label": "Total Size", "value": "--"},
+                    {"icon": "📊", "label": "Total Rows", "value": "--"},
+                ]
+            },
+            {
+                "title": "SQLite Snapshot DB",
+                "kpis": [
+                    {"icon": "📁", "label": "Files", "value": "--"},
+                    {"icon": "💿", "label": "Total Size", "value": "--"},
+                    {"icon": "📏", "label": "Avg Size", "value": "--"},
+                ]
+            },
+            {
+                "title": "Runtime Environment",
+                "kpis": [
+                    {"icon": "🏆", "label": "Clan Season", "value": "--"},
+                    {"icon": "🎯", "label": "Game Version", "value": "--"},
+                ]
+            },
+            {
+                "title": "Core Entity Totals",
+                "kpis": [
+                    {"icon": "👤", "label": "Users", "value": "--"},
+                    {"icon": "🏠", "label": "Clans", "value": "--"},
+                    {"icon": "🚢", "label": "Ships", "value": "--"},
+                ]
+            },
+            {
+                "title": "PVP Cache Stats",
+                "kpis": [
+                    {"icon": "👥", "label": "Cached Users", "value": "--"},
+                    {"icon": "📝", "label": "Ship Entries", "value": "--"},
+                    {"icon": "⚔️", "label": "Total Battles", "value": "--"},
+                    {"icon": "🏅", "label": "Leaderboard", "value": "--"},
+                ]
+            },
+        ],
+        "archive_chart_json": json.dumps({"labels": [], "values": []}),
+    }
+
+
+def _dev_user_activity():
+    return {
+        "planned_users": 0,
+        "planned_clans": 0,
+        "user_level_chart_json": json.dumps({"legend": [], "data": []}),
+        "refresh_plan_chart_json": json.dumps({"legend": [], "data": []}),
+        "activity_chart_json": json.dumps({"labels": [], "values": []}),
+        "hourly_chart_json": json.dumps({"labels": [], "user_values": [], "clan_values": []}),
+    }
 
 
 def _meta_int(meta: dict, key: str) -> int:
@@ -33,7 +142,10 @@ def _format_file_size(size_bytes: int) -> tuple[str, str]:
         return f"{size_bytes / (1024 ** 3):.2f}", "GB"
 
 async def get_overview_data() -> Dict[str, Any]:
-    """概览页数据 - 调用ServiceMetrics的各个方法组装数据"""
+    """概览页数据"""
+    if _is_dev_mode():
+        return _dev_overview()
+
     now = datetime.now(timezone.utc)
     today = now.date()
     log_dir = EnvConfig.LOG_DIR
@@ -110,6 +222,9 @@ async def get_overview_data() -> Dict[str, Any]:
 
 async def get_celery_data() -> Dict[str, Any]:
     """Celery 页面数据"""
+    if _is_dev_mode():
+        return _dev_celery()
+
     now = datetime.now(timezone.utc)
     config = EnvConfig.get_config()
 
@@ -210,6 +325,9 @@ async def get_celery_data() -> Dict[str, Any]:
 
 async def get_game_api_data() -> Dict[str, Any]:
     """Game API 页面数据"""
+    if _is_dev_mode():
+        return _dev_game_api()
+
     now = datetime.now(timezone.utc)
 
     monthly_keys, total_values, error_values = await ServiceMetrics.get_monthly_http_stats(now)
@@ -240,6 +358,8 @@ async def get_game_api_data() -> Dict[str, Any]:
 
 async def get_database_data() -> Dict[str, Any]:
     """Database 页面数据"""
+    if _is_dev_mode():
+        return _dev_database()
 
     # 数据库元信息（MySQL + SQLite 合并在同一张表）
     dbm_resp = await PlatformModel.read_database_meta()
@@ -344,6 +464,8 @@ async def get_database_data() -> Dict[str, Any]:
 
 async def get_user_activity_data() -> Dict[str, Any]:
     """User Activity 页面数据"""
+    if _is_dev_mode():
+        return _dev_user_activity()
 
     LEVEL_LABELS = {0: 'None', 1: 'Normal', 2: 'Advanced'}
     REFRESH_LABELS = {

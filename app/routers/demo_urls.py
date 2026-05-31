@@ -2,6 +2,7 @@ from typing import Literal
 from fastapi import APIRouter, Query, Path
 
 from app.response import JSONResponse
+from app.core import EnvConfig
 from app.utils import GameUtils
 from app.schemas import RecentLevel
 from app.apis.demo import (
@@ -19,6 +20,11 @@ async def testErrorLog():
     return await TestAPI.test_error_log()
 
 
+@router.delete("/error_logs/", summary="删除所有错误日志文件")
+async def deleteErrorLogs():
+    return await TestAPI.delete_error_logs()
+
+
 @router.post("/tracking/reset/", summary="重置指定服务追踪的更新时间")
 async def resetTrackingTime(
     key: ALLOWED_TRACKING_KEYS = Query(..., description="追踪服务的 Key")
@@ -27,6 +33,9 @@ async def resetTrackingTime(
     将 T_tracking_meta 表中指定 tracking_key 的 tracking_value 置为 NULL，
     用于强制服务在下个更新轮次里触发立即刷新。
     """
+    if EnvConfig.DEV_MODE:
+        return JSONResponse.API_2018_Maintenance
+    
     return await MySQLAPI.reset_tracking_time(key)
 
 
@@ -34,6 +43,9 @@ async def resetTrackingTime(
 async def getUserDB(
     user_id: int = Path(..., description="用户ID")
 ):
+    if EnvConfig.DEV_MODE:
+        return JSONResponse.API_2018_Maintenance
+    
     if not GameUtils.check_uid(user_id):
         return JSONResponse.API_2001_IllegalAccountID
     result = await MySQLAPI.get_user_overview(user_id)
@@ -44,6 +56,9 @@ async def getUserDB(
 async def getClanDB(
     clan_id: int = Path(..., description="工会ID")
 ):
+    if EnvConfig.DEV_MODE:
+        return JSONResponse.API_2018_Maintenance
+    
     if not GameUtils.check_uid(clan_id):
         return JSONResponse.API_2002_IllegalClanID
     result = await MySQLAPI.get_clan_overview(clan_id)
@@ -100,6 +115,9 @@ async def enable_features(
     - standard: 启用基础的近期数据记录
     - plus: 启用详细的近期数据记录
     """
+    if EnvConfig.DEV_MODE:
+        return JSONResponse.API_2018_Maintenance
+    
     if not GameUtils.check_uid(user_id):
         return JSONResponse.API_2001_IllegalAccountID
     
@@ -116,6 +134,9 @@ async def disable_features(
     - off: 完全关闭近期数据记录
     - standard: 从Plus降级到标准版
     """
+    if EnvConfig.DEV_MODE:
+        return JSONResponse.API_2018_Maintenance
+    
     if not GameUtils.check_uid(user_id):
         return JSONResponse.API_2001_IllegalAccountID
     

@@ -2,7 +2,7 @@ from app.loggers import ExceptionLogger
 from app.network import ExternalAPI
 from app.response import JSONResponse, ResponseDict
 from app.middlewares import RedisClient
-from app.models import UserStatsSyncer, UserClanSyncer
+from app.models import UserStatsSyncer, UserClanSyncer, PlayerModel
 
 
 
@@ -54,6 +54,12 @@ class RefreshAPI:
             )
             if error:
                 return result
+        
+        error, set_due = JSONResponse.extract_data_strict(
+            response=await PlayerModel.set_user_due(account_id)
+        )
+        if error:
+            return set_due
         
         return JSONResponse.API_1000_Success
         

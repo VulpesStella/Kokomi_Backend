@@ -156,13 +156,14 @@ def insert_ship(cursor, ship: dict) -> None:
     sql = """
         INSERT INTO T_ship_base (
             ship_id, is_enabled, is_old, tier, type_id,
-            nation_id, rarity_id, premium, special, index_code
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+            nation_id, rarity_id, premium, special, index_code, ship_name
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
     """
+    prefix, name = ship['index_code'].split('_', 1)
     cursor.execute(sql, [
         ship['ship_id'], True, ship['is_old'], ship['tier'], ship['type_id'],
         ship['nation_id'], ship['rarity_id'], ship['premium'], ship['special'],
-        ship['index_code']
+        prefix, name
     ])
 
     # 名称表

@@ -18,6 +18,22 @@ class TestAPI:
     async def test_error_log():
         """测试错误日志记录功能"""
         raise NotImplementedError
+
+    @ExceptionLogger.handle_program_exception_async
+    async def delete_error_logs():
+        """删除所有错误日志文件"""
+        error_dir = EnvConfig.LOG_DIR / 'error'
+        exception_dir = EnvConfig.LOG_DIR / 'exception'
+        del_count = 0
+
+        for log_dir in (error_dir, exception_dir):
+            if log_dir.exists() and log_dir.is_dir():
+                for file_path in log_dir.glob('*'):
+                    if file_path.is_file():
+                        file_path.unlink()
+                        del_count += 1
+
+        return JSONResponse.get_success_response(del_count)
     
     @ExceptionLogger.handle_program_exception_async
     async def get_user_basic(account_id: int) -> ResponseDict:

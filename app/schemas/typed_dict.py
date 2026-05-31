@@ -1,7 +1,6 @@
-from typing_extensions import TypedDict
+from typing import TypedDict
 
-
-class ShipDataDict(TypedDict):
+class ShipOriginalData(TypedDict):
     battles_count: int
     wins: int
     damage_dealt: int
@@ -11,29 +10,13 @@ class ShipDataDict(TypedDict):
     damage_rating: int
     frags_rating: int
 
-class ServerDataDict(TypedDict):
-    battles_count: int
-    win_rate: float
-    avg_damage: float
-    avg_frags: float
-    avg_exp: float
-    survived_rate: float
-    avg_scouting_damage: float
-    avg_art_agro: float
-    avg_planes_killed: float
-
-class ShipNameDict(TypedDict):
-    cn: str
-    en: str
-    en_l: str
-    ja: str
-    ru: str
-
-class ShipInfoDict(TypedDict):
-    tier: int
-    type: str
-    nation: str
-    premium: bool
-    special: bool
-    index: str
-    ship_name: ShipNameDict
+class ShipProcessedData(TypedDict):
+    battles: int
+    wins: int
+    damage: int
+    frags: int
+    exp: int
+    v_battles: int
+    p_rating: int
+    d_rating: int
+    f_rating: int

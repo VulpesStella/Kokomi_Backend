@@ -1,9 +1,5 @@
-import json
 import sqlite3
 import traceback
-from redis import Redis
-from httpx import AsyncClient
-from pymysql import Connection
 from sqlite3 import Cursor
 from typing import Optional
 from pathlib import Path
@@ -11,14 +7,8 @@ from typing_extensions import TypedDict
 
 from logger import logger
 from exception import write_exception
-from syncer import UserStatsSyncer
-from api import fetch_user_recent_data
 from utils import get_reset_date
 from settings import SQLITE_DIR, CREATE_SQL
-
-class UserConfig(TypedDict):
-    level: int
-    limit: int
 
 class UserStats(TypedDict):
     is_public: bool
@@ -36,7 +26,6 @@ HIDDEN_USER_STATS = UserStats(
     ranked_battles=0,
     karma=0
 )
-
 
 class UserUpdater:
     def _init_new_database(account_id: int, db_path: Path, current_timestamp: int):
@@ -342,14 +331,6 @@ class UserRecentUpdater:
         for key, value in data.items():
             parts.append(str(key) + ':' + str(value))
         return ','.join(parts)
-    
-    def _ship_map_decode(data: str):
-        fields = data.split(',')
-        result = {}
-        for f in fields:
-            data = f.split(':')
-            result[data[0]] = data[1]
-        return result
 
     def _process_responeses(responses: list):
         statis_dict = {}
@@ -401,7 +382,7 @@ class UserRecentUpdater:
                 continue
 
             if old_data is None:
-                old_data = [0 * 12]
+                old_data = [0] * 12
 
             # 计算各字段差值（新 - 旧）
             delta_battles = new_data[0] - old_data[0]
@@ -501,111 +482,92 @@ class UserRecentUpdater:
             snapshot_date
         ])
 
-    def _insert_snapshot_index(cursor, snapshot_date: int, ship_count: int, ship_map: dict):
-        sql = """
-            INSERT INTO daily_snapshot_index (
-                snapshot_date, ship_count, ship_map
-            ) VALUES (
-                ?,?,?
-            );
-        """
-        cursor.execute(sql, [snapshot_date, ship_count, json.dumps(ship_map)])
+    def _refresh_snapshot_index(cursor: Cursor, existing: bool, snapshot_date: int, ship_count: int, ship_map: dict):
+        if existing:
+            sql = """
+                UPDATE daily_snapshot_index 
+                SET 
+                    ship_count = ?, 
+                    ship_map = ?
+                WHERE snapshot_date = ?;
+            """
+            cursor.execute(sql, [ship_count, ship_map, snapshot_date])
+        else:
+            sql = """
+                INSERT INTO daily_snapshot_index (
+                    snapshot_date, ship_count, ship_map
+                ) VALUES (
+                    ?,?,?
+                );
+            """
+            cursor.execute(sql, [snapshot_date, ship_count, ship_map])
 
-    def _insert_latest_cache_many(cursor: Cursor, rows: list):
-        sql = """
-            INSERT INTO ship_latest_cache (
-                ship_id, battles, snapshot_date
-            ) VALUES (
-                ?,?,?
-            );
-        """
-        cursor.executemany(sql, rows)
+    def _refresh_latest_cache(cursor: Cursor, params: dict):
+        if len(params['insert']) > 0:
+            sql = """
+                INSERT INTO ship_latest_cache (
+                    ship_id, battles, snapshot_date
+                ) VALUES (
+                    ?,?,?
+                );
+            """
+            cursor.executemany(sql, params['insert'])
+        
+        if len(params['update']) > 0:
+            sql = """
+                UPDATE ship_latest_cache 
+                SET 
+                    battles = ?, 
+                    snapshot_date = ?, 
+                    updated_at = CURRENT_TIMESTAMP 
+                WHERE ship_id = ?;
+            """
+            cursor.executemany(sql, params['update'])
 
-    def _insert_user_recent_stats_many(cursor: Cursor, rows: list):
-        sql = """
-            INSERT INTO user_recent_stats (
-                ship_id, mode, battles, wins, losses, damage, frags,
-                original_exp, scouting_damage, art_agro, planes_killed,
-                survived, hit_rate
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
-        cursor.executemany(sql, rows)
+    def _refresh_daily_snapshot(cursor: Cursor, params: dict):
+        if len(params['insert']) > 0:
+            sql = """
+                INSERT INTO ship_daily_snapshot (
+                    ship_id, snapshot_date, snapshot_data
+                ) VALUES (
+                    ?,?,?
+                );
+            """
+            cursor.executemany(sql, params['insert'])
+        
+        if len(params['update']) > 0:
+            sql = """
+                UPDATE ship_daily_snapshot 
+                SET 
+                    snapshot_data = ?, 
+                    updated_at = CURRENT_TIMESTAMP 
+                WHERE ship_id = ? 
+                    AND snapshot_date = ?;
+            """
+            cursor.executemany(sql, params['update'])
 
-    def _insert_daily_snapshot_many(cursor: Cursor, rows: list):
-        sql = """
-            INSERT INTO ship_daily_snapshot (
-                ship_id, snapshot_date, snapshot_data
-            ) VALUES (
-                ?,?,?
-            );
-        """
-        cursor.executemany(sql, rows)
-
-    def _update_latest_cache_many(cursor: Cursor, rows: list):
-        sql = """
-            UPDATE ship_latest_cache 
-            SET 
-                battles = ?, 
-                snapshot_date = ?, 
-                updated_at = CURRENT_TIMESTAMP 
-            WHERE ship_id = ?;
-        """
-        cursor.executemany(sql, rows)
-
-    def _update_daily_snapshot_many(cursor: Cursor, rows: list):
-        sql = """
-            UPDATE ship_daily_snapshot 
-            SET 
-                snapshot_data = ?, 
-                updated_at = CURRENT_TIMESTAMP 
-            WHERE ship_id = ? 
-                AND snapshot_date = ?;
-        """
-        cursor.executemany(sql, rows)
+    def _insert_user_recent_stats(cursor: Cursor, rows: list):
+        if len(rows) > 0:
+            sql = """
+                INSERT INTO user_recent_stats (
+                    ship_id, mode, battles, wins, losses, damage, frags,
+                    original_exp, scouting_damage, art_agro, planes_killed,
+                    survived, hit_rate
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """
+            cursor.executemany(sql, rows)
 
     @classmethod
     async def main(
         cls, 
-        mysql_connection: Connection,
-        redis_client: Redis,
-        async_client: AsyncClient,
         account_id: int,
-        user_config: UserConfig,
-        current_timestamp: int
+        user_level: int,
+        user_limit: int,
+        responses: list,
+        current_timestamp: int,
+        update_timestamp: int
     ) -> str:
-        # 从接口读取数据
-        responses = await fetch_user_recent_data(async_client, redis_client, account_id)
-        if not responses:
-            logger.error(f'{account_id} | Failed to obtain data (2001)')
-            return
-            
-        basic_data = responses[0]
-        
-        # 刷新 MySQL 的用户基础信息
-        try:
-            update_timestamp = UserStatsSyncer.refresh(mysql_connection, account_id, basic_data)
-        except Exception as e:
-            error_name = type(e).__name__
-            logger.error(f'{account_id} | Database operation error')
-            logger.error(f'{account_id} | Refresh failed (2002)')
-            write_exception(
-                error_type="DatabaseError",
-                error_name=error_name,
-                error_info=traceback.format_exc()
-            )
-            return
-        
-        # 没有刷新时间说明刷新失败
-        if update_timestamp is None:
-            logger.error(f'{account_id} | Refresh failed (2002)')
-            return
-
-        basic_data = basic_data.get(str(account_id))
-
-        # 用户数据不存在
-        if basic_data is None or 'statistics' not in basic_data:
-            logger.info(f'{account_id} | User not found')
-            return
+        basic_data = responses[0].get(str(account_id))
 
         # 如果非隐藏战绩则刷新数据
         if 'hidden_profile' not in basic_data:
@@ -634,14 +596,12 @@ class UserRecentUpdater:
             with sqlite3.connect(db_path) as conn:
                 try:
                     cursor = conn.cursor()
-
                     cursor.execute("BEGIN IMMEDIATE")
                     # 读取当前日期下的update_at值
                     now_date_summary = cls._read_base_daily_summary(cursor, now_date)
                     # update_at值为空则更新两行
                     if now_date_summary[4] is None:
                         yesterday = get_reset_date(current_timestamp - 86400)
-
                         cls._update_daily_summary(cursor, yesterday, user_latest_stats, None, update_timestamp)
                         cls._update_daily_summary(cursor, now_date, user_latest_stats, None, update_timestamp)
                     else:
@@ -660,7 +620,7 @@ class UserRecentUpdater:
                     )
                 finally:
                     cursor.close()
-                
+
                 return 
 
         latest_ship_count = 0
@@ -707,11 +667,9 @@ class UserRecentUpdater:
                         cursor.execute("BEGIN IMMEDIATE")
                         cls._update_daily_summary(cursor, yesterday, user_latest_stats, yesterday, update_timestamp)
                         cls._update_daily_summary(cursor, now_date, user_latest_stats, yesterday, update_timestamp)
-                        cls._insert_snapshot_index(cursor, yesterday, latest_ship_count, cls._ship_map_encode(latest_ship_map))
-                        if len(latest_ship_cache['insert']) > 0:
-                            cls._insert_latest_cache_many(cursor, latest_ship_cache['insert'])
-                        if len(latest_shapshot['insert']) > 0:
-                            cls._insert_daily_snapshot_many(cursor, latest_shapshot['insert'])
+                        cls._refresh_snapshot_index(cursor, False, yesterday, latest_ship_count, cls._ship_map_encode(latest_ship_map))
+                        cls._refresh_latest_cache(cursor, latest_ship_cache)
+                        cls._refresh_daily_snapshot(cursor, latest_shapshot)
                         cursor.execute("COMMIT")
                         
                         logger.debug(f'{account_id} | New user (2004)')
@@ -767,7 +725,7 @@ class UserRecentUpdater:
                         cursor.execute("BEGIN IMMEDIATE")
                         cls._update_daily_summary(cursor, yesterday, user_latest_stats, yesterday, update_timestamp)
                         cls._update_daily_summary(cursor, now_date, user_latest_stats, yesterday, update_timestamp)
-                        cls._insert_snapshot_index(cursor, yesterday, latest_ship_count, cls._ship_map_encode(latest_ship_map))
+                        cls._refresh_snapshot_index(cursor, False, yesterday, latest_ship_count, cls._ship_map_encode(latest_ship_map))
                         cursor.execute("COMMIT")
 
                         logger.debug(f'{account_id} | Fix database / No changed (2005)')
@@ -790,15 +748,9 @@ class UserRecentUpdater:
                     cursor.execute("BEGIN IMMEDIATE")
                     cls._update_daily_summary(cursor, yesterday, user_latest_stats, yesterday, update_timestamp)
                     cls._update_daily_summary(cursor, now_date, user_latest_stats, yesterday, update_timestamp)
-                    cls._insert_snapshot_index(cursor, yesterday, latest_ship_count, cls._ship_map_encode(latest_ship_map))
-                    if len(latest_ship_cache['insert']) > 0:
-                        cls._insert_latest_cache_many(cursor, latest_ship_cache['insert'])
-                    if len(latest_ship_cache['update']) > 0:
-                        cls._update_latest_cache_many(cursor, latest_ship_cache['update'])
-                    if len(latest_shapshot['insert']) > 0:
-                        cls._insert_daily_snapshot_many(cursor, latest_shapshot['insert'])
-                    if len(latest_shapshot['update']) > 0:
-                        cls._update_daily_snapshot_many(cursor, latest_shapshot['update'])
+                    cls._refresh_snapshot_index(cursor, False, yesterday, latest_ship_count, cls._ship_map_encode(latest_ship_map))
+                    cls._refresh_latest_cache(cursor, latest_ship_cache)
+                    cls._refresh_daily_snapshot(cursor, latest_shapshot)
                     cursor.execute("COMMIT")
                 except Exception as e:
                     cursor.execute("ROLLBACK")
@@ -818,15 +770,13 @@ class UserRecentUpdater:
             changed_list = {}
             insert_recent_list = []
 
-            # 测试代码
-            is_pro = True
-            # if (
-            #     user_config['level'] == 2 and 
-            #     current_timestamp - local_date_summary[4] <= 7200
-            # ):
-            #     is_pro = True
-            # else:
-            #     is_pro = False
+            if (
+                user_level == 2 and 
+                current_timestamp - local_date_summary[4] <= 7200
+            ):
+                is_pro = True
+            else:
+                is_pro = False
 
             for ship_id, ship_data in latest_dict.items():
                 if ship_id not in local_dict:
@@ -837,25 +787,34 @@ class UserRecentUpdater:
                     latest_shapshot['insert'].append([
                         ship_id, now_date, cls._ship_snapshot_encode(ship_data['values'])
                     ])
+
                     # 处理pro权限用户
                     if is_pro:
-                        changed_list[ship_id] = [ship_data['values'], [None * 4]]
+                        changed_list[ship_id] = [ship_data['values'], [None]*4]
+
                     latest_ship_count += 1
                     latest_ship_map[ship_id] = now_date
                 elif ship_data['battles'] != local_dict[ship_id][0]:
                     changed_rows += 1
-                    latest_ship_cache['insert'].append([
-                        int(ship_id), ship_data['battles'], now_date
+                    latest_ship_cache['update'].append([
+                        ship_data['battles'], now_date, int(ship_id)
                     ])
-                    latest_shapshot['insert'].append([
-                        ship_id, now_date, cls._ship_snapshot_encode(ship_data['values'])
-                    ])
+                    if local_dict[ship_id][1] == now_date:
+                        latest_shapshot['update'].append([
+                            now_date, cls._ship_snapshot_encode(ship_data['values']), ship_id
+                        ])
+                    else:
+                        latest_shapshot['insert'].append([
+                            ship_id, now_date, cls._ship_snapshot_encode(ship_data['values'])
+                        ])
+                        
                     # 处理pro权限用户
                     if is_pro and ship_data['battles'] > local_dict[ship_id][0]:
-                        local_snapshot = cls._read_daily_snapshot(ship_id, local_dict[ship_id][1])
+                        local_snapshot = cls._read_daily_snapshot(cursor, ship_id, local_dict[ship_id][1])
                         if local_snapshot:
                             local_snapshot = cls._ship_snapshot_decode(local_snapshot[0])
-                            changed_list[ship_id] = [now_date, local_snapshot]
+                            changed_list[ship_id] = [ship_data['values'], local_snapshot]
+
                     latest_ship_count += 1
                     latest_ship_map[ship_id] = now_date
                 else:
@@ -866,24 +825,15 @@ class UserRecentUpdater:
             if changed_list != {}:
                 for ship_id, ship_data in changed_list.items():
                     diff_params = cls._calc_recent_diff(ship_id, ship_data[0], ship_data[1])
-                    logger.debug(f'{account_id} | {diff_params}')
                     insert_recent_list.append(diff_params)
 
             try:
                 cursor.execute("BEGIN IMMEDIATE")
                 cls._update_daily_summary(cursor, now_date, user_latest_stats, now_date, update_timestamp)
-                cls._insert_snapshot_index(cursor, now_date, latest_ship_count, cls._ship_map_encode(latest_ship_map))
-                if len(latest_ship_cache['insert']) > 0:
-                    cls._insert_latest_cache_many(cursor, latest_ship_cache['insert'])
-                if len(latest_ship_cache['update']) > 0:
-                    cls._update_latest_cache_many(cursor, latest_ship_cache['update'])
-                if len(latest_shapshot['insert']) > 0:
-                    cls._insert_daily_snapshot_many(cursor, latest_shapshot['insert'])
-                if len(latest_shapshot['update']) > 0:
-                    cls._update_daily_snapshot_many(cursor, latest_shapshot['update'])
-                # 测试代码
-                # if len(insert_recent_list) > 0:
-                #     cls._insert_user_recent_stats_many(cursor, insert_recent_list)
+                cls._refresh_snapshot_index(cursor, local_date_summary[3] == str(now_date), now_date, latest_ship_count, cls._ship_map_encode(latest_ship_map))
+                cls._refresh_latest_cache(cursor, latest_ship_cache)
+                cls._refresh_daily_snapshot(cursor, latest_shapshot)
+                cls._insert_user_recent_stats(cursor, insert_recent_list)
                 cursor.execute("COMMIT")
             except Exception as e:
                 cursor.execute("ROLLBACK")
@@ -894,6 +844,7 @@ class UserRecentUpdater:
                     error_name=error_name,
                     error_info=traceback.format_exc()
                 )
+
         if changed_rows == 0:
             logger.debug(f'{account_id} | Success / No changed (2007)')
         else:

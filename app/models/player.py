@@ -1,3 +1,5 @@
+import json
+
 from app.core import EnvConfig
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
@@ -98,6 +100,19 @@ class PlayerModel:
             return JSONResponse.API_1000_Success
         
     @ExceptionLogger.handle_database_exception_async
+    async def set_user_due(account_id: int):
+        """设置用户缓存数据状态为待更新"""
+        async with MySQLManager.auto_transaction_cursor() as cur:
+            sql = """
+                UPDATE T_user_cache
+                SET
+                    is_due = TRUE 
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            return JSONResponse.API_1000_Success
+        
+    @ExceptionLogger.handle_database_exception_async
     async def get_user_name_and_clan(account_id: int):
         async with MySQLManager.read_only_cursor() as cur:
             result = {}
@@ -118,6 +133,7 @@ class PlayerModel:
             if not data:
                 return JSONResponse.API_1000_Success
             result['basic'] = {
+                'region': EnvConfig.REGION,
                 'user_id': data[0],
                 'username': data[1],
                 'clan_id': data[4],
@@ -149,3 +165,36 @@ class PlayerModel:
                 result['stats'] = True
                 result['basic']['karma'] = data[2]
             return JSONResponse.get_success_response(result)
+        
+    @ExceptionLogger.handle_database_exception_async
+    async def get_user_cache(account_id: int):
+        async with MySQLManager.read_only_cursor() as cur:
+            result = {}
+            sql = """
+                SELECT 
+                    cache 
+                FROM T_user_cache 
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            data = await cur.fetchone()
+            if data:
+                result = json.loads(data[0])
+            return JSONResponse.get_success_response(result)
+        
+    @ExceptionLogger.handle_database_exception_async
+    async def get_user_config(account_id: int):
+        async with MySQLManager.read_only_cursor() as cur:
+            sql = """
+                SELECT 
+                    user_level, 
+                    storage_limit 
+                FROM T_user_config 
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [account_id])
+            data = await cur.fetchone()
+            if data is None:
+                return JSONResponse.API_2016_UserNotInDB
+            else:
+                return JSONResponse.get_success_response(data)

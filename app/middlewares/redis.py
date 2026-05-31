@@ -26,14 +26,11 @@ class RedisConnection:
 
     @classmethod
     async def init_conn(cls) -> Redis:
-        """
-        应用启动时调用，初始化Redis连接。
-        如果连接已存在，先关闭再重新初始化，确保状态干净。
-        """
-        # 如果已有连接，先关闭
-        if cls._conn is not None:
-            await cls._conn.close()
-            cls._conn = None
+        """应用启动时调用，初始化Redis连接"""
+        if EnvConfig.DEV_MODE:
+            api_logger.info("DEV_MODE on, skip Redis connection")
+            return
+        
         try:
             redis_url = cls._build_redis_url()
             cls._conn = redis.from_url(
@@ -49,6 +46,9 @@ class RedisConnection:
     @classmethod
     async def test_redis(cls) -> None:
         """测试Redis连接"""
+        if EnvConfig.DEV_MODE:
+            return
+        
         try:
             conn = cls.acquire_conn()
             ping_response = await conn.ping()

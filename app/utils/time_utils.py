@@ -2,8 +2,10 @@ import time
 from functools import wraps
 from datetime import datetime, timezone
 
-from app.core import api_logger
+from app.core import EnvConfig, api_logger
 
+
+SERVER_RESET_OFFSET = 5
 
 class TimeUtils:
     """时间相关工具函数集合"""
@@ -21,14 +23,12 @@ class TimeUtils:
         """
         return int(datetime.now(timezone.utc).timestamp() * 1000)
     
-    @staticmethod
     def now_iso() -> str:
         """
         获取指定时区的当前时间（ISO 8601 格式，默认当前时区）
         """
         return datetime.now(timezone.utc).isoformat(timespec="seconds")
     
-    @staticmethod
     def fromtimestamp(timestamp: int, strftime: str = "%Y-%m-%d %H:%M:%S"):
         """
         获取指定时间戳的UTC时间（默认 %Y-%m-%d %H:%M:%S 格式）
@@ -36,6 +36,12 @@ class TimeUtils:
         if timestamp is None:
             return None
         return datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime(strftime)
+    
+    def get_recent_date(current_timestamp: int) -> int:
+        """获取Recent服务重置日期"""
+        reset_timestamp = current_timestamp + EnvConfig.TIMEZORE * 3600 - SERVER_RESET_OFFSET * 3600
+        strftime = datetime.fromtimestamp(reset_timestamp, timezone.utc).strftime("%Y%m%d")
+        return int(strftime)
     
     def calu_time_diff(timestamp):
         """

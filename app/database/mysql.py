@@ -19,6 +19,11 @@ class MySQLManager:
         """初始化MySQL连接池"""
         if cls._pool is not None:
             return
+        
+        if EnvConfig.DEV_MODE:
+            api_logger.info("DEV_MODE on, skip MySQL connection")
+            return
+        
         config = EnvConfig.get_config()
         cls._pool = await aiomysql.create_pool(
             # 必须关闭自动提交，使用 transaction 确保数据完整
@@ -34,7 +39,9 @@ class MySQLManager:
     async def close_pool(cls, timeout: float = 5.0) -> None:
         """关闭连接池，带超时保护防止异常死锁。"""
         if not cls._pool:
+            api_logger.info("MySQL connection is already closed or not initialized")
             return
+        
         try:
             # 等待一小段时间，让正在进行的操作尽量完成
             await asyncio.sleep(1)
@@ -49,8 +56,12 @@ class MySQLManager:
 
     @classmethod
     async def test_connection(cls) -> bool:
+        if EnvConfig.DEV_MODE:
+            return
+
         if cls._pool is None:
             await cls.init_pool()
+
         try:
             async with MySQLManager.read_only_cursor() as cur:
                 await cur.execute("SELECT VERSION();")
@@ -70,6 +81,7 @@ class MySQLManager:
         pool = cls._pool
         if not pool:
             return
+        
         # 获取池中所有连接（包括空闲和正在使用的）
         all_conns: list[Connection] = list(getattr(pool, '_free_conns', [])) + list(getattr(pool, '_used_conns', []))
         for conn in all_conns:
@@ -89,6 +101,7 @@ class MySQLManager:
         """获取健康连接，失败直接抛出异常"""
         if cls._pool is None:
             raise RuntimeError("Pool not initialized")
+
         conn = await cls._pool.acquire()
         try:
             await asyncio.wait_for(conn.ping(), timeout=2.0)

@@ -10,6 +10,10 @@ REFRESH_INTERVAL = 3600
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
 USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
 
+ROOT_DIR = Path(os.getcwd())
+LOG_DIR = ROOT_DIR / 'logs'
+DATA_DIR = ROOT_DIR / 'data'
+
 BATCH_SIZE = 1000
 BUCKETS = 400  # 直方图桶数
 MIN_SAMPLES = 200  # Rating 统计最低限制
@@ -28,8 +32,6 @@ else:
     print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: env.prod")
 
 LOG_LEVEL = os.getenv("LOG_LEVEL")
-LOG_DIR = Path(os.getenv("LOG_DIR"))
-DATA_DIR = Path(os.getenv("DATA_DIR"))
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST"),
     "port": int(os.getenv("MYSQL_PORT", 3306)),

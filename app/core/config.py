@@ -58,14 +58,19 @@ class ConstantsConfig:
 
 class EnvConfig:
     PLATFORM: Optional[str] = None
+    DEV_MODE: Optional[bool] = False
     REGION: Optional[str] = None
+    TIMEZORE: Optional[int] = 0
     REGION_TIMEZONE: Optional[int] = None
     LOCALTION: Optional[str] = None
     INIT_TIME : Optional[int] = None
     UID_RULE: Optional[list] = None
     API_TOKEN: Optional[str] = None
-    DATA_DIR: Path = Path('/app/data')
+
+    ROOT_DIR: Path = Path('/app')
     LOG_DIR: Path = Path('/app/logs')
+    DATA_DIR: Path = Path('/app/data')
+    INIT_DIR: Path = Path('/app/init')
     SQLITE_DIR: Path = Path('/app/data/db')
 
     _config: Optional[RuntimeConfig] = None
@@ -109,6 +114,7 @@ class EnvConfig:
     def _init_runtime_config(cls):
         """初始化运行时配置"""
         cls.PLATFORM=cls._require_env('PLATFORM')
+        cls.DEV_MODE=True if cls._require_env('DEV_MODE') == '1' else False
 
         cls._config = RuntimeConfig(
             SECURITY=SecurityConfig(
@@ -135,9 +141,11 @@ class EnvConfig:
             )
         )
         
-        cls.DATA_DIR = Path(cls._require_env("DATA_DIR", "/app/data"))
-        cls.LOG_DIR = Path(cls._require_env("LOG_DIR", "/app/logs"))
-        cls.SQLITE_DIR = Path(cls._require_env("SQLITE_DIR", "/app/data/db"))
+        custom_sqlite_dir = cls._require_env("SQLITE_DIR")
+        if custom_sqlite_dir == '':
+            cls.SQLITE_DIR = cls.DATA_DIR / 'db'
+        else:
+            cls.SQLITE_DIR = Path(custom_sqlite_dir)
 
     @classmethod
     def _init_region(cls):
@@ -148,6 +156,7 @@ class EnvConfig:
             raise ValueError(f"Missing 'region' key in {file_path}")
         
         cls.REGION = data.get('region')
+        cls.TIMEZORE = data.get("timezone", 0)
         cls.REGION_TIMEZONE = f'UTC{data.get("timezone", 0):+d}'
         cls.LOCATION = data.get('location', 'N/A')
         init_timestamp = data.get('init_time')
@@ -194,11 +203,16 @@ class EnvConfig:
         )
 
     @classmethod
-    def init(cls) -> str:
+    def init(cls, root_path: str) -> str:
         """
         初始化所有配置
         返回当前使用的环境文件名 (`env.dev` 或 `env.prod`)
         """
+        # 加载文件路径
+        cls.ROOT_DIR = Path(root_path)
+        cls.LOG_DIR = cls.ROOT_DIR / 'logs'
+        cls.DATA_DIR = cls.ROOT_DIR / 'data'
+        cls.INIT_DIR = cls.ROOT_DIR / 'init'
         # 加载环境变量文件
         env_file = cls._load_env_file()
         # 初始化运行配置
