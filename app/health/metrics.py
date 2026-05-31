@@ -259,7 +259,8 @@ class ServiceMetrics:
             total_count: 总服务数
         """
         active_count = 0
-        services = ['Account', 'UserCache', 'Member', 'Recent', 'ClanSeason', 'ServerStats']
+        constant = EnvConfig.get_constants()
+        services = constant.SERVICE_LIST
         for service in services:
             key = f'status:{service}'
             exists = await RedisClient.exists(key)

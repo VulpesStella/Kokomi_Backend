@@ -1,4 +1,12 @@
 {
+  "SERVICE_LIST": [
+    "Account",
+    "ClanMember",
+    "ClanMember",
+    "Recent",
+    "ServerStats",
+    "UserCache"
+  ],
   "SHIP_TYPE_MAP": {
     "AirCarrier": 1,
     "Battleship": 2,

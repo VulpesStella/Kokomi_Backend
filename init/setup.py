@@ -67,6 +67,17 @@ def main(region: str, location: str):
     #     file_path.write_text(redis_conf)
     # logging.info(log('File `my.cnf` generated successfully', '✅'))
 
+    file_path = ROOT_DIR / 'data/const/constants.json'
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        SERVICE_LIST: list = data['SERVICE_LIST']
+
+    for service in SERVICE_LIST:
+        log_path = ROOT_DIR / 'logs/scripts' / f'{service}.log'
+        if not log_path.exists():
+            with open(log_path, 'w'):
+                pass
+
     file_path = ROOT_DIR / 'data/const/endpoints.json'
     with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)

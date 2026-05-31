@@ -46,7 +46,7 @@ class TqdmAwareLogger(logging.Logger):
         return handler
 
     def _create_file_handler(self) -> logging.FileHandler:
-        log_path = Path(LOG_DIR) / 'scripts' / f'{CLIENT_NAME}_error.log'
+        log_path = Path(LOG_DIR) / 'scripts' / f'{CLIENT_NAME}.log'
         log_path.parent.mkdir(parents=True, exist_ok=True)
         
         handler = logging.FileHandler(log_path, mode='a', encoding='utf-8')

@@ -51,6 +51,7 @@ class EndpointsConfig:
 
 @dataclass(frozen=True)
 class ConstantsConfig:
+    SERVICE_LIST: list[str]
     USER_INIT_TABLE_LIST: list[str]
     CLAN_INIT_TABLE_LIST: list[str]
     SHIP_INIT_TABLE_LIST: list[str]
@@ -196,6 +197,7 @@ class EnvConfig:
         data = cls._load_json_file(file_path)
         
         cls._constants = ConstantsConfig(
+            SERVICE_LIST=data['SERVICE_LIST'],
             USER_INIT_TABLE_LIST=data['USER_INIT_TABLE_LIST'],
             CLAN_INIT_TABLE_LIST=data['CLAN_INIT_TABLE_LIST'],
             SHIP_INIT_TABLE_LIST=data['SHIP_INIT_TABLE_LIST'],

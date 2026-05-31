@@ -25,6 +25,11 @@ async def deleteErrorLogs():
     return await TestAPI.delete_error_logs()
 
 
+@router.delete("/service_logs/", summary="清空所有服务的异常日志文件")
+async def clearServiceLogs():
+    return await TestAPI.clear_service_logs()
+
+
 @router.post("/tracking/reset/", summary="重置指定服务追踪的更新时间")
 async def resetTrackingTime(
     key: ALLOWED_TRACKING_KEYS = Query(..., description="追踪服务的 Key")

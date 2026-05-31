@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime
 
 
-CLIENT_NAME = 'Member'
+CLIENT_NAME = 'ClanMember'
 REFRESH_INTERVAL = 600
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
 USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条

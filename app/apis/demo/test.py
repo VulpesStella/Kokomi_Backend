@@ -36,6 +36,21 @@ class TestAPI:
         return JSONResponse.get_success_response(del_count)
     
     @ExceptionLogger.handle_program_exception_async
+    async def clear_service_logs():
+        """清空所有服务的异常日志文件（仅清空内容，保留文件）"""
+        constant = EnvConfig.get_constants()
+        services = constant.SERVICE_LIST
+        clear_count = 0
+
+        for service in services:
+            log_file = EnvConfig.LOG_DIR / 'scripts' / f'{service}.log'
+            if log_file.exists() and log_file.is_file():
+                log_file.write_text('')
+                clear_count += 1
+
+        return JSONResponse.get_success_response(clear_count)
+
+    @ExceptionLogger.handle_program_exception_async
     async def get_user_basic(account_id: int) -> ResponseDict:
         """获取用户基本信息
 
