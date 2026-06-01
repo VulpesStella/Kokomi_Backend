@@ -7,6 +7,7 @@ from datetime import datetime
 
 CLIENT_NAME = 'UserCache'
 REFRESH_INTERVAL = 600
+MAX_REFRESH_BATCH = 2000
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
 USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
 

@@ -28,12 +28,16 @@ else:
 DB_CONFIG = {
     "host": 'localhost',
     "port": int(os.getenv("MYSQL_PORT", 3306)),
-    "user": 'root',
-    "password": os.getenv("MYSQL_ROOT_PASSWORD"),
+    "user": os.getenv("MYSQL_USER"),
+    "password": os.getenv("MYSQL_PASSWORD"),
     "database": os.getenv("MYSQL_DATABASE"),
     'autocommit': False
 }
 
+file_path = ROOT_DIR / 'data/json/init_marker.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    REGION: str = data['region']
 file_path = ROOT_DIR / 'data/const/constants.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
@@ -233,7 +237,7 @@ def main(filepath: Path):
             to_delete = existing_ids - latest_ship_ids
             for ship_id in to_delete:
                 delete_ship(cursor, ship_id)
-                logger.debug(f"Deleted ship_id={ship_id}")
+                logger.info(f"Deleted ship_id={ship_id}")
             logger.info(f"Deleted {len(to_delete)} ships")
 
             # 2. 更新：同时在DB和CSV中的船只
@@ -242,14 +246,14 @@ def main(filepath: Path):
             ship_dict = {s['ship_id']: s for s in ships_parsed}
             for ship_id in to_update:
                 update_ship(cursor, ship_dict[ship_id])
-                logger.debug(f"Updated ship_id={ship_id}")
+                logger.info(f"Updated ship_id={ship_id}")
             logger.info(f"Updated {len(to_update)} ships")
 
             # 3. 插入：在CSV中但不在DB中的船只
             to_insert = latest_ship_ids - existing_ids
             for ship_id in to_insert:
                 insert_ship(cursor, ship_dict[ship_id])
-                logger.debug(f"Inserted ship_id={ship_id}")
+                logger.info(f"Inserted ship_id={ship_id}")
             logger.info(f"Inserted {len(to_insert)} ships")
 
         conn.commit()
@@ -268,13 +272,14 @@ if __name__ == '__main__':
     从CSV文件读取船只数据，初始化所有相关表。
     
     使用示例：
-    python init/insert_ship.py
+    python init/scripts/insert_ship.py
     """
-    filepath = ROOT_DIR / 'init/data/ship_name_wg.csv'
+    if REGION == 'ru':
+        filepath = ROOT_DIR / 'init/data/ship_name_lesta.csv'
+    else:
+        filepath = ROOT_DIR / 'init/data/ship_name_wg.csv'
 
     try:
         main(filepath)
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
-    except Exception as e:
-        logger.error(e)

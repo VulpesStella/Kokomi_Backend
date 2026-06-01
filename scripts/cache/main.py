@@ -71,7 +71,7 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
     try:
         with mysql_connection.cursor() as cursor:
             # 读取需要更新的用户id列表
-            update_ids = get_update_ids(cursor, REFRESH_INTERVAL * 4)
+            update_ids = get_update_ids(cursor)
 
             len_update_ids = len(update_ids)
             logger.info(f'Current loop plan update count: {len_update_ids}')

@@ -2,6 +2,7 @@ import json
 from pymysql.cursors import Cursor
 
 from settings import (
+    MAX_REFRESH_BATCH,
     METRIC_ID_TO_INDEX, 
     INDEX_TO_METRIC_ID
 )
@@ -153,7 +154,7 @@ def read_ship_data(cursor: Cursor) -> dict:
             ]
     return ship_info
 
-def get_update_ids(cursor: Cursor, limit: int) -> list:
+def get_update_ids(cursor: Cursor) -> list:
     """获取需要更新 PvP 缓存的用户 ID 列表
 
     Args:
@@ -169,5 +170,5 @@ def get_update_ids(cursor: Cursor, limit: int) -> list:
         WHERE is_due = 1
         LIMIT %s;
     """
-    cursor.execute(sql, [limit])
+    cursor.execute(sql, [MAX_REFRESH_BATCH])
     return [row[0] for row in cursor.fetchall()]

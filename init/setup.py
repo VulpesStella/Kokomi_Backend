@@ -5,10 +5,7 @@ import os
 import time
 import json
 import logging
-import pymysql
-import requests
 import argparse
-import traceback
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -38,18 +35,8 @@ else:
     raise FileNotFoundError('No environment file found')
 
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
-DB_CONFIG = {
-    "host": 'localhost',
-    "port": int(os.getenv("MYSQL_PORT", 3306)),
-    "user": 'root',
-    "password": os.getenv("MYSQL_ROOT_PASSWORD"),
-    "database": os.getenv("MYSQL_DATABASE"),
-    'autocommit': False
-}
 
 REGION_TIMEZONE = {'asia': 8, 'eu': 1, 'na': -7, 'ru': 3, 'cn': 8}
-
-os.environ['NO_PROXY'] = '127.0.0.1,localhost'
 
 def main(region: str, location: str):
     # 生成redis配置文件
@@ -71,6 +58,7 @@ def main(region: str, location: str):
         data = json.load(f)
         SERVICE_LIST: list = data['SERVICE_LIST']
 
+    # 确保文件路径存在
     dir_list = [
         ROOT_DIR / 'logs/error',
         ROOT_DIR / 'logs/exception',
@@ -83,47 +71,14 @@ def main(region: str, location: str):
     for dir_path in dir_list:
         os.makedirs(dir_path, exist_ok=True)
 
+    # 生成空日志文件
     for service in SERVICE_LIST:
         log_path = ROOT_DIR / 'logs/scripts' / f'{service}.log'
         if not log_path.exists():
             with open(log_path, 'w'):
                 pass
-
-    file_path = ROOT_DIR / 'data/const/endpoints.json'
-    with open(file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-        VORTEX_API: list = data[region]['vortex_api']
     
-    # 读取游戏版本
-    base_url = VORTEX_API[0]
-    url = f'{base_url}/api/v2/graphql/glossary/version/'
-    body = [{"query":"query Version {\n  version\n}"}]
-    resp = requests.post(url,json=body,timeout=5)
-    if resp.status_code == 200:
-        version_data = resp.json()
-        full_version = version_data[0]['data']['version']
-        short_version = ".".join(full_version.split(".")[:2])
-        logging.info(log(f'Latest game version: {short_version}', '✅'))
-        try:
-            conn = pymysql.connect(**DB_CONFIG)
-            with conn.cursor() as cursor:
-                sql = """
-                    INSERT INTO T_game_version (
-                        is_latest, short_name, full_name
-                    ) VALUES (
-                        TRUE, %s, %s
-                    );
-                """
-                cursor.execute(sql, [short_version, full_version])
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            traceback.print_exc() 
-        finally:
-            conn.close() 
-    else:
-        logger.info(log(f'Request status code: {resp.status_code}', '❌️'))
-
+    # 生成工会战赛季信息文件
     init_file_path = ROOT_DIR / f"data/json/clan_season.json"
     if not init_file_path.exists():
         result = {

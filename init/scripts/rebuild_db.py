@@ -64,11 +64,9 @@ if __name__ == '__main__':
     """用于在数据库初始化，删除并重建数据库
 
     使用示例：
-    python init/rebuild_db.py
+    python init/scripts/rebuild_db.py
     """
     try:
         main()
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
-    except Exception as e:
-        logger.error(e)
