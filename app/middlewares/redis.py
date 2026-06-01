@@ -153,6 +153,20 @@ class RedisClient:
     
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
+    async def api_incr(keys: list) -> None:
+        conn = RedisConnection.acquire_conn()
+        for key in keys:
+            await conn.incr(key)
+    
+    @staticmethod
+    @ExceptionLogger.handle_cache_exception_async
+    async def http_incr(keys: list, amount: int) -> None:
+        conn = RedisConnection.acquire_conn()
+        for key in keys:
+            await conn.incrby(key, amount)
+    
+    @staticmethod
+    @ExceptionLogger.handle_cache_exception_async
     async def acquire_lock(key: str, ex: int = 5, max_retries: int = 5, intervel: float = 0.2):
         conn = RedisConnection.acquire_conn()
         for _ in range(1, max_retries + 1):

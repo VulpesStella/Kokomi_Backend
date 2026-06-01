@@ -11,44 +11,40 @@ from app.loggers import ExceptionLogger
 
 class ServiceMetrics:
     @ExceptionLogger.handle_cache_exception_async
-    async def total_incr(key: str, amount: int):
+    async def api_incr(date: str):
         if EnvConfig.DEV_MODE:
             return
         
-        await RedisClient.incrby(f"metrics:total:{key}", amount)
-
-    @ExceptionLogger.handle_cache_exception_async
-    async def requests_incr(key: str, date: str):
-        if EnvConfig.DEV_MODE:
-            return
-        
-        await RedisClient.incr(f"metrics:{key}:{date}")
+        keys = [
+            f"metrics:api:annual:{date[:4]}",
+            f"metrics:api:monthly:{date[:7]}",
+            f"metrics:api:daily:{date}"
+        ]
+        await RedisClient.api_incr(keys)
 
     @ExceptionLogger.handle_cache_exception_async
     async def http_incrby(date: str, amount: int):
         if EnvConfig.DEV_MODE:
             return
         
-        await RedisClient.incrby(f"metrics:http_total:{date}", amount)
+        keys = [
+            f"metrics:http:annual:{date[:4]}",
+            f"metrics:http:monthly:{date[:7]}",
+            f"metrics:http:daily:total:{date}"
+        ]
+        await RedisClient.http_incr(keys, amount)
 
     @ExceptionLogger.handle_cache_exception_async
     async def http_error_incrby(date: str, amount: int):
         if EnvConfig.DEV_MODE:
             return
         
-        await RedisClient.incrby(f"metrics:http_error:{date}", amount)
-
-    @ExceptionLogger.handle_cache_exception_async
-    async def celery_error_incrby(date: str, amount: int):
-        if EnvConfig.DEV_MODE:
-            return
-        
-        await RedisClient.incrby(f"metrics:celery_error:{date}", amount)
+        await RedisClient.incrby(f"metrics:http:daily:error:{date}", amount)
 
     @staticmethod
     async def get_today_celery_error_count(date_str: str) -> int:
         """获取今日 Celery 任务失败数量"""
-        result = await RedisClient.get(f"metrics:celery_error:{date_str}")
+        result = await RedisClient.get(f"metrics:celery:daily:error:{date_str}")
         if result['code'] == 1000 and result['data'] is not None:
             return int(result['data'])
         return 0
@@ -123,7 +119,7 @@ class ServiceMetrics:
         for i in range(30, -1, -1):
             day = now - timedelta(days=i)
             monthly_keys.append(day.date().isoformat())
-            monthly_redis_keys.append(f"metrics:api:{day.date().isoformat()}")
+            monthly_redis_keys.append(f"metrics:api:daily:{day.date().isoformat()}")
 
         values = await RedisClient.get_by_pipe(monthly_redis_keys)
         if values['code'] != 1000:
@@ -149,8 +145,8 @@ class ServiceMetrics:
             day = now - timedelta(days=i)
             date_str = day.date().isoformat()
             monthly_keys.append(date_str)
-            total_keys.append(f"metrics:http_total:{date_str}")
-            error_keys.append(f"metrics:http_error:{date_str}")
+            total_keys.append(f"metrics:http:daily:total:{date_str}")
+            error_keys.append(f"metrics:http:daily:error:{date_str}")
 
         all_keys = total_keys + error_keys
         values = await RedisClient.get_by_pipe(all_keys)
@@ -176,7 +172,7 @@ class ServiceMetrics:
         for i in range(30, -1, -1):
             day = now - timedelta(days=i)
             celery_keys.append(day.date().isoformat())
-            celery_redis_keys.append(f"metrics:celery_total:{day.date().isoformat()}")
+            celery_redis_keys.append(f"metrics:celery:daily:total:{day.date().isoformat()}")
         
         values = await RedisClient.get_by_pipe(celery_redis_keys)
         if values['code'] != 1000:

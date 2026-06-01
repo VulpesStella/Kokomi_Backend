@@ -62,11 +62,12 @@ def record_http_metrics(
     
     # 记录游戏 API 调用的统计数据
     try:
-        redis_client.incrby(f'metrics:total:http', len(urls))
-        redis_client.incrby(f'metrics:http_total:{today}', len(urls))
+        redis_client.incrby(f'metrics:http:annual:{today[:4]}', len(urls))
+        redis_client.incrby(f'metrics:http:monthly:{today[:7]}', len(urls))
+        redis_client.incrby(f'metrics:http:daily:total:{today}', len(urls))
 
         if error_count > 0:
-            redis_client.incrby(f'metrics:http_error:{today}', error_count)
+            redis_client.incrby(f'metrics:http:daily:error:{today}', error_count)
     except Exception:
         logger.warning('Failed to record HTTP metrics')
 

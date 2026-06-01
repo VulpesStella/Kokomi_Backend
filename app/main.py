@@ -128,8 +128,7 @@ async def request_rate_limiter(request: Request, call_next):
         api_logger.warning('Log queue full')
         pass  # 队列满时直接丢弃，避免阻塞接口
     try:
-        await ServiceMetrics.total_incr('api', 1)
-        await ServiceMetrics.requests_incr('api', now_time[0:10])
+        await ServiceMetrics.api_incr(now_time[0:10])
     except Exception:
         pass
     return response

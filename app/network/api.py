@@ -41,7 +41,6 @@ async def record_http_metrics(
         
     today = TimeUtils.now_iso()[:10]
     await ServiceMetrics.http_incrby(today, len(urls))
-    await ServiceMetrics.total_incr('http', 1)
 
     if error_count:
         await ServiceMetrics.http_error_incrby(today, error_count)
