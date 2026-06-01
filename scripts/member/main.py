@@ -100,9 +100,8 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
     logger.info('Planned clan updates within today: %s', refresh_plan.today_remained_count)
 
     new_count = 0
-    refresh_limit = REFRESH_INTERVAL * 4
 
-    update_ids = refresh_plan.get_update_ids(limit=refresh_limit)
+    update_ids = refresh_plan.get_update_ids()
     len_update_ids = len(update_ids)
     logger.info(f'Current loop plan update count: {len_update_ids}')
 

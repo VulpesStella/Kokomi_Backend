@@ -10,6 +10,7 @@ from utils import (
     get_seconds_until_end_of_day
 )
 from settings import (
+    MAX_REFRESH_BATCH,
     REBALANCE_ENABLED,
     MIN_IMBALANCE_SCORE
 )
@@ -143,6 +144,6 @@ class RefreshPlanStats:
             'all_migrations': self.all_migrations,
         }
 
-    def get_update_ids(self, limit: int = 1000) -> list:
+    def get_update_ids(self) -> list:
         """返回最终需要执行更新的用户 ID 列表"""
-        return self.update_list[:limit]
+        return self.update_list[:MAX_REFRESH_BATCH]

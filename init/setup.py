@@ -47,7 +47,6 @@ DB_CONFIG = {
     'autocommit': False
 }
 
-DATA_DIR = Path(os.getenv("DATA_DIR"))
 REGION_TIMEZONE = {'asia': 8, 'eu': 1, 'na': -7, 'ru': 3, 'cn': 8}
 
 os.environ['NO_PROXY'] = '127.0.0.1,localhost'
@@ -71,6 +70,18 @@ def main(region: str, location: str):
     with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
         SERVICE_LIST: list = data['SERVICE_LIST']
+
+    dir_list = [
+        ROOT_DIR / 'logs/error',
+        ROOT_DIR / 'logs/exception',
+        ROOT_DIR / 'logs/metrics',
+        ROOT_DIR / 'logs/scripts',
+        ROOT_DIR / 'data/db',
+        ROOT_DIR / 'data/json',
+        ROOT_DIR / 'data/trash',
+    ]
+    for dir_path in dir_list:
+        os.makedirs(dir_path, exist_ok=True)
 
     for service in SERVICE_LIST:
         log_path = ROOT_DIR / 'logs/scripts' / f'{service}.log'

@@ -119,7 +119,7 @@ VALUES
 INSERT INTO T_tracking_meta 
     (tracking_key, tracking_type) 
 VALUES
-    ('base_table', 'archive_time')
+    ('base_table', 'archive_time'),
     ('ship_stats', 'update_time'),
     ('clan_season', 'refresh_time');
 
