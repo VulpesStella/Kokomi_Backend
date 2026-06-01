@@ -277,9 +277,8 @@ if __name__ == '__main__':
     index = args.index
     if index not in ['user', 'clan', 'ship']:
         raise ValueError('Incorrect index')
+    
     try:
         main(index)
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
-    except Exception as e:
-        logger.error(e)

@@ -85,7 +85,7 @@ if __name__ == '__main__':
     运行前请确保所有子服务已停止运行，避免读取到异常数据或影响服务正常运行
 
     使用示例：
-    python scripts/maintenance/clear.py -m all
+    python tests/clear_locks.py -m all
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -98,9 +98,8 @@ if __name__ == '__main__':
     mode = args.mode
     if mode not in ['all', 'redis', 'mq']:
         raise ValueError('Incorrect mode')
+    
     try:
         main(mode)
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
-    except Exception as e:
-        logger.error(e)

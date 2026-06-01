@@ -12,20 +12,37 @@
 - 各子节点对原始 API 数据进行处理或者储存，返回经过处理后的标准化数据
 - 各子节点均不对外暴露，仅允许主节点 和 Root 用户进行远程访问
 
-## Dev 环境部署
+## 项目文件结构
 
-> **⚠️ 仅适用于部署本地开发环境**
+```
+project/
+├── app/          # API 服务
+├── data/         # 项目运行所需数据
+├── docs/         # 相关文档
+├── init/         # 项目初始化文件
+├── logs/         # 日志数据
+├── scripts/      # 子服务
+├── task/         # 消息队列消费者
+├── tests/        # 相关测试脚本
+└── tools/        # 相关小工具脚本
+```
 
-### 部署前提
+## 内部服务说明
 
-1. 确保 Python >= 3.10
-2. 部署在本地的 MySQL + Redis + RabbitMQ
+```
+app/:             API 服务 + Dashboard 服务
+task/:            Celery 消费者，消费 MQ 中待更新的用户
+scripts/account/: 读取需要更新的用户 ID，发送到 MQ
+scripts/cache/:   更新用户随机缓存数据，实现船只排行榜
+scripts/member/:  更新工会内的用户列表
+scripts/recent/:  记录用户近期数据
+scripts/season/:  记录工会赛季信息，实现工会排行榜
+scripts/stats/:   遍历所有缓存数据，统计服务器数据
+```
 
-### 虚拟环境配置
+## 项目依赖
 
-本项目采用虚拟环境管理配置，请不要直接安装包到本地环境中
-
-```bash
+```
 # 生产环境下的必要模块：
 #     API本体：fastapi uvicorn jinja2
 #     ENV加载：python-dotenv
@@ -37,180 +54,61 @@
 # 
 # 开发环境下的额外模块
 #     汉化支持：polib
-
-# 创建虚拟环境
-python -m venv .venv
-# 激活虚拟环境
-.venv/Scripts/activate    # windows
-# 在虚拟环境中安装所需依赖
-pip install -r requirements-dev.txt
-
-# 复制 env.example 并重命名为 env.dev
-# 完成 env.dev 文件中的所有配置项
+#     数据导出: openpyxl
 ```
 
-### 项目初始化
+## 部署步骤
 
-```bash
-# 执行数据库初始化脚本
-python init/rebuild_db.py
+### 部署前提
 
-# 执行项目初始化脚本
-# 参数1 region: asia, eu, na, ru, cn
-# 参数2 location: 服务器的物理地址
-python init/setup.py -r <region> -l <city>,<country>
-
-# 写入船只基本数据
-python init/insert_clan.py
-```
-
-### 运行代码
-
-```bash
-# 加载本地测试用户集，请按照以下顺序启动服务
-
-# 通过读取当前赛季工会战排名，获取到数百个工会ID
-python scripts/season/main.py
-
-# 启动 Celery 消费者
-celery --app tasks.main:celery_app worker -Q refresh_queue -P solo --loglevel=info --concurrency=1
-
-# 加载用户集（通过读取工会ID下的用户列表）
-python scripts/maintenance/main.py 
-
-# 加载用户的缓存数据
-python scripts/cache/main.py 
-
-# 待加载完所有的用户的缓存数据后执行
-# 统计船只的服务器玩家数据
-python scripts/stats/main.py 
-```
-
-## Prod 环境部署
-
-> **⚠️ 仅支持通过 Docker 部署本项目**
+1. 确保 Python >= 3.10
+2. 部署在本地的 MySQL + Redis + RabbitMQ
 
 ### 拉取代码
 
 ```bash
-# 以下默认以ubuntu身份登录
-
-# 创建并进入项目目录
-mkdir -p ~/kokomi && cd ~/kokomi
 # 检查git
 git --version
+
 # 拉取代码
 git clone https://github.com/SangonomiyaKoko/Kokomi_Backend.git
+
+# 进入项目文件夹
 cd Kokomi_Backend
+
 # 拉取最新代码
 git pull origin main
-# 丢弃修改
+
+# 丢弃修改（如需）
 git restore .
 git reset --hard  # 旧版
 ```
 
-### 项目配置
+### 虚拟环境配置
+
+本项目采用虚拟环境管理配置，推荐不要直接安装包到本地环境中
 
 ```bash
-# 复制模板文件
-cp env.example env.prod
-# 使用 vim 编辑配置
-vim env.prod
-```
-
-### 环境配置
-
-> 项目中生成环境使用到的模块：`fastapi` `uvicorn` `httpx` `aiomysql` `redis` `celery` `jinja2` `python-dotenv` `dbutils` `requests` `tqdm`
-
-> 项目中测试环境使用到的模块：`polib` `pandas` `numpy` `msgpack`
-
-```bash
-# 更新系统包索引并安装必要组件
+# [Linux] 更新系统包索引并安装必要组件
 sudo apt update
-sudo apt install -y python3-pip python3.12-venv
+sudo apt install -y python3-pip python3.12-venv  # 这里是3.12，请根据实际版本修改
+
 # 创建虚拟环境
-python3 -m venv .venv
+python -m venv .venv
+
 # 激活虚拟环境
+.venv/Scripts/activate    # windows
 source .venv/bin/activate # linux
-# 安装依赖
-pip install --upgrade pip
-pip install --no-cache-dir -r requirements-dev.txt
+
+# 在虚拟环境中安装所需依赖
+pip install -r requirements.txt      # 生产环境
+pip install -r requirements-dev.txt  # 开发环境
 ```
 
-### 项目初始化
+## 项目初始化
 
-> 如果本地部署有 mysql 实例为防止端口冲突，
+请根据实际环境，来选择对应的部署流程
 
-**请务必按照以下顺序部署，后续**
-
-```bash
-# 初始化mysql数据库
-docker compose up -d mysql
-# 执行项目和数据库初始化脚本
-# Region可选: asia, eu, na, ru, cn
-python init/setup.py -r <region> -e <env_file>
-# 初始化redis数据库
-docker compose up -d redis
-# 初始化RabbitMQ
-docker compose up -d rabbitmq
-# 构建项目镜像
-docker build -t myapp:latest .
-```
-
-> [!IMPORTANT] > **关于 init_marker.json**：
-> 初始化完成后，系统会在 `data/json` 目录下生成 `init_marker.json`。
-> **请勿修改或删除此文件**，否则会导致应用逻辑异常。
-
-### 冷启动/热启动
-
-项目初始化完成后的数据库并没有游戏玩家或者工会的数据，可以通过两种方式实现启动
-
-#### 冷启动
-
-该方法主要适用于本地测试环节
-
-启动原理：
-
-1. 通过读取最新赛季的工会排名获取所有参与排名工会的 id
-2. 依次读取工会 id 下玩家列表的 id 列表
-
-该启动方式可以向数据库中添加大概几万个的玩家数据和几百个工会数据
-
-```bash
-# 请求获取工会战排行榜的所有工会
-python3 scripts/scheduler/clan/main.py
-# 依次请求并写入工会内所有的玩家id
-python3 scripts/scheduler/users/main.py
-```
-
-#### 热启动
-
-该方法基于旧数据库储存的玩家 id 列表进行存量写入
-
-启动原理：
-
-1. 导出旧数据库数据，由 tests/init_read.py 请求用户数据
-2. 由 tests/init_write.py 将上一步请求的数据写入数据库
-
-该方法适用于生成环境下，几十万用户数据的迁移
-
-### 启动 Docker
-
-```bash
-# 检查Docker
-systemctl status docker
-# 进去项目文件夹
-cd Kokomi_Backend
-# 构建镜像
-docker-compose build
-# 前台启动（测试用）
-docker-compose up
-# 后台启动
-docker-compose up -d
-# 查看日志
-docker-compose logs -f
-# 容器状态
-docker-compose ps
-# 重构容器
-docker-compose up -d --build
-```
+1. 生产环境： [查看详细文档](docs/deploy/prod.md)
+2. 开发环境（完整）： [查看详细文档](docs/deploy/dev-full.md)
+3. 开发环境（受限）： [查看详细文档](docs/deploy/dev-restrict.md)
