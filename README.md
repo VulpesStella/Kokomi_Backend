@@ -133,8 +133,8 @@ python3 -m venv .venv
 # 激活虚拟环境
 source .venv/bin/activate # linux
 # 安装依赖
-pip3 install --upgrade pip3
-pip3 install --no-cache-dir -r requirements-dev.txt
+pip install --upgrade pip
+pip install --no-cache-dir -r requirements-dev.txt
 ```
 
 ### 项目初始化
@@ -145,14 +145,14 @@ pip3 install --no-cache-dir -r requirements-dev.txt
 
 ```bash
 # 初始化mysql数据库
-docker-compose up -d mysql
+docker compose up -d mysql
 # 执行项目和数据库初始化脚本
 # Region可选: asia, eu, na, ru, cn
-python3 init/setup.py -r <region> -e <env_file>
+python init/setup.py -r <region> -e <env_file>
 # 初始化redis数据库
-docker-compose up -d redis
+docker compose up -d redis
 # 初始化RabbitMQ
-docker-compose up -d rabbitmq
+docker compose up -d rabbitmq
 # 构建项目镜像
 docker build -t myapp:latest .
 ```

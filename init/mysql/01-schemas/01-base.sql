@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS T_database_meta (
     PRIMARY KEY (id),
 
     UNIQUE KEY uk_key (metric_key)
+);
 
 -- 元数据ID信息表
 -- 记录实体ID的范围
