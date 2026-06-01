@@ -46,6 +46,18 @@ class DemoClanModel:
             data['next_refresh_at'] = TimeUtils.fromtimestamp(row[2])
 
             return JSONResponse.get_success_response(data)
+        
+    @ExceptionLogger.handle_database_exception_async
+    async def set_clan_status(clan_id: int, status: int):
+        async with MySQLManager.auto_transaction_cursor() as cur:
+            sql = """
+                UPDATE T_clan_users 
+                SET is_enabled = %s 
+                WHERE clan_id = %s;
+            """
+            await cur.execute(sql, [status, clan_id])
+            data = cur.rowcount
+            return JSONResponse.get_success_response(data)
 
 class ClanModel:
     @ExceptionLogger.handle_database_exception_async

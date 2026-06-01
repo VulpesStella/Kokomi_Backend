@@ -32,3 +32,13 @@ class MySQLAPI:
             return JSONResponse.API_1000_Success
         result = await PlatformModel.reset_tracking_time(tracking_key, tracking_type)
         return result
+    
+    @ExceptionLogger.handle_program_exception_async
+    async def set_user_status(account_id: int, status: int) -> ResponseDict:
+        result = await DemoPlayerModel.set_user_status(account_id, status)
+        return result
+    
+    @ExceptionLogger.handle_program_exception_async
+    async def set_clan_status(clan_id: int, status: int) -> ResponseDict:
+        result = await DemoClanModel.set_clan_status(clan_id, status)
+        return result

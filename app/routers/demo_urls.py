@@ -57,6 +57,32 @@ async def getUserDB(
     return result
 
 
+@router.delete("/users/{user_id}/db/", summary="关闭指定用户的更新计划")
+async def delUserDB(
+    user_id: int = Path(..., description="用户ID")
+):
+    if EnvConfig.DEV_MODE:
+        return JSONResponse.API_2018_Maintenance
+    
+    if not GameUtils.check_uid(user_id):
+        return JSONResponse.API_2001_IllegalAccountID
+    result = await MySQLAPI.set_user_status(user_id, 0)
+    return result
+
+
+@router.patch("/users/{user_id}/db/", summary="恢复指定用户的更新计划")
+async def patchUserDB(
+    user_id: int = Path(..., description="用户ID")
+):
+    if EnvConfig.DEV_MODE:
+        return JSONResponse.API_2018_Maintenance
+    
+    if not GameUtils.check_uid(user_id):
+        return JSONResponse.API_2001_IllegalAccountID
+    result = await MySQLAPI.set_user_status(user_id, 1)
+    return result
+
+
 @router.get("/clans/{clan_id}/db/", summary="获取工会数据库中的基本信息")
 async def getClanDB(
     clan_id: int = Path(..., description="工会ID")
@@ -67,6 +93,32 @@ async def getClanDB(
     if not GameUtils.check_uid(clan_id):
         return JSONResponse.API_2002_IllegalClanID
     result = await MySQLAPI.get_clan_overview(clan_id)
+    return result
+
+
+@router.delete("/clans/{clan_id}/db/", summary="关闭指定工会的更新计划")
+async def delClanDB(
+    clan_id: int = Path(..., description="工会ID")
+):
+    if EnvConfig.DEV_MODE:
+        return JSONResponse.API_2018_Maintenance
+    
+    if not GameUtils.check_uid(clan_id):
+        return JSONResponse.API_2002_IllegalClanID
+    result = await MySQLAPI.set_clan_status(clan_id, 0)
+    return result
+
+
+@router.patch("/clans/{clan_id}/db/", summary="恢复指定工会的更新计划")
+async def patchClanDB(
+    clan_id: int = Path(..., description="工会ID")
+):
+    if EnvConfig.DEV_MODE:
+        return JSONResponse.API_2018_Maintenance
+    
+    if not GameUtils.check_uid(clan_id):
+        return JSONResponse.API_2002_IllegalClanID
+    result = await MySQLAPI.set_clan_status(clan_id, 1)
     return result
 
 

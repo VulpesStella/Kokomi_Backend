@@ -83,6 +83,18 @@ class DemoPlayerModel:
             if row:
                 data['clan_id'] = row[0]
             return JSONResponse.get_success_response(data)
+        
+    @ExceptionLogger.handle_database_exception_async
+    async def set_user_status(account_id: int, status: int):
+        async with MySQLManager.auto_transaction_cursor() as cur:
+            sql = """
+                UPDATE T_user_stats 
+                SET is_enabled = %s 
+                WHERE account_id = %s;
+            """
+            await cur.execute(sql, [status, account_id])
+            data = cur.rowcount
+            return JSONResponse.get_success_response(data)
 
 class PlayerModel:
     @ExceptionLogger.handle_database_exception_async
