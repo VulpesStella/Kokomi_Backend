@@ -15,33 +15,38 @@ class RankedAPI:
     @ExceptionLogger.handle_program_exception_async
     async def overall(
         account_id: int, 
-        access_token: str = None, 
         include_old: bool = False
     ):
-        # 从 Redis 中获取用户的 access_token
         if EnvConfig.DEV_MODE:
+            # 跳过读取 token 步骤
             access_token = None
         else:
+            # 从 Redis 中获取用户的 access_token
             redis_key = f"token:ac:{account_id}"
             response = await RedisClient.get_token(redis_key)
             error, access_token = JSONResponse.extract_data_strict(response)
             if error:
                 return access_token
         
+        # 读取用户的基本信息（name, clan等）
         error, user_basic = JSONResponse.extract_data_strict(
             response=await BasicAPI.get_user_basic(account_id, access_token)
         )
         if error:
             return user_basic
         
+        # 读取用户的排位信息
         error, response = JSONResponse.extract_data_strict(
             response=await ExternalAPI.get_user_ranked(account_id, access_token)
         )
         if error:
             return response
         
+        # 处理可能的隐藏战绩情况
+        # 用户在缓存中的数据表示该用户是公开战绩导致了跳过更新流程
         if 'hidden_profile' in response.get(str(account_id)):
             if not EnvConfig.DEV_MODE:
+                # 将用户的缓存数据刷新为隐藏战绩
                 error, refresh = JSONResponse.extract_data_strict(
                     response=await UserStatsSyncer.refresh(account_id, {str(account_id): {'hidden_profile': True}})
                 )
@@ -50,9 +55,11 @@ class RankedAPI:
             return JSONResponse.API_2015_UserHiddenProfile
     
         if EnvConfig.DEV_MODE:
+            # 从本地的初始化文件中读取船只数据
             ship_info = DevUtils.read_ship_info()
             ship_stats = DevUtils.read_ship_stats()
         else:
+            # 从数据库中读取船只数据
             error, ship_info = JSONResponse.extract_data_strict(
                 response=await ShipModel.get_ship_base()
             )
@@ -64,6 +71,7 @@ class RankedAPI:
             if error:
                 return ship_stats
 
+        # 统计数据
         statistics = {
             'overall': {},
             'ship_type': {},
@@ -71,6 +79,7 @@ class RankedAPI:
             'chart': {}
         }
             
+        # 筛选出 OLD 船只 ID 列表
         old_ship_ids = []
         for ship_id, ship_base in ship_info.items():
             if ship_base[0]:
@@ -89,6 +98,7 @@ class RankedAPI:
         response = response.get(str(account_id)).get('statistics', {})
 
         for ship_id, ship_data in response.items():
+            # 如果用户设置排除 OLD 船只，则跳过
             if not include_old and ship_id in old_ship_ids:
                 continue
 
@@ -99,9 +109,11 @@ class RankedAPI:
             if ship_id not in original_data:
                 original_data[ship_id] = OriginalData.copy()
 
+            # 筛选出需要的基本数据
             for key in ['battles_count','wins','damage_dealt','frags','original_exp']:
-                original_data[ship_id][key] += field_data[key]
+                original_data[ship_id][key] = field_data[key]
 
+            # 记录 Record 数据
             for key in ['max_damage_dealt','max_frags','max_exp','max_planes_killed','max_scouting_damage','max_total_agro']:
                 if field_data[key] > record[key]:
                     record[key] = field_data[key]
@@ -127,6 +139,7 @@ class RankedAPI:
         }
 
         for ship_id, ship_data in original_data.items():
+            # 计算 Rating
             RatingUtils.calculate_rating('rank', ship_data, ship_stats.get(ship_id))
             ship_base = ship_info.get(ship_id)
             if ship_base is None:
@@ -134,11 +147,12 @@ class RankedAPI:
             ship_tier = ship_base[1]
             ship_type = ship_base[2]
 
+            # 将每一艘船只数据按其等级或者类型进行累加
             original_chart_data[ship_tier-1][ShipTypeIndex[ship_type]] += ship_data['battles_count']
-            
             accumulate_overall(original_overall_data, ship_data)
             accumulate_overall(original_ship_type_data[ship_type], ship_data)
 
+        # 将累加后的数据进行数据格式化
         statistics['overall'] = format_overall(original_overall_data, True)
         statistics['ship_type'] = {
             'AirCarrier': format_overall(original_ship_type_data['AirCarrier']),

@@ -144,17 +144,25 @@ class PlayerModel:
             data = await cur.fetchone()
             if not data:
                 return JSONResponse.API_1000_Success
+            if data[4] is None:
+                clan_data = None
+            else:
+                clan_data = {
+                    'clan_id': data[4],
+                    'tag': data[5],
+                    'league': data[6]
+                }
             result['basic'] = {
                 'region': EnvConfig.REGION,
                 'user_id': data[0],
                 'username': data[1],
-                'clan_id': data[4],
-                'clan_tag': data[5],
-                'league': data[6],
                 'karma': 0,
                 'created_at': data[2],
+                'clan': clan_data,
                 'insignias': StringUtils.parse_insignias(data[3])
             }
+            
+            # 读取用户的缓存信息，检查是否处于隐藏战绩状态
             sql = """
                 SELECT 
                     is_enabled, 

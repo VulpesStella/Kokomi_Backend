@@ -61,11 +61,14 @@ class TestAPI:
             ResponseDict: 统一格式的响应对象
         """
         # 从 Redis 中获取用户的 access_token
-        redis_key = f"token:ac:{account_id}"
-        response = await RedisClient.get_token(redis_key)
-        error, access_token = JSONResponse.extract_data_strict(response)
-        if error:
-            return access_token
+        if EnvConfig.DEV_MODE:
+            access_token = None
+        else:
+            redis_key = f"token:ac:{account_id}"
+            response = await RedisClient.get_token(redis_key)
+            error, access_token = JSONResponse.extract_data_strict(response)
+            if error:
+                return access_token
         
         # 请求 API 获取用户基本信息
         response = await DemoExternalAPI.get_user_basic(account_id, access_token)
