@@ -118,7 +118,10 @@ def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery
                     logger.warning(f'Failed to obtain latest version')
                 else:
                     # 刷新数据库
-                    refresh_version(cursor, local_version[0], latest_version)
+                    if local_version:
+                        refresh_version(cursor, local_version[0], latest_version)
+                    else:
+                        refresh_version(cursor, None, latest_version)
 
         mysql_connection.commit()
     except Exception as e:

@@ -41,7 +41,6 @@ class ServiceMetrics:
         
         await RedisClient.incrby(f"metrics:http:daily:error:{date}", amount)
 
-    @staticmethod
     async def get_today_celery_error_count(date_str: str) -> int:
         """获取今日 Celery 任务失败数量"""
         result = await RedisClient.get(f"metrics:celery:daily:error:{date_str}")

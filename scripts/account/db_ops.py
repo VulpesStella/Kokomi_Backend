@@ -267,9 +267,9 @@ def get_version(cursor: Cursor) -> tuple:
     cursor.execute(sql)
     return cursor.fetchone()
 
-def refresh_version(cursor: Cursor, local: str, latest: dict):
+def refresh_version(cursor: Cursor, local: str | None, latest: dict):
     # 版本未变，更新 full_name 和 updated_at
-    if local == latest['short']:
+    if local and local == latest['short']:
         # 确保永远只有一个version是latest
         sql = """
             UPDATE T_game_version 
