@@ -2,7 +2,7 @@
   "SERVICE_LIST": [
     "Account",
     "ClanMember",
-    "ClanMember",
+    "ClanSeason",
     "Recent",
     "ServerStats",
     "UserCache"
