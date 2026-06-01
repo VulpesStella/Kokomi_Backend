@@ -42,7 +42,7 @@ def main(output: Path):
     try:
         with conn.cursor() as cursor:
             # 先获取最大 id
-            cursor.execute("SELECT MAX(id) FROM user_basic WHERE region_id = 5;")
+            cursor.execute("SELECT MAX(id) FROM user_basic WHERE region_id = 1;")
             max_id = cursor.fetchone()[0] or 0
             logger.info(f"Max ID: {max_id}")
 
@@ -52,8 +52,8 @@ def main(output: Path):
             else:
                 rows = []
                 with tqdm(total=max_id, desc="Fetching users", unit="rows") as pbar:
-                    for start_id in range(1, max_id + 1, 1000):
-                        end_id = start_id + 1000 - 1
+                    for start_id in range(1, max_id + 1, 10000):
+                        end_id = start_id + 10000 - 1
 
                         sql = """
                             SELECT 
@@ -64,7 +64,7 @@ def main(output: Path):
                             FROM user_basic b
                             LEFT JOIN user_info i
                             ON b.account_id = i.account_id
-                            WHERE b.region_id = 5 
+                            WHERE b.region_id = 1 
                             AND b.id BETWEEN %s AND %s
                             ORDER BY b.id;
                         """

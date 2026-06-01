@@ -31,6 +31,7 @@ file_path = ROOT_DIR / 'data/json/init_marker.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     REGION: str = data['region']
+    REGION = 'asia'
 file_path = ROOT_DIR / 'data/const/endpoints.json'
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)

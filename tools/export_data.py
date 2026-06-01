@@ -22,7 +22,7 @@ else:
     raise FileNotFoundError('No environment file found')
 
 DB_CONFIG = {
-    "host": '134.175.195.154',
+    "host": 'localhost',
     "port": int(os.getenv("MYSQL_PORT", 3306)),
     "user": 'root',
     "password": os.getenv("MYSQL_ROOT_PASSWORD"),
@@ -31,11 +31,6 @@ DB_CONFIG = {
 }
 
 class ShipDataExporter:
-    """
-    Universal ship data export framework.
-    Initializes with database configuration and output file path.
-    """
-
     def __init__(self, db_config: dict, output_path: Path):
         self.db_config = db_config
         self.output_path = output_path
