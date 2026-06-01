@@ -612,7 +612,7 @@ class UserRecentUpdater:
                 except Exception as e:
                     cursor.execute("ROLLBACK")
                     error_name = type(e).__name__
-                    logger.error(f'{account_id} | Database operation error')
+                    logger.error(f'{account_id} | Database operation error: {error_name}')
                     write_exception(
                         error_type="DatabaseError",
                         error_name=error_name,
@@ -677,7 +677,7 @@ class UserRecentUpdater:
                     except Exception as e:
                         cursor.execute("ROLLBACK")
                         error_name = type(e).__name__
-                        logger.error(f'{account_id} | Database operation error')
+                        logger.error(f'{account_id} | Database operation error: {error_name}')
                         write_exception(
                             error_type="DatabaseError",
                             error_name=error_name,
@@ -732,7 +732,7 @@ class UserRecentUpdater:
                     except Exception as e:
                         cursor.execute("ROLLBACK")
                         error_name = type(e).__name__
-                        logger.error(f'{account_id} | Database operation error')
+                        logger.error(f'{account_id} | Database operation error: {error_name}')
                         write_exception(
                             error_type="DatabaseError",
                             error_name=error_name,
@@ -755,7 +755,7 @@ class UserRecentUpdater:
                 except Exception as e:
                     cursor.execute("ROLLBACK")
                     error_name = type(e).__name__
-                    logger.error(f'{account_id} | Database operation error')
+                    logger.error(f'{account_id} | Database operation error: {error_name}')
                     write_exception(
                         error_type="DatabaseError",
                         error_name=error_name,
@@ -838,7 +838,7 @@ class UserRecentUpdater:
             except Exception as e:
                 cursor.execute("ROLLBACK")
                 error_name = type(e).__name__
-                logger.error(f'{account_id} | Database operation error')
+                logger.error(f'{account_id} | Database operation error: {error_name}')
                 write_exception(
                     error_type="DatabaseError",
                     error_name=error_name,

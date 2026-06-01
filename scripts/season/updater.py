@@ -200,6 +200,7 @@ def update_clan_season(
         # 请求公会详情
         result = fetch_clan_season(redis_client, clan_id)
         if not result:
+            logger.info(f'{clan_id} | Failed to obtain data')
             return
 
         # 解析并构建标准化数据

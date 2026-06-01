@@ -265,6 +265,8 @@ if __name__ == '__main__':
 
     使用示例：
     python scripts/maintenance/check.py -i user
+    python scripts/maintenance/check.py -i clan
+    python scripts/maintenance/check.py -i ship
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(

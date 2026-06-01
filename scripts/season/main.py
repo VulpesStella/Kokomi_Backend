@@ -105,25 +105,28 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
                 league=league,
                 division=division
             )
-            if isinstance(league_data, list):
-                if league_data == []:
-                    continue 
+            if league_data is None:
+                logger.info(f'{update_data} | Failed to obtain data')
+                continue
+            
+            if league_data == []:
+                continue 
 
-                latest_season_id = league_data[0][4]
-                # 赛季变化处理
-                if latest_season_id != season_id:
-                    if total_list != []:
-                        logger.warning(f'Clan battle season changed: {season_id} -> {latest_season_id}')
-                        return
-                    
-                    # 首次遇到新赛季，更新season_id
-                    logger.info(f'Clan battle season changed: {season_id} -> {latest_season_id}')
-                    season_id = latest_season_id
-                    refresh_season_data(season_id)
-                    redis_client.delete('leaderboard:clan')
+            latest_season_id = league_data[0][4]
+            # 赛季变化处理
+            if latest_season_id != season_id:
+                if total_list != []:
+                    logger.warning(f'Clan battle season changed: {season_id} -> {latest_season_id}')
+                    return
+                
+                # 首次遇到新赛季，更新season_id
+                logger.info(f'Clan battle season changed: {season_id} -> {latest_season_id}')
+                season_id = latest_season_id
+                refresh_season_data(season_id)
+                redis_client.delete('leaderboard:clan')
 
-                league_count[league] += len(league_data)
-                total_list.extend(league_data)
+            league_count[league] += len(league_data)
+            total_list.extend(league_data)
         logger.disable_tqdm()
 
         logger.info(

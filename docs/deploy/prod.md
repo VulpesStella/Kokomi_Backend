@@ -75,10 +75,10 @@ python init/rebuild_db.py
 python init/insert_ship.py
 
 # 写入工会数据（需自行准备）
-python init/insert_clan.py -c 0
+python init/insert_clan.py
 
 # 写入用户数据（需自行准备）
-python init/insert_user.py -c 0
+python init/insert_user.py
 ```
 
 ```bash

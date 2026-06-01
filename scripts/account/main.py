@@ -115,7 +115,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery
                 # 请求 API 获取最新版本信息
                 latest_version = fetch_latest_version(redis_client)
                 if not isinstance(latest_version, dict):
-                    logger.warning(f'Failed to obtain latest version')
+                    logger.info(f'Failed to obtain latest version')
                 else:
                     # 刷新数据库
                     if local_version:

@@ -397,7 +397,7 @@ class UserCacheUpdater:
         try:
             response = fetch_user_pvp_data(redis_client, account_id)
             if not response:
-                logger.error(f'{account_id} | Failed to obtain data')
+                logger.info(f'{account_id} | Failed to obtain data')
                 return
             
             ship_pvp_cache = {}
@@ -470,7 +470,7 @@ class UserCacheUpdater:
             pipe.execute()
         except Exception as e:
             error_name = type(e).__name__
-            logger.error(f'{account_id} | Refresh redis failed: {type(e).__name__}')
+            logger.error(f'{account_id} | Refresh redis failed: {error_name}')
             write_exception(
                 error_type="DatabaseError",
                 error_name=error_name,

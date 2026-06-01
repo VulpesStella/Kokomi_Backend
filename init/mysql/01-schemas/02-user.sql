@@ -143,7 +143,9 @@ CREATE TABLE IF NOT EXISTS T_user_cache (
 
     PRIMARY KEY (id),
 
-    UNIQUE INDEX idx_aid (account_id)
+    UNIQUE INDEX idx_aid (account_id),
+
+    UNIQUE INDEX idx_due_aid (is_due, account_id)
 );
 
 -- 用户配置表
@@ -167,3 +169,10 @@ CREATE TABLE IF NOT EXISTS T_user_config (
 
     UNIQUE INDEX idx_level_and_aid (user_level, account_id)
 );
+
+
+-- 后续新增关联表的初始化sql语句，user/clan也类似
+-- INSERT INTO new_table (account_id)
+-- SELECT account_id
+-- FROM T_user_base
+-- ORDER BY id ASC;

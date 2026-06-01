@@ -117,7 +117,7 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         response = fetch_clan_members(redis_client, update_data)
 
         if not isinstance(response, list):
-            logger.error(f'{update_data} | Failed to obtain data')
+            logger.info(f'{update_data} | Failed to obtain data')
             continue
         
         users = {}

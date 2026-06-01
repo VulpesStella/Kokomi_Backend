@@ -116,7 +116,7 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
 
             responses = await fetch_user_recent_data(async_client, redis_client, account_id)
             if not responses:
-                logger.error(f'{account_id} | Failed to obtain data')
+                logger.info(f'{account_id} | Failed to obtain data')
                 continue
                 
             basic_data = responses[0]
@@ -126,7 +126,7 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
                 update_timestamp = UserStatsSyncer.refresh(mysql_connection, account_id, basic_data)
             except Exception as e:
                 error_name = type(e).__name__
-                logger.error(f'{account_id} | Database operation error')
+                logger.error(f'{account_id} | Database operation error: {error_name}')
                 write_exception(
                     error_type="DatabaseError",
                     error_name=error_name,
