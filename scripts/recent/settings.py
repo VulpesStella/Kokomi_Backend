@@ -29,7 +29,7 @@ if not os.getenv('PLATFORM') or not os.getenv('PLATFORM').startswith('KokomiAPI'
 else:
     print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: env.prod")
 
-SSL_CA_BUNDLE = int(os.getenv("SSL_CA_BUNDLE", 0))
+SSL_CA_BUNDLE = os.getenv("SSL_CA_BUNDLE")
 LOG_LEVEL = os.getenv("LOG_LEVEL")
 if os.getenv("SQLITE_DIR") == "":
     SQLITE_DIR = ROOT_DIR / 'data/db'
