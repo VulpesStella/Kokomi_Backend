@@ -17,6 +17,7 @@ PLATFORM="KokomiAPI-01"    # 标识符
 LOG_LEVEL="debug"          # ★ log 输出级别
 DEV_MODE=1                 # ★ 设置为 DEV_MODE
 
+SSL_CA_BUNDLE=""
 API_ROOT_TOKEN="root"      # ★ 默认 Root 用户的 Token
 API_USER_TOKEN="user"      # ★ 默认 User 用户的 Token
 

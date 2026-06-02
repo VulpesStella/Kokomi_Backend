@@ -6,9 +6,11 @@ import gc
 import time
 import redis
 import pymysql
+import requests
 import traceback
 from tqdm import tqdm
 from redis import Redis
+from requests import Session
 from pymysql import Connection
 from typing import Any, Iterator
 
@@ -27,6 +29,7 @@ from settings import (
     REGION, 
     USE_TQDM,
     CLIENT_NAME, 
+    SSL_CA_BUNDLE,
     REFRESH_INTERVAL,
     MYSQL_CONFIG, 
     REDIS_CONFIG
@@ -58,7 +61,7 @@ def progress_iterable(
             logger_obj.info('%s - [%d/%d] | Current: %s', desc, idx, total, item)
             yield item
 
-def worker(mysql_connection: Connection, redis_client: Redis) -> None:
+def worker(mysql_connection: Connection, redis_client: Redis, session: Session) -> None:
     """单轮缓存更新执行体
 
     加载待更新用户列表和船只基准数据,对每个用户调用 UserCacheUpdater.main() 完成数据拉取与写入。
@@ -108,6 +111,7 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         updater.main(
             mysql_connection,
             redis_client,
+            session,
             update_data
         )
     logger.disable_tqdm()
@@ -137,6 +141,7 @@ def main():
     """
     redis_client = None
     mysql_connection = None
+    session = None
 
     while True:
         start = time.monotonic()
@@ -146,10 +151,15 @@ def main():
             # 设置当前服务状态，用于外部监控系统判断服务是否正常运行
             redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.5))
             mysql_connection = pymysql.connect(**MYSQL_CONFIG)
+            session = requests.Session()
+            if SSL_CA_BUNDLE:
+                # 处理俄服接口证书效验问题
+                session.verify= SSL_CA_BUNDLE
 
             worker(
                 mysql_connection=mysql_connection,
-                redis_client=redis_client
+                redis_client=redis_client,
+                session = session
             )
         except Exception as e:
             # 记录错误信息
@@ -176,8 +186,11 @@ def main():
                 redis_client.close()
             if mysql_connection:
                 mysql_connection.close()
+            if session:
+                session.close()
             redis_client = None
             mysql_connection = None
+            session = None
 
             gc.collect()
 

@@ -1,5 +1,6 @@
 import httpx
 
+from app.core import EnvConfig, api_logger
 from app.response import JSONResponse
 from app.loggers import ExceptionLogger
 
@@ -17,7 +18,11 @@ class HttpClient:
     @classmethod
     def init_client(cls) -> None:
         """初始化 HTTP 客户端"""
-        cls._client = httpx.AsyncClient(timeout=TIMEOUT, trust_env=False)
+        if EnvConfig.SSL_CA_BUNDLE:
+            api_logger.info(f'Using local certificates: {EnvConfig.SSL_CA_BUNDLE}')
+            cls._client = httpx.AsyncClient(timeout=TIMEOUT, trust_env=False, verify=EnvConfig.SSL_CA_BUNDLE)
+        else:
+            cls._client = httpx.AsyncClient(timeout=TIMEOUT, trust_env=False)
     
     @classmethod
     async def close_client(cls) -> None:

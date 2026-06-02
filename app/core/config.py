@@ -67,6 +67,7 @@ class EnvConfig:
     INIT_TIME : Optional[int] = None
     UID_RULE: Optional[list] = None
     API_TOKEN: Optional[str] = None
+    SSL_CA_BUNDLE: Optional[str] = None
 
     ROOT_DIR: Path = Path('/app')
     LOG_DIR: Path = Path('/app/logs')
@@ -116,6 +117,7 @@ class EnvConfig:
         """初始化运行时配置"""
         cls.PLATFORM=cls._require_env('PLATFORM')
         cls.DEV_MODE=True if cls._require_env('DEV_MODE') == '1' else False
+        cls.SSL_CA_BUNDLE=cls._require_env('SSL_CA_BUNDLE')
 
         cls._config = RuntimeConfig(
             SECURITY=SecurityConfig(

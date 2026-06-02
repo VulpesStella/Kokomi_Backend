@@ -2,6 +2,7 @@ import random
 import requests
 import traceback
 from redis import Redis
+from requests import Session
 from typing import Optional, Union
 
 from logger import logger
@@ -10,7 +11,7 @@ from exception import write_exception
 from settings import VORTEX_API
 
 
-def fetch_data(url: str) -> Union[dict, str]:
+def fetch_data(session: Session, url: str) -> Union[dict, str]:
     """发送 GET 请求并解析 JSON 响应
 
     Args:
@@ -20,7 +21,7 @@ def fetch_data(url: str) -> Union[dict, str]:
         成功时返回解析后的 dict，失败时返回错误标识字符串
     """
     try:
-        resp = requests.get(url, timeout=5)
+        resp = session.get(url, timeout=5)
 
         if resp.status_code == 200:
             data = resp.json()
@@ -78,6 +79,7 @@ def record_http_metrics(
     return error
 
 def fetch_user_pvp_data(
+    session: Session,
     redis_client: Redis,
     account_id: int
 ) -> Optional[list[Union[dict, str]]]:
@@ -98,7 +100,7 @@ def fetch_user_pvp_data(
         base_url = random.choice(VORTEX_API)
 
         url = f'{base_url}/api/accounts/{account_id}/ships/pvp/' + (f'?ac={ac}' if ac else '')
-        response = fetch_data(url)
+        response = fetch_data(session, url)
 
         error = record_http_metrics(redis_client, [response], [url])
         if error:

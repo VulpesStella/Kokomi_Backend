@@ -1,7 +1,6 @@
 import random
-import requests
 
-from .middlewares import redis_client, db_pool
+from .middlewares import redis_client, db_pool, session
 from .syncer import UserStatsSyncer
 from .utils import get_current_iso_time
 from .exception import handle_program_exception_sync
@@ -10,7 +9,7 @@ from .settings import VORTEX_API
 
 def fetch_data(url: str, params: dict = None):
     try:
-        resp = requests.get(url, params=params, timeout=5)
+        resp = session.get(url, params=params, timeout=5)
         if resp.status_code == 200:
             result = resp.json()
             if result.get('status') == 'ok':

@@ -2,6 +2,7 @@ import json
 import uuid
 import traceback
 from redis import Redis
+from requests import Session
 from pymysql import Connection
 from pymysql.cursors import Cursor
 from typing import Optional
@@ -373,6 +374,7 @@ class UserCacheUpdater:
         self,
         mysql_connection: Connection,
         redis_client: Redis,
+        session: Session,
         account_id: int
     ) -> None:
         """更新用户缓存数据 - 主入口函数
@@ -395,7 +397,7 @@ class UserCacheUpdater:
         """
         # 获取用户PVP数据
         try:
-            response = fetch_user_pvp_data(redis_client, account_id)
+            response = fetch_user_pvp_data(session, redis_client, account_id)
             if not response:
                 logger.info(f'{account_id} | Failed to obtain data')
                 return

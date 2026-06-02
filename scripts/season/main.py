@@ -6,9 +6,11 @@ import gc
 import time
 import redis
 import pymysql
+import requests
 import traceback
 from tqdm import tqdm
 from redis import Redis
+from requests import Session
 from pymysql import Connection
 from typing import Any, Iterator
 
@@ -30,6 +32,7 @@ from settings import (
     REGION, 
     USE_TQDM,
     CLIENT_NAME, 
+    SSL_CA_BUNDLE,
     REFRESH_INTERVAL,
     MYSQL_CONFIG, 
     REDIS_CONFIG, 
@@ -65,7 +68,7 @@ def progress_iterable(
             logger_obj.info('%s - [%d/%d] | Current: %s', desc, idx, total, item)
             yield item
 
-def worker(mysql_connection: Connection, redis_client: Redis) -> None:
+def worker(mysql_connection: Connection, redis_client: Redis, session: Session) -> None:
     """单轮公会赛季数据刷新执行体
 
     读取赛季配置，确保赛季战表存在后，从 API 拉取全部 13 个联赛分段的公会列表，
@@ -100,6 +103,7 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
         ):
             league, division = update_data.split('-')
             league_data = fetch_clan_leagues(
+                session = session,
                 redis_client=redis_client,
                 realm=CLAN_REALM_MAP.get(REGION),
                 league=league,
@@ -186,7 +190,7 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
                 desc=f"Processing Clan",
                 logger_obj=logger
             ):
-                update_clan_season(redis_client, mysql_connection, season_id, update_data)
+                update_clan_season(session, redis_client, mysql_connection, season_id, update_data)
             logger.disable_tqdm()
     else:
         logger.info(f'Update time not yet reached')
@@ -200,6 +204,7 @@ def main():
     """
     redis_client = None
     mysql_connection = None
+    session = None
     
     while True:
         start = time.monotonic()
@@ -209,10 +214,15 @@ def main():
             # 设置当前服务状态，用于外部监控系统判断服务是否正常运行
             redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.5))
             mysql_connection = pymysql.connect(**MYSQL_CONFIG)
+            session = requests.Session()
+            if SSL_CA_BUNDLE:
+                # 处理俄服接口证书效验问题
+                session.verify= SSL_CA_BUNDLE
             
             worker(
                 mysql_connection=mysql_connection,
-                redis_client=redis_client
+                redis_client=redis_client,
+                session = session
             )
         except Exception as e:
             # 记录错误信息
@@ -239,8 +249,11 @@ def main():
                 redis_client.close()
             if mysql_connection:
                 mysql_connection.close()
+            if session:
+                session.close()
             redis_client = None
             mysql_connection = None
+            session = None
 
             gc.collect()
 

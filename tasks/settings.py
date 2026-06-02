@@ -22,6 +22,7 @@ if not os.getenv('PLATFORM') or not os.getenv('PLATFORM').startswith('KokomiAPI'
 else:
     print("[INIT] Env config loaded: env.prod")
 
+SSL_CA_BUNDLE = os.getenv("SSL_CA_BUNDLE")
 LOG_LEVEL = os.getenv("LOG_LEVEL")
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST"),

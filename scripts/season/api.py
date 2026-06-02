@@ -1,6 +1,7 @@
 import requests
 import traceback
 from redis import Redis
+from requests import Session
 from typing import Optional, Union
 
 from logger import logger
@@ -12,7 +13,7 @@ from utils import (
 from settings import CLAN_API
 
 
-def fetch_data(url: str) -> Union[dict, str]:
+def fetch_data(session: Session, url: str) -> Union[dict, str]:
     """发送 GET 请求并解析 JSON 响应
 
     Args:
@@ -22,7 +23,7 @@ def fetch_data(url: str) -> Union[dict, str]:
         成功时返回解析后的 dict，失败时返回错误标识字符串（如 'HTTP_STATUS_404'）
     """
     try:
-        resp = requests.get(url, timeout=5)
+        resp = session.get(url, timeout=5)
 
         if resp.status_code == 200:
             return resp.json()
@@ -74,6 +75,7 @@ def record_http_metrics(
     return error
 
 def fetch_clan_leagues(
+    session: Session,
     redis_client: Redis, 
     realm: str, 
     league: str, 
@@ -97,7 +99,7 @@ def fetch_clan_leagues(
             f'{CLAN_API}/api/ladder/structure/'
             f'?realm={realm}&league={league}&division={division}&limit=1000'
         )
-        response = fetch_data(url)
+        response = fetch_data(session, url)
 
         error = record_http_metrics(redis_client, [response], [url])
         if error:
@@ -122,7 +124,7 @@ def fetch_clan_leagues(
             error_info=traceback.format_exc()
         )
 
-def fetch_clan_season(redis_client: Redis, clan_id: int) -> Optional[dict]:
+def fetch_clan_season(session: Session, redis_client: Redis, clan_id: int) -> Optional[dict]:
     """获取指定公会的当前赛季详情数据
 
     Args:
@@ -134,7 +136,7 @@ def fetch_clan_season(redis_client: Redis, clan_id: int) -> Optional[dict]:
     """
     try:
         url = f'{CLAN_API}/api/clanbase/{clan_id}/claninfo/'
-        response = fetch_data(url)
+        response = fetch_data(session, url)
 
         error = record_http_metrics(redis_client, [response], [url])
         if error:

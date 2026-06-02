@@ -1,9 +1,15 @@
 import pymysql
 import redis
+import requests
 from dbutils.pooled_db import PooledDB
 
-from .settings import REDIS_CONFIG, MYSQL_CONFIG
+from .settings import REDIS_CONFIG, MYSQL_CONFIG, SSL_CA_BUNDLE
 
+
+session = requests.Session()
+if SSL_CA_BUNDLE:
+    # 处理俄服接口证书效验问题
+    session.verify= SSL_CA_BUNDLE
 
 try:
     redis_client = redis.Redis(

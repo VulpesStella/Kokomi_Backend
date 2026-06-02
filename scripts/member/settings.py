@@ -33,7 +33,7 @@ else:
     print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: env.prod")
 
 LOG_LEVEL = os.getenv("LOG_LEVEL")
-SSL_CA_BUNDLE = int(os.getenv("LOG_LEVEL", 0))
+SSL_CA_BUNDLE = int(os.getenv("SSL_CA_BUNDLE", 0))
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST"),
     "port": int(os.getenv("MYSQL_PORT", 3306)),

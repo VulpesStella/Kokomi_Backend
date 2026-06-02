@@ -1,6 +1,7 @@
 import json
 import traceback
 from redis import Redis
+from requests import Session
 from pymysql import Connection
 from typing import Optional
 
@@ -183,6 +184,7 @@ def _build_insert_data(
     return insert_data_list
 
 def update_clan_season(
+    session: Session,
     redis_client: Redis, 
     conn: Connection, 
     season_id: int, 
@@ -198,7 +200,7 @@ def update_clan_season(
     """
     try:
         # 请求公会详情
-        result = fetch_clan_season(redis_client, clan_id)
+        result = fetch_clan_season(session, redis_client, clan_id)
         if not result:
             logger.info(f'{clan_id} | Failed to obtain data')
             return

@@ -162,7 +162,7 @@ def main():
             session = requests.Session()
             if SSL_CA_BUNDLE:
                 # 处理俄服接口证书效验问题
-                session.verify= '/etc/ssl/certs/ca-certificates.crt'
+                session.verify= SSL_CA_BUNDLE
 
             worker(
                 mysql_connection=mysql_connection,
@@ -199,6 +199,7 @@ def main():
             redis_client = None
             mysql_connection = None
             session = None
+            
             gc.collect()
 
         # 计算本次循环的实际运行时间，并根据刷新间隔决定是否需要sleep

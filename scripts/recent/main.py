@@ -26,6 +26,7 @@ from settings import (
     REGION, 
     USE_TQDM,
     CLIENT_NAME, 
+    SSL_CA_BUNDLE,
     REFRESH_INTERVAL, 
     MYSQL_CONFIG, 
     REDIS_CONFIG,
@@ -184,8 +185,12 @@ async def main():
             # 设置当前服务状态，用于外部监控系统判断服务是否正常运行
             redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.5))
             mysql_connection = pymysql.connect(**MYSQL_CONFIG)
-            async_client = httpx.AsyncClient(timeout=TIMEOUT)
-        
+            if SSL_CA_BUNDLE:
+                # 处理俄服接口证书效验问题
+                async_client = httpx.AsyncClient(timeout=TIMEOUT, verify=SSL_CA_BUNDLE)
+            else:
+                async_client = httpx.AsyncClient(timeout=TIMEOUT)
+
             await worker(
                 mysql_connection=mysql_connection,
                 redis_client=redis_client,

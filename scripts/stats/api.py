@@ -2,6 +2,7 @@ import random
 import requests
 import traceback
 from redis import Redis
+from requests import Session
 from typing import Optional, Union
 
 from logger import logger
@@ -10,7 +11,7 @@ from exception import write_exception
 from settings import VORTEX_API
 
 
-def fetch_data(url: str) -> Union[dict, str]:
+def fetch_data(session: Session, url: str) -> Union[dict, str]:
     """发送 POST 请求获取最新游戏版本号
 
     Args:
@@ -72,7 +73,7 @@ def record_http_metrics(
 
     return error
 
-def fetch_latest_version(redis_client: Redis) -> Optional[dict]:
+def fetch_latest_version(session: Session, redis_client: Redis) -> Optional[dict]:
     """从 API 获取最新的游戏版本信息
 
     Args:
@@ -86,7 +87,7 @@ def fetch_latest_version(redis_client: Redis) -> Optional[dict]:
         base_url = random.choice(VORTEX_API)
 
         url = f'{base_url}/api/v2/graphql/glossary/version/'
-        response = fetch_data(url)
+        response = fetch_data(session, url)
 
         error = record_http_metrics(redis_client, [response], [url])
         if error:
