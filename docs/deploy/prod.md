@@ -72,13 +72,13 @@ docker compose up -d rabbitmq
 python init/rebuild_db.py
 
 # 写入船只基本数据
-python init/insert_ship.py
+python init/scripts/insert_ship.py
 
 # 写入工会数据（需自行准备）
-python init/insert_clan.py
+python init/scripts/insert_clan.py
 
 # 写入用户数据（需自行准备）
-python init/insert_user.py
+python init/scripts/insert_user.py
 ```
 
 ```bash

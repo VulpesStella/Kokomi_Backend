@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS T_user_cache (
     id               INT          AUTO_INCREMENT,
 
     account_id       BIGINT       NOT NULL,        -- 1-11位的非连续数字
-    is_due           BOOLEAN      DEFAULT TRUE,
+    is_due           BOOLEAN      DEFAULT FALSE,
     ships            INT          DEFAULT 0,
     cache            JSON         DEFAULT NULL,
 

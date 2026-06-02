@@ -70,7 +70,7 @@ python init/setup.py -r <region> -l <location>
 python init/rebuild_db.py
 
 # 写入船只基本数据
-python init/insert_ship.py
+python init/scripts/insert_ship.py
 ```
 
 ### 运行代码
