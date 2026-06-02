@@ -14,6 +14,14 @@ from .calculate import CalculateRecent
 class RecentAPI:
     @ExceptionLogger.handle_program_exception_async
     async def summary(account_id: int):
+        # Credits 消耗
+        credits_spent = 2
+
+        user_basic = {
+            'region': EnvConfig.REGION,
+            'user_id': account_id
+        }
+
         error, user_config = JSONResponse.extract_data_strict(
             response=await PlayerModel.get_user_config(account_id)
         ) 
@@ -74,11 +82,7 @@ class RecentAPI:
                 else:
                     hot_map.append(0)
 
-        result = {
-            'basic': {
-                'region': EnvConfig.REGION,
-                'user_id': account_id
-            },
+        statistics = {
             'overall': {
                 'user_level': user_level,
                 'storage_limit': str(storage_limit),
@@ -88,6 +92,14 @@ class RecentAPI:
                 'file_size': file_size_mb
             },
             'hot_map': hot_map
+        }
+
+        result = {
+            'type': 'Recent',
+            'mode': 'Summary',
+            'basic': user_basic,
+            'statistics': statistics,
+            'credits_spent': credits_spent
         }
 
         return JSONResponse.get_success_response(result)

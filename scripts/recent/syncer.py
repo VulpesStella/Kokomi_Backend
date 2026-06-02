@@ -68,6 +68,11 @@ class UserStatsSyncer:
         }
 
         user_info = response.get(str(account_id))
+        
+        # 无有效数据
+        if user_info is None:
+            user_data['is_enabled'] = 0
+            return user_data
 
         # 隐藏战绩
         if 'hidden_profile' in user_info:
@@ -76,7 +81,7 @@ class UserStatsSyncer:
             return user_data
         
         # 无有效数据
-        if user_info is None or 'statistics' not in user_info:
+        if 'statistics' not in user_info:
             user_data['is_enabled'] = 0
             return user_data
         

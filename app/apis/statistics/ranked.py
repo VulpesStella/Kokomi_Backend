@@ -2,7 +2,7 @@ from app.core import EnvConfig
 from app.response import JSONResponse
 from app.loggers import ExceptionLogger
 from app.network import ExternalAPI
-from app.models import ShipModel, UserStatsSyncer
+from app.models import PlayerModel, ShipModel, UserStatsSyncer
 from app.utils import RatingUtils, DevUtils
 from app.middlewares import RedisClient
 
@@ -17,6 +17,9 @@ class RankedAPI:
         account_id: int, 
         include_old: bool = False
     ):
+        # Credits 消耗
+        credits_spent = 1
+
         if EnvConfig.DEV_MODE:
             # 跳过读取 token 步骤
             access_token = None
@@ -29,11 +32,30 @@ class RankedAPI:
                 return access_token
         
         # 读取用户的基本信息（name, clan等）
-        error, user_basic = JSONResponse.extract_data_strict(
-            response=await BasicAPI.get_user_basic(account_id, access_token)
-        )
-        if error:
-            return user_basic
+        if EnvConfig.DEV_MODE:
+            # 跳过读取数据库步骤，后续直接请求 API 获取数据
+            user = None
+        else:
+            # 先读数据库，读不到数据再请求
+            error, user = JSONResponse.extract_data_strict(
+                response=await PlayerModel.get_user_name_and_clan(account_id)
+            )
+            if error:
+                return user
+            
+        # 通过 API 接口读取用户的基本信息：
+        # 1. 没有读取到用户的缓存数据
+        # 2. 用户的缓存数据表示该用户可能隐藏战绩或无数据
+        if user is None or not user['stats']:
+            error, user_basic = JSONResponse.extract_data_strict(
+                response=await BasicAPI.get_user_basic(account_id, access_token)
+            )
+            if error:
+                return user_basic
+            
+            credits_spent += 1
+        else:
+            user_basic = user['basic']
         
         # 读取用户的排位信息
         error, response = JSONResponse.extract_data_strict(
@@ -41,6 +63,8 @@ class RankedAPI:
         )
         if error:
             return response
+        
+        credits_spent += 1
         
         # 处理可能的隐藏战绩情况
         # 用户在缓存中的数据表示该用户是公开战绩导致了跳过更新流程
@@ -176,7 +200,8 @@ class RankedAPI:
             'mode': 'Ranked',
             'type': 'Overall',
             'basic': user_basic,
-            'statistics': statistics
+            'statistics': statistics,
+            'credits_spent': credits_spent
         }
         return JSONResponse.get_success_response(result)
     

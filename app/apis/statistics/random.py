@@ -2,7 +2,7 @@ from app.core import EnvConfig
 from app.response import JSONResponse
 from app.loggers import ExceptionLogger
 from app.network import ExternalAPI
-from app.models import ShipModel, UserStatsSyncer
+from app.models import PlayerModel, ShipModel, UserStatsSyncer
 from app.utils import RatingUtils, DevUtils
 from app.middlewares import RedisClient
 
@@ -21,6 +21,9 @@ class RandomAPI:
         specified_nation: str = None, 
         include_old: bool = False
     ):
+        # Credits 消耗
+        credits_spent = 1
+
         # 从 Redis 中获取用户的 access_token
         if EnvConfig.DEV_MODE:
             access_token = None
@@ -31,17 +34,38 @@ class RandomAPI:
             if error:
                 return access_token
         
-        error, user_basic = JSONResponse.extract_data_strict(
-            response=await BasicAPI.get_user_basic(account_id, access_token)
-        )
-        if error:
-            return user_basic
+        if EnvConfig.DEV_MODE:
+            # 跳过读取数据库步骤，后续直接请求 API 获取数据
+            user = None
+        else:
+            # 先读数据库，读不到数据再请求
+            error, user = JSONResponse.extract_data_strict(
+                response=await PlayerModel.get_user_name_and_clan(account_id)
+            )
+            if error:
+                return user
+            
+        # 通过 API 接口读取用户的基本信息：
+        # 1. 没有读取到用户的缓存数据
+        # 2. 用户的缓存数据表示该用户可能隐藏战绩或无数据
+        if user is None or not user['stats']:
+            error, user_basic = JSONResponse.extract_data_strict(
+                response=await BasicAPI.get_user_basic(account_id, access_token)
+            )
+            if error:
+                return user_basic
+            
+            credits_spent += 1
+        else:
+            user_basic = user['basic']
         
         error, responses = JSONResponse.extract_data_strict(
             response=await ExternalAPI.get_user_pvp_overall(account_id, access_token)
         )
         if error:
             return responses
+        
+        credits_spent += 1
         
         for response in responses:
             if 'hidden_profile' in response.get(str(account_id)):
@@ -200,7 +224,8 @@ class RandomAPI:
             'mode': 'Random',
             'type': filter_type,
             'basic': user_basic,
-            'statistics': statistics
+            'statistics': statistics,
+            'credits_spent': credits_spent
         }
 
         return JSONResponse.get_success_response(result)
@@ -211,6 +236,9 @@ class RandomAPI:
         field: str = None, 
         include_old: bool = False
     ):
+        # Credits 消耗
+        credits_spent = 1
+
         # 从 Redis 中获取用户的 access_token
         if EnvConfig.DEV_MODE:
             access_token = None
@@ -221,17 +249,38 @@ class RandomAPI:
             if error:
                 return access_token
         
-        error, user_basic = JSONResponse.extract_data_strict(
-            response=await BasicAPI.get_user_basic(account_id, access_token)
-        )
-        if error:
-            return user_basic
+        if EnvConfig.DEV_MODE:
+            # 跳过读取数据库步骤，后续直接请求 API 获取数据
+            user = None
+        else:
+            # 先读数据库，读不到数据再请求
+            error, user = JSONResponse.extract_data_strict(
+                response=await PlayerModel.get_user_name_and_clan(account_id)
+            )
+            if error:
+                return user
+            
+        # 通过 API 接口读取用户的基本信息：
+        # 1. 没有读取到用户的缓存数据
+        # 2. 用户的缓存数据表示该用户可能隐藏战绩或无数据
+        if user is None or not user['stats']:
+            error, user_basic = JSONResponse.extract_data_strict(
+                response=await BasicAPI.get_user_basic(account_id, access_token)
+            )
+            if error:
+                return user_basic
+            
+            credits_spent += 1
+        else:
+            user_basic = user['basic']
         
         error, response = JSONResponse.extract_data_strict(
             response=await ExternalAPI.get_user_pvp_field(account_id, field, access_token)
         )
         if error:
             return response
+        
+        credits_spent += 1
         
         if 'hidden_profile' in response.get(str(account_id)):
             if not EnvConfig.DEV_MODE:
@@ -370,7 +419,8 @@ class RandomAPI:
             'mode': 'Random',
             'type': field.upper(),
             'basic': user_basic,
-            'statistics': statistics
+            'statistics': statistics,
+            'credits_spent': credits_spent
         }
 
         return JSONResponse.get_success_response(result)
