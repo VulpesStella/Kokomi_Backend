@@ -8,23 +8,40 @@ import redis
 import pymysql
 import traceback
 from tqdm import tqdm
+from redis import Redis
 from pymysql import Connection
 from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
 from analytics import ShipStatsAggregator
+from api import fetch_latest_version
 from exception import write_exception
 from db_ops import (
-    need_update,
-    reset_tracking_time,
     get_max_id,
+    get_version,
+    read_ship_ids,
     read_ship_data,
+    refresh_version,
+    refersh_tracking_time,
+    archive_base_table
+)
+from recent import (
+    ShipRecentAggregator,
+    get_agg_rows,
+    read_recent_data,
+    verify_ship_exist,
+    cleanup_done_rows,
+    aggregate_recent,
+    update_status,
+    insert_error
+)
+from updater import (
     get_pvp_cache,
-    update_battles_stats_table,
-    update_users_stats_table,
-    update_rating_distribution_table,
+    refresh_table_meta,
     update_ship_pvp_stats,
-    refresh_table_meta
+    update_users_stats_table,
+    update_battles_stats_table,
+    update_rating_distribution_table
 )
 from settings import (
     REGION, 
@@ -66,15 +83,110 @@ def progress_iterable(
             logger_obj.info('%s - [%d/%d] | Current: %s', desc, idx, total, item)
             yield item
 
-def worker(mysql_connection: Connection) -> None:
+def worker(mysql_connection: Connection, redis_client: Redis) -> None:
     """执行统计聚合和排行榜刷新
 
     Args:
         mysql_connection: MySQL 数据库连接对象
     """
-    if not need_update(mysql_connection, 'ship_stats', 'update_time'):
-        logger.info(f'Update time not yet reached')
+    game_version = None
+
+    try:
+        with mysql_connection.cursor() as cursor:
+            # 读取本地数据中的最新赛季
+            local_version = get_version(cursor)
+            ship_ids = read_ship_ids(cursor)
+            ship_data = read_ship_data(cursor)
+
+            # 请求 API 获取最新版本信息
+            latest_version = fetch_latest_version(redis_client)
+
+            if not isinstance(latest_version, dict):
+                # 请求 API 失败
+                logger.info('Failed to obtain latest version')
+            elif local_version:
+                # 本地有缓存数据
+                game_version = latest_version.get('short')
+                refresh_version(cursor, local_version, latest_version)
+            else:
+                # 无本地缓存数据
+                game_version = latest_version.get('short')
+                refresh_version(cursor, None, latest_version)
+
+            # 归档基本信息表
+            archive_base_table(cursor)
+            
+            refersh_tracking_time(cursor, 'base_table', 'archive_time')
+
+        mysql_connection.commit()
+    except Exception as e:
+        mysql_connection.rollback()
+        error_name = type(e).__name__
+        logger.error(f"Database operation exception: {error_name}")
+        write_exception(
+            error_type="DatabaseError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )
+
+    if len(ship_ids) == 0 or game_version is None:
         return
+    
+    # 处理暂存的船只近期数据
+    processed = 0
+    deleted = 0
+    recent_aggregator = ShipRecentAggregator(ship_ids)
+    try:
+        with mysql_connection.cursor() as cursor:
+            # 检查存档表的完整性
+            verify_ship_exist(cursor, game_version, ship_ids)
+            
+            # 清理已处理数据
+            deleted = cleanup_done_rows(cursor)
+
+            # 获取数据范围
+            agg_rows = get_agg_rows(cursor)
+            if agg_rows > 0:
+                # 计算总批次数
+                total_batches = (agg_rows + BATCH_SIZE - 1) // BATCH_SIZE
+                
+                last_uuid = None
+                # 分批次读取用户缓存数据
+                logger.enable_tqdm()
+                for _ in progress_iterable(
+                    items=range(total_batches),
+                    desc="Processing cache",
+                    logger_obj=logger
+                ):
+                    # 从数据库获取一批原始缓存数据
+                    rows = read_recent_data(cursor, last_uuid, BATCH_SIZE)
+                    # 将这批数据添加到聚合器
+                    recent_aggregator.add_batch(rows)
+                    # 更新游标：本批次最后一条的 uuid
+                    if rows:
+                        last_uuid = rows[-1][0]
+                        processed += len(rows)
+                logger.disable_tqdm()
+
+                aggregate_recent(cursor, recent_aggregator.get_ship_aggregator())
+                update_status(cursor, recent_aggregator.get_status_params())
+                insert_error(cursor, recent_aggregator.get_error_params())
+        
+        logger.info(
+            'Recent data aggregated - Processed: %s | Deleted: %s',
+            processed, deleted
+        )
+        
+        mysql_connection.commit()
+    except Exception as e:
+        mysql_connection.rollback()
+        error_name = type(e).__name__
+        logger.error(f"Database operation exception: {error_name}")
+        write_exception(
+            error_type="DatabaseError",
+            error_name=error_name,
+            error_info=traceback.format_exc()
+        )
 
     # 从 MySQL 读取原始数据并聚合计算
     try:
@@ -83,19 +195,6 @@ def worker(mysql_connection: Connection) -> None:
             max_id = get_max_id(cursor)
             if max_id == 0:
                 return
-        
-            # 获取服务器基准数据（用于计算 Rating）
-            ship_data = read_ship_data(cursor)
-            ship_ids = list(ship_data.keys())
-            if len(ship_ids) == 0:
-                return
-
-            # 首次运行读取不到已有的服务器数据
-            existing_stats = None
-            for row in ship_data.values():
-                if row:
-                    existing_stats = True
-                    break
 
             # 初始化聚合器
             aggregator = ShipStatsAggregator(ship_data)
@@ -123,13 +222,9 @@ def worker(mysql_connection: Connection) -> None:
         )
         return 
     
-    # 3. 更新 MySQL 统计表
+    # 更新 MySQL 统计表
     try:
         with mysql_connection.cursor() as cursor:
-            # 如果是首次运行则先把刷新时间置空，下个更新轮次再次执行
-            if not existing_stats:
-                reset_tracking_time(cursor, 'ship_stats', 'update_time')
-
             # 更新服务器场次平均统计表
             update_battles_stats_table(cursor, aggregator.compute_battle_averages(ship_ids))
 
@@ -145,6 +240,9 @@ def worker(mysql_connection: Connection) -> None:
             # 更新表的统计信息
             refresh_table_meta(cursor, aggregator.aggregation_stats())
 
+            # 记录更新时间
+            refersh_tracking_time(cursor, 'ship_stats', 'update_time')
+
             mysql_connection.commit()
     except Exception as e:
         mysql_connection.rollback()
@@ -155,7 +253,6 @@ def worker(mysql_connection: Connection) -> None:
             error_name=error_name,
             error_info=traceback.format_exc()
         )
-        return 
 
 def main():
     """主服务入口，按配置的刷新间隔（REFRESH_INTERVAL）周期执行统计任务"""
@@ -166,18 +263,15 @@ def main():
         start = time.monotonic()
 
         try:
-            # 建立 Redis 连接
             redis_client = redis.Redis(**REDIS_CONFIG)
-
             # 设置当前服务状态，用于外部监控系统判断服务是否正常运行
             redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.5))
-
-            # 建立 MySQL 连接
             mysql_connection = pymysql.connect(**MYSQL_CONFIG)
             
             # 执行核心统计任务
             worker(
-                mysql_connection=mysql_connection
+                mysql_connection=mysql_connection,
+                redis_client=redis_client
             )
         except Exception as e:
             # 记录错误信息

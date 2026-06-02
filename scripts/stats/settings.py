@@ -6,7 +6,7 @@ from datetime import datetime
 
 
 CLIENT_NAME = 'ServerStats'
-REFRESH_INTERVAL = 3600
+REFRESH_INTERVAL = 2 * 3600
 DATE_FMT = '%Y-%m-%d %H:%M:%S'
 USE_TQDM = sys.stdout.isatty() # 只有在交互式终端中才使用tqdm显示进度条
 
@@ -14,7 +14,7 @@ ROOT_DIR = Path(os.getcwd())
 LOG_DIR = ROOT_DIR / 'logs'
 DATA_DIR = ROOT_DIR / 'data'
 
-BATCH_SIZE = 1000
+BATCH_SIZE = 5000
 BUCKETS = 400  # 直方图桶数
 MIN_SAMPLES = 200  # Rating 统计最低限制
 
@@ -54,6 +54,10 @@ marker_file_path = DATA_DIR / 'json/init_marker.json'
 with open(marker_file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     REGION: str = data['region']
+file_path = DATA_DIR / 'const/endpoints.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    VORTEX_API: list = data[REGION]['vortex_api']
 constants_file_path = DATA_DIR / 'const/constants.json'
 with open(constants_file_path, "r", encoding="utf-8") as f:
     data = json.load(f)

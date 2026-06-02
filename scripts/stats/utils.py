@@ -27,6 +27,7 @@ def calc_ship_rating(player_stats: list, benchmark_stats: list) -> float:
     """
     if not benchmark_stats:
         return -1
+    
     # 计算相对比率
     r_wins = player_stats[0] / benchmark_stats[0]
     r_dmg = player_stats[1] / benchmark_stats[1]

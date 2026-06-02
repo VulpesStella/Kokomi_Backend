@@ -15,15 +15,10 @@ from typing import Any, Iterator
 
 from logger import TqdmAwareLogger, get_formatted_date, logger
 from updater import RefreshPlanStats
-from api import fetch_latest_version
 from exception import write_exception
 from db_ops import (
     get_max_id,
-    get_version,
     read_table_batch,
-    refresh_version,
-    aggregate_recent_data,
-    archive_base_table,
     write_stats_to_db
 )
 from settings import (
@@ -95,71 +90,27 @@ def progress_iterable(
 def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery) -> None:
     """单轮维护调度执行体
 
-    执行版本同步、暂存数据聚合、用户/公会刷新 ID 筛选与 Celery 任务分发、
-    以及统计数据归档共四个阶段的维护操作。
+    用户刷新 ID 筛选与 Celery 任务分发
 
     Args:
         mysql_connection: MySQL 数据库连接
         redis_client: Redis 客户端
         celery_app: Celery 应用实例
     """
-    # 1.检测游戏版本是否更新
-    try:
-        with mysql_connection.cursor() as cursor:
-            # 读取本地数据中的最新赛季
-            local_version = get_version(cursor)
-            if local_version and not local_version[1]:
-                # 有数据且当前不需要更新
-                logger.debug('Skip to refresh version data step')
-            else:
-                # 请求 API 获取最新版本信息
-                latest_version = fetch_latest_version(redis_client)
-                if not isinstance(latest_version, dict):
-                    logger.info(f'Failed to obtain latest version')
-                else:
-                    # 刷新数据库
-                    if local_version:
-                        refresh_version(cursor, local_version[0], latest_version)
-                    else:
-                        refresh_version(cursor, None, latest_version)
-
-        mysql_connection.commit()
-    except Exception as e:
-        mysql_connection.rollback()
-        error_name = type(e).__name__
-        logger.error(f"Database operation exception: {error_name}")
-        write_exception(
-            error_type="DatabaseError",
-            error_name=error_name,
-            error_info=traceback.format_exc()
-        )
-    
-    # 2. 归档近期和基本数据
-    try:
-        with mysql_connection.cursor() as cursor:
-            archive_base_table(cursor)
-            aggregate_recent_data(cursor)
-
-        mysql_connection.commit()
-    except Exception as e:
-        mysql_connection.rollback()
-        error_name = type(e).__name__
-        logger.error(f"Database operation exception: {error_name}")
-        write_exception(
-            error_type="DatabaseError",
-            error_name=error_name,
-            error_info=traceback.format_exc()
-        )
         
-    # 3.更新玩家的基本数据
+    # 更新玩家的基本数据
     refresh_plan = RefreshPlanStats()
     try:
         with mysql_connection.cursor() as cursor:
             # 读取自增 ID 列最大值作为终止值
             max_id = get_max_id(cursor)
 
-            # 分批读取并处理数据
-            for start_id in range(1, max_id + 1, BATCH_SIZE):
+            logger.enable_tqdm()
+            for start_id in progress_iterable(
+                items=range(1, max_id + 1, BATCH_SIZE),
+                desc="Processing users",
+                logger_obj=logger
+            ):
                 end_id = start_id + BATCH_SIZE - 1
                 rows = read_table_batch(cursor, start_id, end_id)
                 if not rows:
@@ -182,12 +133,14 @@ def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery
                     refresh_plan.add_locked_ids(locked_ids)
                 except Exception:
                     logger.warning('Failed to set the distributed lock')
+            logger.disable_tqdm()
 
             # 平衡未来 24h 内的计划更新分布
             refresh_plan.rebalance_plan()
             
             # 将统计结果写入数据库
             write_stats_to_db(cursor, refresh_plan.get_db_update_data())
+
         mysql_connection.commit()
     except Exception as e:
         mysql_connection.rollback()

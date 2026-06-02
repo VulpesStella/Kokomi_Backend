@@ -112,6 +112,10 @@ async def request_rate_limiter(request: Request, call_next):
     #     )
     start = TimeUtils.timestamp_ms()
     now_time = TimeUtils.now_iso()
+    try:
+        await ServiceMetrics.api_incr(now_time[0:10])
+    except Exception:
+        pass
     response: StreamingResponse = await call_next(request)
     elapsed = int((TimeUtils.timestamp_ms() - start))
     record = [
@@ -127,10 +131,6 @@ async def request_rate_limiter(request: Request, call_next):
     except Exception:
         api_logger.warning('Log queue full')
         pass  # 队列满时直接丢弃，避免阻塞接口
-    try:
-        await ServiceMetrics.api_incr(now_time[0:10])
-    except Exception:
-        pass
     return response
 
 
