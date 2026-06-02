@@ -325,7 +325,7 @@ class ClanUsersSyncer:
                 logger.warning('Acquire distributed lock failed')
                 return 0
             cls._init_new_users(cursor, missing_ids, users)
-            # 写入完成直接提交
+            # 写入完成释放lock
             release_lock(redis_client, lock_key)
 
         cls._remove_left_members(cursor, clan_id, set(user_ids))

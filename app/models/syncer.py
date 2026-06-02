@@ -432,9 +432,10 @@ class UserClanSyncer:
             INSERT INTO T_clan_base (
                 clan_id, 
                 tag, 
-                league
+                league,
+                updated_at
             ) VALUES (
-                %s, %s, %s
+                %s, %s, %s, NOW()
             );
         """
         await cursor.execute(sql, [clan_id, clan_tag, league])
@@ -448,15 +449,6 @@ class UserClanSyncer:
                 );
             """
             await cursor.execute(sql, [clan_id])
-
-        sql = """
-            UPDATE T_clan_base 
-            SET 
-                table_count = %s, 
-                updated_at = NOW()
-            WHERE clan_id = %s;
-        """
-        await cursor.execute(sql, [len(constants.CLAN_INIT_TABLE_LIST), clan_id])
 
     @staticmethod
     async def _update_user_clan(cursor: Cursor, account_id: int, clan_id: Optional[int]) -> None:
