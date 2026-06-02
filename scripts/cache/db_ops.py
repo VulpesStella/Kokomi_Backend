@@ -79,23 +79,20 @@ def read_ship_record(cursor: Cursor) -> dict:
 def update_ship_record(cursor: Cursor, data: dict) -> None:
     """将船只 PvP 极值记录字典写回数据库
 
-    根据传入的嵌套字典结构，更新或插入 T_ship_pvp_record 表中的记录
+    根据传入的嵌套字典结构，更新 T_ship_pvp_record 表中的记录
 
     Args:
         cursor: 数据库游标
-        data: 与 read_ship_record 返回值结构相同的字典，
-              键为 ship_id (str)，值为按 METRIC_ID_TO_INDEX 顺序排列的
-              [[metric_value, users_count, top_user_ids], ...] 列表，
-              top_user_ids 为 set 类型。
+        data: 与 read_ship_record 返回值结构相同的字典
     """
     sql = """
-        INSERT INTO T_ship_pvp_record 
-            (ship_id, metric_id, metric_value, users_count, top_user_ids)
-        VALUES (%s, %s, %s, %s, %s)
-        ON DUPLICATE KEY UPDATE
-            metric_value = VALUES(metric_value),
-            users_count = VALUES(users_count),
-            top_user_ids = VALUES(top_user_ids)
+        UPDATE T_ship_pvp_record 
+        SET 
+            metric_value = %s,
+            users_count = %s,
+            top_user_ids = %s
+        WHERE 
+            ship_id = %s AND metric_id = %s
     """
     
     params_list = []
@@ -107,8 +104,8 @@ def update_ship_record(cursor: Cursor, data: dict) -> None:
             metric_value, users_count, top_user_ids_set = record
             metric_id = INDEX_TO_METRIC_ID[idx]
             # 将 set 转换为 JSON 数组字符串
-            top_user_ids_json = json.dumps(list(top_user_ids_set)) if len(top_user_ids_set) != None else None
-            params_list.append((ship_id, metric_id, metric_value, users_count, top_user_ids_json))
+            top_user_ids_json = json.dumps(list(top_user_ids_set)) if top_user_ids_set is not None else None
+            params_list.append((metric_value, users_count, top_user_ids_json, ship_id, metric_id))
     
     if len(params_list) == 0:
         return 0
