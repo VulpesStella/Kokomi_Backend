@@ -98,5 +98,5 @@ python scripts/cache/main.py
 python scripts/stats/main.py 
 
 # 运行 API 服务
-uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-level debug
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```

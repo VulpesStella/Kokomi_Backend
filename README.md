@@ -94,7 +94,7 @@ sudo apt update
 sudo apt install -y python3-pip python3.12-venv  # 这里是3.12，请根据实际版本修改
 
 # 创建虚拟环境
-python -m venv .venv
+python3 -m venv .venv
 
 # 激活虚拟环境
 .venv/Scripts/activate    # windows

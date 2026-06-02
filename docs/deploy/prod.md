@@ -69,16 +69,16 @@ docker compose up -d rabbitmq
 
 ```bash
 # 执行数据库初始化脚本
-python init/rebuild_db.py
+python init/scripts/rebuild_db.py
 
 # 写入船只基本数据
 python init/scripts/insert_ship.py
 
 # 写入工会数据（需自行准备）
-python init/scripts/insert_clan.py
+python init/scripts/insert_clan.py -f clans_1
 
 # 写入用户数据（需自行准备）
-python init/scripts/insert_user.py
+python init/scripts/insert_user.py -f users_1
 ```
 
 ```bash

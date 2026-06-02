@@ -133,6 +133,9 @@ def worker(mysql_connection: Connection, redis_client: Redis) -> None:
             'Current active clans: 0(%d), 1(%d), 2(%d), 3(%d), 4(%d)', 
             league_count["0"], league_count["1"], league_count["2"], league_count["3"], league_count["4"]
         )
+
+        if total_list == []:
+            return
         
         # 确保当前赛季的工会战数据表存在
         try:
