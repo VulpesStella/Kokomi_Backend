@@ -14,7 +14,7 @@ ROOT_DIR = Path(os.getcwd())
 LOG_DIR = ROOT_DIR / 'logs'
 DATA_DIR = ROOT_DIR / 'data'
 
-BATCH_SIZE = 5000
+BATCH_SIZE = 1000
 BUCKETS = 400  # 直方图桶数
 MIN_SAMPLES = 200  # Rating 统计最低限制
 
