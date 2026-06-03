@@ -553,7 +553,7 @@ class UserRecentUpdater:
                     ship_id, mode, battles, wins, losses, damage, frags,
                     original_exp, scouting_damage, art_agro, planes_killed,
                     survived, hit_rate
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """
             cursor.executemany(sql, rows)
 
@@ -825,7 +825,7 @@ class UserRecentUpdater:
             if changed_list != {}:
                 for ship_id, ship_data in changed_list.items():
                     diff_params = cls._calc_recent_diff(ship_id, ship_data[0], ship_data[1])
-                    insert_recent_list.append(diff_params)
+                    insert_recent_list = diff_params
 
             try:
                 cursor.execute("BEGIN IMMEDIATE")

@@ -1,6 +1,6 @@
 import random
 
-from .middlewares import redis_client, db_pool, session
+from .middlewares import redis_client, lock_client, db_pool, session
 from .syncer import UserStatsSyncer
 from .utils import get_current_iso_time
 from .exception import handle_program_exception_sync
@@ -30,7 +30,7 @@ def refresh_user(account_id: int):
     redis_client.incr(f'metrics:celery:daily:total:{now_date}')
 
     # 删除redis的key
-    redis_client.delete(f"refresh_lock:user:{account_id}")
+    lock_client.delete(f"refresh_lock:user:{account_id}")
 
     # 请求接口
     redis_key = f"token:ac:{account_id}"

@@ -61,7 +61,7 @@ class RefreshPlanStats:
                 remaining_seconds = next_refresh_at - self.current_timestamp
             else:
                 remaining_seconds = -1
-
+                
             # 统计到今天结束前还剩余的计划更新数
             if remaining_seconds < self.seconds_until_end_of_day:
                 self.today_remained_count += 1

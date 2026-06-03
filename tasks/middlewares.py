@@ -12,25 +12,17 @@ if SSL_CA_BUNDLE:
     session.verify= SSL_CA_BUNDLE
 
 try:
-    redis_client = redis.Redis(
-        host=REDIS_CONFIG['host'],
-        port=REDIS_CONFIG['port'],
-        db=0,
-        password=REDIS_CONFIG['password'],
-        decode_responses=True  # 返回 str 而不是 bytes
-    )
+    redis_client = redis.Redis(**REDIS_CONFIG)
+    REDIS_CONFIG['db'] += 1
+    lock_client = redis.Redis(**REDIS_CONFIG)
 except:
     print('[ERROR] Failed to initialize the Redis connection')
 
 try:
     db_pool = PooledDB(
         creator=pymysql,
-        maxconnections=6,     # 最大连接数
-        host=MYSQL_CONFIG['host'],
-        port=MYSQL_CONFIG['port'],
-        user=MYSQL_CONFIG['user'],
-        password=MYSQL_CONFIG['password'],
-        database=MYSQL_CONFIG['database'],
+        maxconnections=4,     # 最大连接数
+        **MYSQL_CONFIG,
         charset="utf8mb4",
         autocommit=False      # 必须使用手动事务
     )

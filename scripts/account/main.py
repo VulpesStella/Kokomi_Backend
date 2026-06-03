@@ -87,7 +87,7 @@ def progress_iterable(
             # logger_obj.info('%s - [%d/%d] | Current: %s', desc, idx, total, item)
             yield item
 
-def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery) -> None:
+def worker(mysql_connection: Connection, redis_client: Redis, lock_client: Redis, celery_app: Celery) -> None:
     """单轮维护调度执行体
 
     用户刷新 ID 筛选与 Celery 任务分发
@@ -123,7 +123,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, celery_app: Celery
 
                 # 通过 Redis 批量加锁
                 try:
-                    pipe = redis_client.pipeline()
+                    pipe = lock_client.pipeline()
                     keys = [f"refresh_lock:user:{uid}" for uid in due_ids]
                     for key in keys:
                         pipe.set(key, 1, nx=True, ex=4*3600)
@@ -201,11 +201,14 @@ def main():
             redis_client = redis.Redis(**REDIS_CONFIG)
             # 设置当前服务状态，用于外部监控系统判断服务是否正常运行
             redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.5))
+            REDIS_CONFIG['db'] += 1
+            lock_client = redis.Redis(**REDIS_CONFIG)
             mysql_connection = pymysql.connect(**MYSQL_CONFIG)
 
             worker(
                 mysql_connection=mysql_connection,
                 redis_client=redis_client,
+                lock_client=lock_client,
                 celery_app=celery_app
             )
         except Exception as e:
