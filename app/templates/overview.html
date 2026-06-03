@@ -17,13 +17,13 @@
     {% endfor %}
 </div>
 
-<!-- 24h Requests / Errors 切换 -->
+<!-- 24h Requests / Avg Response Time 切换 -->
 <div class="chart-panel-full overview-chart">
     <div class="chart-header">
-        <span class="chart-title-text">24-Hour API Requests & Errors</span>
+        <span class="chart-title-text">24-Hour API Requests & Avg Response Time</span>
         <div class="chart-toggle">
             <button class="toggle-btn active" data-series="requests">Requests</button>
-            <button class="toggle-btn" data-series="errors">Errors</button>
+            <button class="toggle-btn" data-series="avg_response">Avg Latency (ms)</button>
         </div>
     </div>
     <div id="request-trend-chart" class="chart-container"></div>
@@ -40,7 +40,7 @@
 
 {% block extra_scripts %}
 <script>
-// 24h Requests / Errors 切换柱状图
+// 24h Requests / Avg Response Time 切换柱状图
 (function() {
     var chart24h = JSON.parse('{{ overview_chart_json | safe }}');
     var currentSeries = 'requests';
@@ -74,7 +74,7 @@
         }, true);
     }
 
-    function renderErrors() {
+    function renderAvgResponse() {
         chart.setOption({
             tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
             grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
@@ -83,15 +83,15 @@
                 data: chart24h.labels,
                 axisLabel: { rotate: 30, fontSize: 11, interval: 0 }
             },
-            yAxis: { type: 'value', name: 'Errors' },
+            yAxis: { type: 'value', name: 'Avg Latency (ms)' },
             series: [{
-                name: 'Errors',
-                data: chart24h.error_values,
+                name: 'Avg Latency',
+                data: chart24h.avg_response_values,
                 type: 'bar',
                 itemStyle: {
                     color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                        { offset: 0, color: '#fca5a5' },
-                        { offset: 1, color: '#ef4444' }
+                        { offset: 0, color: '#f9a8d4' },
+                        { offset: 1, color: '#ec4899' }
                     ]),
                     borderRadius: [4, 4, 0, 0]
                 },
@@ -113,7 +113,7 @@
             if (series === 'requests') {
                 renderRequests();
             } else {
-                renderErrors();
+                renderAvgResponse();
             }
             currentSeries = series;
         });

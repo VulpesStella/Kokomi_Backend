@@ -75,27 +75,6 @@ class PlatformModel:
             return JSONResponse.get_success_response(data)
 
     @ExceptionLogger.handle_database_exception_async
-    async def read_user_level_distribution():
-        """读取用户等级分布 (0-2)
-
-        Returns:
-            success → {code: 1000, data: [(user_level, count), ...]}
-        """
-        async with MySQLManager.read_only_cursor() as cur:
-            sql = """
-                SELECT
-                    user_level,
-                    COUNT(*) AS cnt
-                FROM T_user_config
-                GROUP BY user_level
-                ORDER BY user_level;
-            """
-            await cur.execute(sql)
-            rows = await cur.fetchall()
-            data = [(row[0], row[1]) for row in rows]
-            return JSONResponse.get_success_response(data)
-
-    @ExceptionLogger.handle_database_exception_async
     async def read_user_refresh_stats():
         """读取用户刷新计划分布
 

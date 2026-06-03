@@ -146,7 +146,7 @@ if __name__ == '__main__':
     """数据库连接分析脚本
 
     使用示例：
-    python scripts/maintenance/mysql.py
+    python tools/mysql.py
     """
     try:
         main()

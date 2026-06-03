@@ -33,5 +33,5 @@ def write_exception(
         f.write(f"[TIME]:    {now_iso}\n")
         f.write(f"[TYPE]:    {error_type}\n")
         f.write(f"[NAME]:    {error_name}\n")
-        f.write("-" * 100 + "\n")
+        f.write("\n")
         f.write(error_info)

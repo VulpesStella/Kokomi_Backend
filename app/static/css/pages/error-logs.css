@@ -1,14 +1,11 @@
-/* ========== 全局现代感变量与基础面板 ========== */
 .table-panel {
     background: var(--card-bg, #ffffff);
     border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 12px;
+    border-radius: 8px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     overflow: hidden;
-    margin-bottom: 8px;
 }
 
-/* ========== 现代化表格样式 ========== */
 .data-table {
     width: 100%;
     border-collapse: collapse;
@@ -51,7 +48,6 @@
     font-size: 15px;
 }
 
-/* ========== 精致的数据标签 ========== */
 .err-time {
     color: var(--text-secondary, #64748b);
     font-variant-numeric: tabular-nums;
@@ -78,7 +74,6 @@
     display: inline-block;
 }
 
-/* UUID 样式微调 */
 .err-uuid {
     font-family: "SF Mono", "JetBrains Mono", "Consolas", monospace;
     font-size: 13px;
@@ -90,7 +85,7 @@
 }
 
 .err-detail-link {
-    color: #4f46e5; /* 现代高级靛蓝色 */
+    color: #4f46e5;
     font-size: 13px;
     font-weight: 600;
     text-decoration: none;
@@ -106,10 +101,11 @@
     background: #eef2ff;
 }
 
-/* ========== 分页组件 ========== */
 .err-pagination-wrapper {
     text-align: center;
     padding: 8px 0;
+    border-radius: 0 0 8px 8px;
+    margin-top: 16px;
 }
 
 .err-pagination {
@@ -121,28 +117,16 @@
 .err-page-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: var(--card-bg, #ffffff);
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 8px;
+    gap: 4px;
     font-size: 13px;
-    font-weight: 600;
-    color: #475569;
+    font-weight: 500;
+    color: #4f46e5;
     text-decoration: none;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    transition: all 0.2s ease;
+    transition: color 0.15s ease;
 }
 
 .err-page-btn:hover {
-    background: #f8fafc;
-    color: #1e293b;
-    border-color: #cbd5e1;
-    transform: translateY(-1px);
-}
-
-.err-page-btn:active {
-    transform: translateY(0);
+    color: #4338ca;
 }
 
 .err-page-info {

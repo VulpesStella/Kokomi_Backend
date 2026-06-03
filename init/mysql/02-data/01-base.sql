@@ -138,6 +138,8 @@ VALUES
     ('base_users', 'user_base'),
     ('base_clans', 'clan_base'),
     ('base_ships', 'ship_base'),
+    ('recent_lv1', 'user_config'),
+    ('recent_lv2', 'user_config'),
     ('planned_users', 'user_stats'),
     ('planned_clans', 'clan_users'),
     ('total_users', 'user_pvp'),

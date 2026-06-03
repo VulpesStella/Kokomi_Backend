@@ -23,13 +23,11 @@ body {
     background: var(--main-bg);
 }
 
-/* ========== 整体布局 ========== */
 .dashboard-container {
     display: flex;
     min-height: 100vh;
 }
 
-/* ========== 主内容区 ========== */
 .main-content {
     flex: 1;
     margin-left: var(--sidebar-width);
@@ -61,4 +59,7 @@ body {
 
 .content-body {
     padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 100px);
 }

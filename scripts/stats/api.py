@@ -1,5 +1,4 @@
 import random
-import requests
 import traceback
 from redis import Redis
 from requests import Session
@@ -22,7 +21,7 @@ def fetch_data(session: Session, url: str) -> Union[dict, str]:
     """
     try:
         body = [{"query":"query Version {\n  version\n}"}]
-        resp = requests.post(url,json=body,timeout=5)
+        resp = session.post(url,json=body,timeout=5)
 
         if resp.status_code == 200:
             return resp.json()

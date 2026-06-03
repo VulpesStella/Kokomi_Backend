@@ -4,6 +4,19 @@
 {% block page_title %}Game API{% endblock %}
 
 {% block content %}
+<!-- 指标卡片行 -->
+<div class="cards-row">
+    {% for card in cards %}
+    <div class="metric-card" style="border-top: 3px solid {{ card.color }};">
+        <div class="card-header">
+            <span class="card-icon">{{ card.icon }}</span>
+            <span class="card-title">{{ card.title }}</span>
+        </div>
+        <div class="card-value">{{ card.value }}</div>
+    </div>
+    {% endfor %}
+</div>
+
 <!-- 30日 API 调用量折线图 -->
 <div class="chart-panel-full">
     <div class="chart-header">

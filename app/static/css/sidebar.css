@@ -1,4 +1,3 @@
-/* ========== 左侧导航 ========== */
 .sidebar {
     width: var(--sidebar-width);
     background: var(--sidebar-bg);
@@ -13,7 +12,6 @@
     overflow-y: auto;
 }
 
-/* ========== 产品名称 ========== */
 .sidebar-brand {
     padding: 20px;
     display: flex;
@@ -35,7 +33,6 @@
     letter-spacing: 0.5px;
 }
 
-/* ========== 节点标识 ========== */
 .sidebar-node {
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -116,7 +113,6 @@
     font-weight: 500;
 }
 
-/* ========== 导航菜单 ========== */
 .sidebar-nav {
     padding: 12px 0;
     flex: 1;
@@ -173,14 +169,39 @@
     border-radius: 8px;
 } */
 
-/* ========== 底部 GitHub 链接 ========== */
+.nav-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 8px 20px;
+}
+
+.nav-external-icon {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.nav-external {
+    color: rgba(160, 164, 176, 0.8);
+}
+
+.nav-external:hover {
+    color: #ffffff;
+}
+
+.nav-external:hover .nav-external-icon {
+    opacity: 0.9;
+}
+
 .sidebar-footer {
     padding: 16px 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     margin-top: auto;
 }
 
-.github-link {
+.sidebar-footer-link {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -192,17 +213,17 @@
     transition: all 0.2s;
 }
 
-.github-link:hover {
+.sidebar-footer-link:hover {
     background: rgba(255, 255, 255, 0.08);
     color: #ffffff;
 }
 
-.github-icon {
+.sidebar-footer-icon {
     display: flex;
     align-items: center;
     flex-shrink: 0;
 }
 
-.github-text {
+.sidebar-footer-text {
     font-weight: 500;
 }

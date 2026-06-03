@@ -4,6 +4,45 @@
 {% block page_title %}Error Logs ({{ today }}){% endblock %}
 
 {% block content %}
+<!-- 指标卡片行 -->
+<div class="cards-row">
+    <div class="metric-card" style="border-top: 3px solid #fa709a;">
+        <div class="card-header">
+            <span class="card-icon">⚠️</span>
+            <span class="card-title">Total Errors</span>
+        </div>
+        <div class="card-value">{{ api_errors + celery_errors + other_errors }}</div>
+    </div>
+    <div class="metric-card" style="border-top: 3px solid #667eea;">
+        <div class="card-header">
+            <span class="card-icon">📡</span>
+            <span class="card-title">API Errors</span>
+        </div>
+        <div class="card-value">{{ api_errors }}</div>
+    </div>
+    <div class="metric-card" style="border-top: 3px solid #f59e0b;">
+        <div class="card-header">
+            <span class="card-icon">📦</span>
+            <span class="card-title">Celery Errors</span>
+        </div>
+        <div class="card-value">{{ celery_errors }}</div>
+    </div>
+    <div class="metric-card" style="border-top: 3px solid #8b5cf6;">
+        <div class="card-header">
+            <span class="card-icon">🔧</span>
+            <span class="card-title">Other Errors</span>
+        </div>
+        <div class="card-value">{{ other_errors }}</div>
+    </div>
+    <div class="metric-card" style="border-top: 3px solid #4facfe;">
+        <div class="card-header">
+            <span class="card-icon">📋</span>
+            <span class="card-title">Reserved</span>
+        </div>
+        <div class="card-value">--</div>
+    </div>
+</div>
+
 <div class="table-panel">
     <table class="data-table">
         <thead>
@@ -35,27 +74,27 @@
             {% endfor %}
         </tbody>
     </table>
-</div>
 
-{% if total_pages > 1 %}
-<div class="err-pagination-wrapper">
-    <div class="err-pagination">
-        {% if page > 1 %}
-        <a href="?page={{ page - 1 }}&per_page={{ per_page }}" class="err-page-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-            Prev
-        </a>
-        {% endif %}
-        
-        <span class="err-page-info">Page <strong>{{ page }}</strong> / {{ total_pages }}</span>
-        
-        {% if page < total_pages %}
-        <a href="?page={{ page + 1 }}&per_page={{ per_page }}" class="err-page-btn">
-            Next
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-        </a>
-        {% endif %}
+    {% if total_pages > 1 %}
+    <div class="err-pagination-wrapper">
+        <div class="err-pagination">
+            {% if page > 1 %}
+            <a href="?page={{ page - 1 }}&per_page={{ per_page }}" class="err-page-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                Prev
+            </a>
+            {% endif %}
+
+            <span class="err-page-info">Page <strong>{{ page }}</strong> / {{ total_pages }}</span>
+
+            {% if page < total_pages %}
+            <a href="?page={{ page + 1 }}&per_page={{ per_page }}" class="err-page-btn">
+                Next
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </a>
+            {% endif %}
+        </div>
     </div>
+    {% endif %}
 </div>
-{% endif %}
 {% endblock %}

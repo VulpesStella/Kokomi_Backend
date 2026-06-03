@@ -6,6 +6,7 @@ import math
 
 from app.core import EnvConfig
 from app.health import ServiceMetrics
+from app.middlewares import RedisClient
 from app.models import PlatformModel
 from app.utils import JsonUtils
 
@@ -19,14 +20,14 @@ def _dev_overview():
     empty_30d = [[], []]
     return {
         "cards": [
+            {"title": "Monthly Requests", "value": "0", "icon": "📊", "color": "#f59e0b"},
             {"title": "Today's API Calls", "value": "0", "icon": "📡", "color": "#667eea"},
             {"title": "Average Response Time", "value": "0ms", "icon": "⚡", "color": "#f093fb"},
             {"title": "Success Rate (200)", "value": "0%", "icon": "✅", "color": "#43e97b"},
-            {"title": "Today's Error", "value": "0", "icon": "⚠️", "color": "#fa709a"},
             {"title": "Active Services", "value": "0 / 5", "icon": "🖥️", "color": "#4facfe"},
         ],
         "overview_chart_json": json.dumps({
-            "labels": empty_24h[0], "request_values": empty_24h[1], "error_values": empty_24h[1],
+            "labels": empty_24h[0], "request_values": empty_24h[1], "avg_response_values": empty_24h[1],
         }),
         "monthly_line_chart_json": json.dumps({
             "labels": empty_30d[0], "values": empty_30d[1],
@@ -37,21 +38,17 @@ def _dev_overview():
 def _dev_celery():
     empty_30d = [[], []]
     return {
-        "cards_row1": [
-            {"title": "Total Published", "value": "--", "icon": "📤", "color": "#43e97b"},
-            {"title": "Total Consumed", "value": "--", "icon": "📥", "color": "#667eea"},
+        "cards": [
+            {"title": "Monthly Processed", "value": "--", "icon": "📊", "color": "#f59e0b"},
+            {"title": "Today's Processed", "value": "--", "icon": "📡", "color": "#667eea"},
             {"title": "Pending Tasks", "value": "--", "icon": "📦", "color": "#4facfe"},
-            {"title": "Ready Tasks", "value": "--", "icon": "✅", "color": "#43e97b"},
-            {"title": "Unacknowledged", "value": "--", "icon": "⏳", "color": "#f093fb"},
-        ],
-        "cards_row2": [
-            {"title": "Consumers", "value": "--", "icon": "🔗", "color": "#667eea"},
-            {"title": "Consumer Utilisation", "value": "--", "icon": "📊", "color": "#fa709a"},
-            {"title": "Queue Memory", "value": "--", "icon": "🧠", "color": "#f093fb"},
-            {"title": "Message Payload", "value": "--", "icon": "💾", "color": "#4facfe"},
-            {"title": "Today's Failed Tasks", "value": "0", "icon": "❌", "color": "#fa709a"},
+            {"title": "Consumers", "value": "--", "icon": "🔗", "color": "#43e97b"},
+            {"title": "Today's Failed", "value": "0", "icon": "❌", "color": "#fa709a"},
         ],
         "celery_chart_json": json.dumps({
+            "labels": empty_30d[0], "values": empty_30d[1],
+        }),
+        "celery_error_chart_json": json.dumps({
             "labels": empty_30d[0], "values": empty_30d[1],
         }),
     }
@@ -60,6 +57,13 @@ def _dev_celery():
 def _dev_game_api():
     empty_30d = [[], []]
     return {
+        "cards": [
+            {"title": "Monthly Requests", "value": "--", "icon": "📊", "color": "#f59e0b"},
+            {"title": "Today's Requests", "value": "--", "icon": "📡", "color": "#667eea"},
+            {"title": "Today's Failed", "value": "--", "icon": "⚠️", "color": "#fa709a"},
+            {"title": "Failure Rate", "value": "--", "icon": "❌", "color": "#ef4444"},
+            {"title": "Reserved", "value": "--", "icon": "📋", "color": "#4facfe"},
+        ],
         "http_total_chart_json": json.dumps({"labels": empty_30d[0], "values": empty_30d[1]}),
         "http_error_rate_chart_json": json.dumps({"labels": empty_30d[0], "values": empty_30d[1]}),
     }
@@ -150,29 +154,38 @@ async def get_overview_data() -> Dict[str, Any]:
     today = now.date()
     log_dir = EnvConfig.LOG_DIR
 
-    # 1. 获取今日请求统计
-    total_count, buckets, avg_elapsed_ms, status_200_count = ServiceMetrics.get_hourly_request_stats(today, log_dir)
-    
+    # 1. 获取今日请求统计（含每小时平均响应时间）
+    total_count, buckets, avg_elapsed_ms, status_200_count, hourly_avg_elapsed = ServiceMetrics.get_hourly_request_stats(today, log_dir)
+
     # 2. 构建24小时图表数据
     hourly_keys, hourly_values = ServiceMetrics.build_hourly_chart_data(now, buckets)
-    
+
     # 3. 获取30天API调用统计
     monthly_keys, monthly_values = await ServiceMetrics.get_monthly_api_stats(now)
 
-    # 4. 获取今日错误数（总数 + 每小时分布）
-    error_count, error_buckets = ServiceMetrics.get_hourly_error_stats(today, log_dir)
+    # 4. 获取本月总计请求数据
+    month_key = now.strftime("%Y-%m")
+    monthly_total_result = await RedisClient.get(f"metrics:api:monthly:{month_key}")
+    monthly_total = monthly_total_result['data'] if monthly_total_result['code'] == 1000 and monthly_total_result['data'] else 0
+    monthly_total = int(monthly_total)
 
     # 5. 获取服务状态
     active_services, total_services = await ServiceMetrics.get_services_status()
 
-    # 6. 构建24h错误图表数据
-    _, hourly_error_values = ServiceMetrics.build_hourly_chart_data(now, error_buckets)
-    
+    # 6. 构建24h平均响应时间图表数据
+    _, hourly_avg_values = ServiceMetrics.build_hourly_chart_data(now, hourly_avg_elapsed)
+
     # 组装返回数据
     success_rate = 0 if total_count == 0 else round(status_200_count / total_count * 100, 1)
 
     return {
         "cards": [
+            {
+                "title": "Monthly Requests",
+                "value": f"{monthly_total:,}",
+                "icon": "📊",
+                "color": "#f59e0b"
+            },
             {
                 "title": "Today's API Calls",
                 "value": f"{total_count:,}",
@@ -192,12 +205,6 @@ async def get_overview_data() -> Dict[str, Any]:
                 "color": "#43e97b"
             },
             {
-                "title": "Today's Error",
-                "value": f"{error_count:,}",
-                "icon": "⚠️",
-                "color": "#fa709a"
-            },
-            {
                 "title": "Active Services",
                 "value": f"{active_services} / {total_services}",
                 "icon": "🖥️",
@@ -205,11 +212,11 @@ async def get_overview_data() -> Dict[str, Any]:
             }
         ],
         "overview_chart_json": json.dumps({
-            "title": "24-Hour API Requests & Errors",
+            "title": "24-Hour API Requests & Avg Response Time",
             "yAxisName": "Count",
             "labels": hourly_keys,
             "request_values": hourly_values,
-            "error_values": hourly_error_values
+            "avg_response_values": hourly_avg_values
         }),
         "monthly_line_chart_json": json.dumps({
             "title": "30-Day API Call Trend",
@@ -226,6 +233,8 @@ async def get_celery_data() -> Dict[str, Any]:
         return _dev_celery()
 
     now = datetime.now(timezone.utc)
+    today_str = now.date().isoformat()
+    month_str = now.strftime("%Y-%m")
     config = EnvConfig.get_config()
 
     # 队列实时数据
@@ -238,29 +247,35 @@ async def get_celery_data() -> Dict[str, Any]:
             'memory': -1, 'message_bytes': -1, 'reductions': -1,
         }
 
-    # 30天 Celery 消费趋势
+    # 1. 读取 Redis 指标（本月处理数 / 今日处理数 / 今日失败数）
+    monthly_key = f"metrics:celery:monthly:{month_str}"
+    daily_total_key = f"metrics:celery:daily:total:{today_str}"
+    daily_error_key = f"metrics:celery:daily:error:{today_str}"
+
+    pipe_result = await RedisClient.get_by_pipe([monthly_key, daily_total_key, daily_error_key])
+    if pipe_result['code'] == 1000:
+        monthly_processed, daily_processed, today_failed = pipe_result['data']
+    else:
+        monthly_processed, daily_processed, today_failed = 0, 0, 0
+
+    # 2. 30天 Celery 消费趋势
     celery_keys, celery_values = await ServiceMetrics.get_monthly_celery_stats(now)
 
-    utilisation_pct = 0 if queue['utilisation'] < 0 else round(queue['utilisation'] * 100, 1)
-    memory_kb = round(queue['memory'] / 1024, 1) if queue['memory'] >= 0 else -1
-    msg_kb = round(queue['message_bytes'] / 1024, 1) if queue['message_bytes'] >= 0 else -1
-
-    # 今日 Celery 失败任务数
-    today_str = now.date().isoformat()
-    celery_error_count = await ServiceMetrics.get_today_celery_error_count(today_str)
+    # 3. 30天 Celery 失败任务趋势
+    error_keys, error_values = await ServiceMetrics.get_monthly_celery_error_stats(now)
 
     return {
-        "cards_row1": [
+        "cards": [
             {
-                "title": "Total Published",
-                "value": f"{queue['published']:,}",
-                "icon": "📤",
-                "color": "#43e97b"
+                "title": "Monthly Processed",
+                "value": f"{monthly_processed:,}",
+                "icon": "📊",
+                "color": "#f59e0b"
             },
             {
-                "title": "Total Consumed",
-                "value": f"{queue['consumed']:,}",
-                "icon": "📥",
+                "title": "Today's Processed",
+                "value": f"{daily_processed:,}",
+                "icon": "📡",
                 "color": "#667eea"
             },
             {
@@ -270,46 +285,14 @@ async def get_celery_data() -> Dict[str, Any]:
                 "color": "#4facfe"
             },
             {
-                "title": "Ready Tasks",
-                "value": f"{queue['ready']:,}",
-                "icon": "✅",
-                "color": "#43e97b"
-            },
-            {
-                "title": "Unacknowledged",
-                "value": f"{queue['unacknowledged']:,}",
-                "icon": "⏳",
-                "color": "#f093fb"
-            },
-        ],
-        "cards_row2": [
-            {
                 "title": "Consumers",
                 "value": f"{queue['consumers']:,}",
                 "icon": "🔗",
-                "color": "#667eea"
+                "color": "#43e97b"
             },
             {
-                "title": "Consumer Utilisation",
-                "value": f"{utilisation_pct}%",
-                "icon": "📊",
-                "color": "#fa709a"
-            },
-            {
-                "title": "Queue Memory",
-                "value": f"{memory_kb:,} KB" if memory_kb >= 0 else "N/A",
-                "icon": "🧠",
-                "color": "#f093fb"
-            },
-            {
-                "title": "Message Payload",
-                "value": f"{msg_kb:,} KB" if msg_kb >= 0 else "N/A",
-                "icon": "💾",
-                "color": "#4facfe"
-            },
-            {
-                "title": "Today's Failed Tasks",
-                "value": f"{celery_error_count:,}",
+                "title": "Today's Failed",
+                "value": f"{today_failed:,}",
                 "icon": "❌",
                 "color": "#fa709a"
             },
@@ -319,6 +302,12 @@ async def get_celery_data() -> Dict[str, Any]:
             "yAxisName": "Tasks",
             "labels": celery_keys,
             "values": celery_values
+        }),
+        "celery_error_chart_json": json.dumps({
+            "title": "30-Day Celery Failed Tasks",
+            "yAxisName": "Failed Tasks",
+            "labels": error_keys,
+            "values": error_values
         })
     }
 
@@ -329,7 +318,28 @@ async def get_game_api_data() -> Dict[str, Any]:
         return _dev_game_api()
 
     now = datetime.now(timezone.utc)
+    today_str = now.date().isoformat()
+    month_str = now.strftime("%Y-%m")
 
+    # 1. 读取指标卡片数据（本月总计 / 今日总计 / 今日失败）
+    monthly_key = f"metrics:http:monthly:{month_str}"
+    daily_total_key = f"metrics:http:daily:total:{today_str}"
+    daily_error_key = f"metrics:http:daily:error:{today_str}"
+
+    pipe_result = await RedisClient.get_by_pipe([monthly_key, daily_total_key, daily_error_key])
+    if pipe_result['code'] == 1000:
+        monthly_total, daily_total, daily_error = pipe_result['data']
+    else:
+        monthly_total, daily_total, daily_error = 0, 0, 0
+
+    # 计算失败率
+    if daily_total > 0:
+        failure_rate = round(daily_error / daily_total * 100, 2)
+        failure_rate_str = f"{failure_rate}%"
+    else:
+        failure_rate_str = "0%"
+
+    # 2. 获取30天图表数据
     monthly_keys, total_values, error_values = await ServiceMetrics.get_monthly_http_stats(now)
 
     # 计算每日错误率
@@ -341,6 +351,38 @@ async def get_game_api_data() -> Dict[str, Any]:
             error_rate_values.append(round(e / t * 100, 2))
 
     return {
+        "cards": [
+            {
+                "title": "Monthly Requests",
+                "value": f"{monthly_total:,}",
+                "icon": "📊",
+                "color": "#f59e0b"
+            },
+            {
+                "title": "Today's Requests",
+                "value": f"{daily_total:,}",
+                "icon": "📡",
+                "color": "#667eea"
+            },
+            {
+                "title": "Today's Failed",
+                "value": f"{daily_error:,}",
+                "icon": "⚠️",
+                "color": "#fa709a"
+            },
+            {
+                "title": "Failure Rate",
+                "value": failure_rate_str,
+                "icon": "❌",
+                "color": "#ef4444"
+            },
+            {
+                "title": "Reserved",
+                "value": "--",
+                "icon": "📋",
+                "color": "#4facfe"
+            },
+        ],
         "http_total_chart_json": json.dumps({
             "title": "30-Day API Call Volume",
             "yAxisName": "Requests",
@@ -467,7 +509,6 @@ async def get_user_activity_data() -> Dict[str, Any]:
     if _is_dev_mode():
         return _dev_user_activity()
 
-    LEVEL_LABELS = {0: 'None', 1: 'Normal', 2: 'Advanced'}
     REFRESH_LABELS = {
         'overdue': 'Overdue',
         'within_24h': 'Within 24h',
@@ -484,14 +525,12 @@ async def get_user_activity_data() -> Dict[str, Any]:
         meta = {}
 
     # 用户等级分布
-    level_resp = await PlatformModel.read_user_level_distribution()
-    level_legend = []
-    level_data = []
-    if level_resp['code'] == 1000:
-        for lv, cnt in level_resp['data']:
-            label = LEVEL_LABELS.get(lv, f'Level {lv}')
-            level_legend.append(label)
-            level_data.append({'name': label, 'value': cnt})
+    level_legend = ['None', 'Standard', 'Plus']
+    level_data = [
+        {'name': 'None', 'value': meta.get('base_users', 0)}, 
+        {'name': 'Standard', 'value': meta.get('recent_lv1', 0)}, 
+        {'name': 'Plus', 'value': meta.get('recent_lv2', 0)}
+    ]
 
     # 刷新计划分布（合并 user + clan）
     refresh_resp = await PlatformModel.read_user_refresh_stats()
@@ -580,6 +619,19 @@ def get_error_logs_data(today, log_dir, page: int = 1, per_page: int = 20, uuid_
                 if parsed:
                     entries.append(parsed)
 
+    # 按来源统计（UUID 过滤前，始终反映全天全量数据）
+    api_errors = 0
+    celery_errors = 0
+    other_errors = 0
+    for e in entries:
+        src = e["source"].upper()
+        if src == "API":
+            api_errors += 1
+        elif src == "CELERY":
+            celery_errors += 1
+        else:
+            other_errors += 1
+
     # UUID 过滤
     if uuid_filter:
         entries = [e for e in entries if e["uuid"] == uuid_filter]
@@ -600,6 +652,9 @@ def get_error_logs_data(today, log_dir, page: int = 1, per_page: int = 20, uuid_
         "total": total,
         "total_pages": total_pages,
         "uuid_filter": uuid_filter,
+        "api_errors": api_errors,
+        "celery_errors": celery_errors,
+        "other_errors": other_errors,
     }
 
 

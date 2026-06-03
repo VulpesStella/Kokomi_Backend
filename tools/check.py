@@ -264,9 +264,9 @@ if __name__ == '__main__':
     运行前请确保所有子服务已停止运行，避免读取到异常数据或影响服务正常运行
 
     使用示例：
-    python scripts/maintenance/check.py -i user
-    python scripts/maintenance/check.py -i clan
-    python scripts/maintenance/check.py -i ship
+    python tools/check.py -i user
+    python tools/check.py -i clan
+    python tools/check.py -i ship
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(

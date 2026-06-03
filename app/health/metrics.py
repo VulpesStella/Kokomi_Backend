@@ -48,18 +48,21 @@ class ServiceMetrics:
             return int(result['data'])
         return 0
 
-    def get_hourly_request_stats(today, log_dir) -> Tuple[int, Dict[str, int], int, int]:
+    def get_hourly_request_stats(today, log_dir) -> Tuple[int, Dict[str, int], int, int, Dict[str, Any]]:
         """统计过去24h的请求数据
         Returns:
             total_count: 总请求数
             buckets: 按小时分组的请求数 { "08:00": 100, ... }
             avg_elapsed_ms: 平均响应时间(ms)
             status_200_count: status_code 为 200 的请求数
+            hourly_avg_elapsed: 按小时分组的平均响应时间(ms) { "08:00": 150.5, ... }，无请求的小时为 None
         """
         total_count = 0
         total_elapsed_ms = 0
         status_200_count = 0
         buckets = defaultdict(int)
+        hourly_elapsed = defaultdict(int)
+        hourly_count = defaultdict(int)
 
         file = log_dir / f"metrics/{today.isoformat()}.csv"
         if file.exists():
@@ -76,13 +79,26 @@ class ServiceMetrics:
                         continue
                     hour_key = ts.strftime("%H:00")
                     buckets[hour_key] += 1
+                    hourly_elapsed[hour_key] += es
+                    hourly_count[hour_key] += 1
                     total_count += 1
                     total_elapsed_ms += es
                     if sc == 200:
                         status_200_count += 1
 
         avg_elapsed_ms = 0 if total_count == 0 else int(total_elapsed_ms / total_count)
-        return total_count, buckets, avg_elapsed_ms, status_200_count
+
+        # 计算每个小时的平均响应时间，无请求的小时设为 None
+        hourly_avg_elapsed = {}
+        for hour in range(24):
+            key = f"{hour:02d}:00"
+            cnt = hourly_count.get(key, 0)
+            if cnt > 0:
+                hourly_avg_elapsed[key] = round(hourly_elapsed[key] / cnt, 1)
+            else:
+                hourly_avg_elapsed[key] = None
+
+        return total_count, buckets, avg_elapsed_ms, status_200_count, hourly_avg_elapsed
 
     def build_hourly_chart_data(now, buckets: Dict[str, int]) -> Tuple[List[str], List[Any]]:
         """构建过去24h图表数据
@@ -180,6 +196,28 @@ class ServiceMetrics:
             celery_values = values['data']
         
         return celery_keys, celery_values
+
+    async def get_monthly_celery_error_stats(now) -> Tuple[List[str], List[Any]]:
+        """获取过去30d Celery失败任务统计数据
+        Returns:
+            error_keys: 日期标签列表
+            error_values: 对应的失败任务数
+        """
+        error_keys = []
+        error_redis_keys = []
+
+        for i in range(30, -1, -1):
+            day = now - timedelta(days=i)
+            error_keys.append(day.date().isoformat())
+            error_redis_keys.append(f"metrics:celery:daily:error:{day.date().isoformat()}")
+
+        values = await RedisClient.get_by_pipe(error_redis_keys)
+        if values['code'] != 1000:
+            error_values = [0] * 31
+        else:
+            error_values = values['data']
+
+        return error_keys, error_values
 
     def get_hourly_error_stats(today, log_dir) -> Tuple[int, Dict[str, int]]:
         """统计今日错误日志数及每小时分布

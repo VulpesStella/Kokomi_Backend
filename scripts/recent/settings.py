@@ -31,7 +31,8 @@ else:
 
 SSL_CA_BUNDLE = os.getenv("SSL_CA_BUNDLE")
 LOG_LEVEL = os.getenv("LOG_LEVEL")
-if os.getenv("SQLITE_DIR") == "":
+SQLITE_DIR = os.getenv("SQLITE_DIR")
+if not SQLITE_DIR:
     SQLITE_DIR = ROOT_DIR / 'data/db'
 else:
     SQLITE_DIR = Path(os.getenv("SQLITE_DIR"))

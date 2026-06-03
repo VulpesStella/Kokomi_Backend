@@ -18,12 +18,12 @@
 </div>
 
 {% if not uuid %}
-<div class="table-panel" style="text-align: center; padding: 60px 20px; color: var(--text-secondary); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+<div class="table-panel err-empty-panel" style="color: var(--text-secondary);">
     <p style="font-size: 16px; margin-bottom: 8px; font-weight: 500; color: var(--text-primary);">Enter a UUID to view exception details</p>
     <p style="font-size: 13px;">You can find UUIDs in the <a href="/dashboard/error-logs" style="color: #4f46e5; font-weight: 500; text-decoration: none;">Error Logs</a> page.</p>
 </div>
 {% elif detail is none %}
-<div class="table-panel" style="text-align: center; padding: 60px 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+<div class="table-panel err-empty-panel">
     <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 8px;">
         No detail log found for UUID:
     </p>
@@ -31,7 +31,7 @@
 </div>
 {% else %}
 <div class="chart-panel-full" style="padding: 0; overflow: hidden; background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-    <div class="chart-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color, #e2e8f0); display: flex; align-items: center; justify-content: space-between;">
+    <div class="chart-header err-detail-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color, #e2e8f0); display: flex; align-items: center; justify-content: space-between;">
         <span class="chart-title-text" style="font-weight: 600; font-size: 15px;">Exception Detail</span>
         <code style="font-size: 12px; color: #64748b; background: #f1f5f9; padding: 4px 8px; border-radius: 6px;">{{ uuid }}</code>
     </div>

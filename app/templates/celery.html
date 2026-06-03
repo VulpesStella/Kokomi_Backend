@@ -4,22 +4,9 @@
 {% block page_title %}Celery Task Consumer{% endblock %}
 
 {% block content %}
-<!-- Row 1 -->
+<!-- 指标卡片行 -->
 <div class="cards-row">
-    {% for card in cards_row1 %}
-    <div class="metric-card" style="border-top: 3px solid {{ card.color }};">
-        <div class="card-header">
-            <span class="card-icon">{{ card.icon }}</span>
-            <span class="card-title">{{ card.title }}</span>
-        </div>
-        <div class="card-value">{{ card.value }}</div>
-    </div>
-    {% endfor %}
-</div>
-
-<!-- Row 2 -->
-<div class="cards-row">
-    {% for card in cards_row2 %}
+    {% for card in cards %}
     <div class="metric-card" style="border-top: 3px solid {{ card.color }};">
         <div class="card-header">
             <span class="card-icon">{{ card.icon }}</span>
@@ -36,6 +23,14 @@
         <span class="chart-title-text">30-Day Celery Task Consumption</span>
     </div>
     <div id="celery-trend-chart" class="chart-container"></div>
+</div>
+
+<!-- 30日 Celery 失败任务趋势柱状图 -->
+<div class="chart-panel-full">
+    <div class="chart-header">
+        <span class="chart-title-text">30-Day Celery Failed Tasks</span>
+    </div>
+    <div id="celery-error-chart" class="chart-container"></div>
 </div>
 {% endblock %}
 
@@ -88,6 +83,52 @@
                     { offset: 1, color: 'rgba(45, 212, 191, 0.02)' }
                 ])
             }
+        }]
+    };
+    chart.setOption(option);
+    window.addEventListener('resize', function() { chart.resize(); });
+})();
+
+// 30-Day Celery Failed Tasks 柱状图
+(function() {
+    var errorData = JSON.parse('{{ celery_error_chart_json | safe }}');
+    var chart = echarts.init(document.getElementById('celery-error-chart'));
+    var option = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' }
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '10%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: errorData.labels,
+            axisLabel: {
+                rotate: 30,
+                fontSize: 11,
+                interval: 0
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: errorData.yAxisName || 'Failed Tasks'
+        },
+        series: [{
+            data: errorData.values,
+            type: 'bar',
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: '#fca5a5' },
+                    { offset: 1, color: '#ef4444' }
+                ]),
+                borderRadius: [4, 4, 0, 0]
+            },
+            barMaxWidth: 50,
+            animationDuration: 300
         }]
     };
     chart.setOption(option);

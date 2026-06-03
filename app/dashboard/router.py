@@ -93,6 +93,9 @@ async def error_logs(
             "total": data["total"],
             "total_pages": data["total_pages"],
             "today": today.isoformat(),
+            "api_errors": data["api_errors"],
+            "celery_errors": data["celery_errors"],
+            "other_errors": data["other_errors"],
         },
     )
 
