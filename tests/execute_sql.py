@@ -44,7 +44,7 @@ def main():
             """
             cursor.execute(sql)
         conn.commit()
-        logger.exception("Execute successfully")
+        logger.info("Execute successfully")
     except Exception:
         conn.rollback()
         logger.exception("Execute failed, rolled back")
