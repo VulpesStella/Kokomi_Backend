@@ -201,8 +201,9 @@ def main():
             redis_client = redis.Redis(**REDIS_CONFIG)
             # 设置当前服务状态，用于外部监控系统判断服务是否正常运行
             redis_client.set(f'status:{CLIENT_NAME}', 1, ex=int(REFRESH_INTERVAL*1.5))
-            REDIS_CONFIG['db'] += 1
-            lock_client = redis.Redis(**REDIS_CONFIG)
+            LOCK_REDIS_CONFIG = REDIS_CONFIG.copy()
+            LOCK_REDIS_CONFIG['db'] += 1
+            lock_client = redis.Redis(**LOCK_REDIS_CONFIG)
             mysql_connection = pymysql.connect(**MYSQL_CONFIG)
 
             worker(
