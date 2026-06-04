@@ -5,12 +5,23 @@ from app.response import JSONResponse
 
 class PlatformModel:
     @ExceptionLogger.handle_database_exception_async
+    async def read_table_meta():
+        """读取数据库元信息（T_table_meta 表）"""
+        async with MySQLManager.read_only_cursor() as cur:
+            sql = """
+                SELECT
+                    metric_key,
+                    metric_value
+                FROM T_table_meta;
+            """
+            await cur.execute(sql)
+            rows = await cur.fetchall()
+            data = {row[0]: row[1] for row in rows}
+            return JSONResponse.get_success_response(data)
+        
+    @ExceptionLogger.handle_database_exception_async
     async def read_database_meta():
-        """读取数据库元信息（T_database_meta 表）
-
-        Returns:
-            success → {code: 1000, data: {metric_key: metric_value, ...}}
-        """
+        """读取数据库元信息（T_database_meta 表）"""
         async with MySQLManager.read_only_cursor() as cur:
             sql = """
                 SELECT
@@ -103,8 +114,8 @@ class PlatformModel:
             return JSONResponse.get_success_response(data)
 
     @ExceptionLogger.handle_database_exception_async
-    async def read_user_activity_distribution():
-        """读取用户活跃度分布 (0-9) 从 V_user_activity_distribution
+    async def read_clan_activity_distribution():
+        """读取用户活跃度分布 (0-3) 从 T_clan_activity
 
         Returns:
             success → {code: 1000, data: [(activity_level, cnt), ...]}
@@ -112,10 +123,30 @@ class PlatformModel:
         async with MySQLManager.read_only_cursor() as cur:
             sql = """
                 SELECT
-                    activity_level,
-                    cnt
-                FROM V_user_activity_distribution
-                ORDER BY activity_level;
+                    clan_level,
+                    clan_count
+                FROM T_clan_activity
+                ORDER BY clan_level;
+            """
+            await cur.execute(sql)
+            rows = await cur.fetchall()
+            data = [(row[0], row[1]) for row in rows]
+            return JSONResponse.get_success_response(data)
+
+    @ExceptionLogger.handle_database_exception_async
+    async def read_user_activity_distribution():
+        """读取用户活跃度分布 (0-9) 从 T_user_activity
+
+        Returns:
+            success → {code: 1000, data: [(activity_level, cnt), ...]}
+        """
+        async with MySQLManager.read_only_cursor() as cur:
+            sql = """
+                SELECT
+                    user_level,
+                    user_count
+                FROM T_user_activity
+                ORDER BY user_level;
             """
             await cur.execute(sql)
             rows = await cur.fetchall()

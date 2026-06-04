@@ -1,3 +1,40 @@
+CREATE VIEW V_user_activity_distribution AS
+SELECT
+    lvl.activity_level,
+    COUNT(s.activity_level) AS cnt
+FROM (
+    SELECT 0 AS activity_level UNION ALL
+    SELECT 1 UNION ALL
+    SELECT 2 UNION ALL
+    SELECT 3 UNION ALL
+    SELECT 4 UNION ALL
+    SELECT 5 UNION ALL
+    SELECT 6 UNION ALL
+    SELECT 7 UNION ALL
+    SELECT 8 UNION ALL
+    SELECT 9
+) lvl
+LEFT JOIN T_user_stats s
+    ON lvl.activity_level = s.activity_level
+GROUP BY lvl.activity_level
+ORDER BY lvl.activity_level;
+
+CREATE VIEW V_clan_league_distribution AS
+SELECT
+    l.league,
+    COUNT(c.league) AS cnt
+FROM (
+    SELECT 1 AS league UNION ALL
+    SELECT 2 UNION ALL
+    SELECT 3 UNION ALL
+    SELECT 4 UNION ALL
+    SELECT 5
+) l
+LEFT JOIN T_clan_base c
+    ON l.league = c.league
+GROUP BY l.league
+ORDER BY l.league;
+
 CREATE VIEW _V_ship_name_zh AS
 SELECT
     b.ship_id,

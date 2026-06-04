@@ -31,13 +31,12 @@ async def record_http_metrics(
     error = None
 
     for i, response in enumerate(responses):
-        error, result = JSONResponse.extract_data_strict(response)
-        if error:
-            api_logger.warning(f"{result['message']} {urls[i]}")
+        if response.get('code') != 1000:
+            api_logger.warning(f"{response.get('message')} {urls[i]}")
             error_count += 1
-            error = result
+            error = response
         else:
-            results.append(result)
+            results.append(response.get('data', {}))
         
     today = TimeUtils.now_iso()[:10]
     await ServiceMetrics.http_incrby(today, len(urls))

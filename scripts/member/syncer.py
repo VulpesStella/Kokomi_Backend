@@ -60,9 +60,6 @@ class ClanUsersSyncer:
     @staticmethod
     def _get_activity_level(members: int | None) -> int:
         """根据工会返回活跃等级（0-3）"""
-        if not members or members <= 0:
-            return 0
-
         for threshold, level in CLAN_ACTIVITY_THRESHOLDS:
             if members <= threshold:
                 return level
@@ -307,11 +304,12 @@ class ClanUsersSyncer:
         """
         # 提取公会成员映射
         user_ids = list(users.keys())
-        activity_level = cls._get_activity_level(len(user_ids))
 
         if len(user_ids) == 0:
             cls._disable_empty_clan(cursor, clan_id)
             return 0
+        
+        activity_level = cls._get_activity_level(len(user_ids))
             
         old_data = cls._get_existing_members(cursor, clan_id)
         existing_ids = cls._get_existing_users(cursor, user_ids)

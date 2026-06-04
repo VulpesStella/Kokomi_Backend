@@ -27,7 +27,8 @@ from app.routers import (
     demo_router, 
     statistics_router,
     recent_router,
-    ranking_router
+    ranking_router,
+    miantenance_router
 )
 
 
@@ -94,12 +95,11 @@ async def lifespan(app: FastAPI):
         # task.cancel()  
 
 
-# # 初始化模板
-# templates = Jinja2Templates(directory="app/templates")
 # 加载APP
 app = FastAPI(lifespan=lifespan)
 # 挂载静态文件
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
 
 # 请求中间件
 @app.middleware("http")
@@ -140,7 +140,7 @@ async def root():
     """
     测试接口连通性
     """
-    return {'status':'ok','messgae':'Hello! Welcome to KokomiPlatform Interface.'}
+    return API_JSONResponse.API_1000_Success
 
 @app.get("/permission/", summary="测试当前token是否可用", tags=['Default'])
 async def testRootPermission(role: bool = Security(SecurityManager.get_current_role)):
@@ -157,11 +157,19 @@ app.include_router(
     prefix="/dashboard", 
     tags=['Dashboard']
 )
+
 app.include_router(
     demo_router, 
     prefix='/api',
     tags=['Demo Interface'],
     dependencies=[Security(SecurityManager.require_root)]
+)
+
+app.include_router(
+    miantenance_router, 
+    prefix='/api',
+    tags=['Miantenance Interface'],
+    dependencies=[Security(SecurityManager.require_user)]
 )
 
 app.include_router(

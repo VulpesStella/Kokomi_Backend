@@ -4,8 +4,9 @@ import httpx
 import traceback
 import aiomysql
 
-from .error_log import write_exception
+from app.schemas import GameAPIException
 from app.response import JSONResponse
+from .error_log import write_exception
 
 
 class ExceptionLogger:
@@ -35,26 +36,28 @@ class ExceptionLogger:
                 result = await func(*args, **kwargs)
                 return result
             except httpx.ConnectTimeout:
-                return JSONResponse.get_error_response(3101,'HttpxConnectTimeout')
+                return JSONResponse.get_api_failed_response('HttpxConnectTimeout')
             except httpx.ReadTimeout:
-                return JSONResponse.get_error_response(3102,'HttpxReadTimeout')
+                return JSONResponse.get_api_failed_response('HttpxReadTimeout')
             except httpx.TimeoutException:
-                return JSONResponse.get_error_response(3103,'HttpxTimeoutError')
+                return JSONResponse.get_api_failed_response('HttpxTimeoutError')
             except httpx.ConnectError:
-                return JSONResponse.get_error_response(3104,'HttpxConnectError')
+                return JSONResponse.get_api_failed_response('HttpxConnectError')
             except httpx.ReadError:
-                return JSONResponse.get_error_response(3105,'HttpxReadError')
+                return JSONResponse.get_api_failed_response('HttpxReadError')
             except httpx.HTTPStatusError:
-                return JSONResponse.get_error_response(3106, 'HttpxHTTPStatusError')
+                return JSONResponse.get_api_failed_response('HttpxHTTPStatusError')
+            except GameAPIException:
+                return JSONResponse.get_api_failed_response('GameAPIException')
             except Exception as e:
                 error_id = str(uuid.uuid4())
                 write_exception(
-                    error_type = "NetworkError",
+                    error_type = 'ProgramError',
                     error_name = type(e).__name__,
                     error_info = traceback.format_exc(),
                     error_id=error_id
                 )
-                return JSONResponse.get_error_response(3100,'NetworkError',error_id)
+                return JSONResponse.get_error_response(3000,'ProgramError',error_id)
         return wrapper
         
     @staticmethod

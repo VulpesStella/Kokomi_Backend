@@ -1,3 +1,4 @@
+from .exception import GameAPIException
 from .req_params import (
     Language, RecentLevel, ShipTier, ShipType, ShipNation, PVPField
 )
@@ -10,6 +11,7 @@ from .typed_dict import (
 )
 
 __all__ = [
+    'GameAPIException',
     'Language',
     'ShipFilter',
     'ShipTier', 

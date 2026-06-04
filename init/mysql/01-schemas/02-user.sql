@@ -170,6 +170,20 @@ CREATE TABLE IF NOT EXISTS T_user_config (
     UNIQUE INDEX idx_level_and_aid (user_level, account_id)
 );
 
+CREATE TABLE IF NOT EXISTS T_user_activity (
+    id               INT          AUTO_INCREMENT,
+
+    user_level       TINYINT      NOT NULL,        -- 用户活跃等级
+    user_count       INT          DEFAULT 0,       -- 用户数量
+
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+
+    UNIQUE INDEX idx_level (user_level)
+);
+
 
 -- 后续新增关联表的初始化sql语句，user/clan也类似
 -- INSERT INTO new_table (account_id)

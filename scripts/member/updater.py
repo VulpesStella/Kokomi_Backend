@@ -30,6 +30,9 @@ class RefreshPlanStats:
         # 刷新状态统计：[overdue, within_24h, within_week, within_month, within_quarter]
         self.refresh_stats = [0] * 5
 
+        # 工会 activity_level 分布
+        self.activity_distribution = [0] * 4
+
         # 按小时分桶（0~23），逾期也放入第 0 小时
         self.buckets = [[] for _ in range(24)]
 
@@ -43,11 +46,12 @@ class RefreshPlanStats:
         """处理一批原始行，返回本批中逾期且需要尝试加锁的 ID 列表
 
         rows 中每条记录格式为:
-            (clan_id, is_enabled, next_refresh_at_unix, updated_at_unix)
+            (clan_id, is_enabled, activity_level, next_refresh_at_unix, updated_at_unix)
         """
         due_ids = []
 
-        for clan_id, is_enabled, next_refresh_at, updated_at in rows:
+        for clan_id, is_enabled, activity_level, next_refresh_at, updated_at in rows:
+            self.activity_distribution[activity_level] += 1
             if not is_enabled:
                 continue
 
@@ -135,13 +139,16 @@ class RefreshPlanStats:
             - refresh_stats
             - hourly_counts
             - all_migrations
+            - activity_distribution
         """
         hourly_counts = [len(b) for b in self.buckets]
+        activity_distribution = [[cnt, i] for i, cnt in enumerate(self.activity_distribution)]
         return {
             'planned_count': self.planned_count,
             'refresh_stats': self.refresh_stats,
             'hourly_counts': hourly_counts,
             'all_migrations': self.all_migrations,
+            'activity_distribution': activity_distribution
         }
 
     def get_update_ids(self) -> list:

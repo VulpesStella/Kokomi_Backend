@@ -31,18 +31,54 @@ DB_CONFIG = {
     "database": os.getenv("MYSQL_DATABASE"),
     'autocommit': False
 }
+
+sql = """
+CREATE TABLE T_user_activity (
+    id               INT          AUTO_INCREMENT,
+
+    user_level       TINYINT      NOT NULL,        -- 用户活跃等级
+    user_count       INT          DEFAULT 0,       -- 用户活跃等级
+
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+
+    UNIQUE INDEX idx_level (user_level)
+);
+CREATE TABLE T_clan_activity (
+    id               INT          AUTO_INCREMENT,
+
+    clan_level       TINYINT      NOT NULL,        -- 工会活跃等级
+    clan_count       INT          DEFAULT 0,       -- 工会数量
+
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+
+    UNIQUE INDEX idx_level (clan_level)
+);
+INSERT INTO T_user_activity
+    (user_level)
+VALUES
+    (0),(1),(2),(3),(4),(5),(6),(7),(8),(9);
+INSERT INTO T_clan_activity
+    (clan_level)
+VALUES
+    (0),(1),(2),(3);
+DROP VIEW V_user_activity_distribution;
+DROP VIEW V_clan_league_distribution;
+"""
+
 def main():
     conn = pymysql.connect(**DB_CONFIG)
     try:
+        statements = [s.strip() for s in sql.split(';') if s.strip()]
         with conn.cursor() as cursor:
-            sql = """
-                INSERT INTO T_table_meta 
-                    (metric_key, table_name) 
-                VALUES
-                    ('recent_lv1', 'user_config'),
-                    ('recent_lv2', 'user_config');
-            """
-            cursor.execute(sql)
+            for stmt in statements:
+                cursor.execute(stmt)
+
         conn.commit()
         logger.info("Execute successfully")
     except Exception:

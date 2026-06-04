@@ -3,6 +3,7 @@ import httpx
 from app.core import EnvConfig, api_logger
 from app.response import JSONResponse
 from app.loggers import ExceptionLogger
+from app.schemas import GameAPIException
 
 
 TIMEOUT = httpx.Timeout(
@@ -38,7 +39,9 @@ class HttpClient:
         requset_code = res.status_code
         if requset_code == 404:
             # 用户不存在或者账号删除的情况
-            return JSONResponse.API_1000_Success
+            return JSONResponse.get_success_response({})
+        elif requset_code == 500:
+            raise GameAPIException
         elif requset_code == 200:
             # 正常返回值的处理
             requset_result = res.json()
@@ -46,7 +49,7 @@ class HttpClient:
                 data = requset_result['data']
                 return JSONResponse.get_success_response(data)
             else:
-                return JSONResponse.API_2000_APIFailed
+                raise GameAPIException
         else:
             res.raise_for_status()  # 其他状态码
 
@@ -58,6 +61,8 @@ class HttpClient:
         if requset_code in [404, 503]:
             # 用户不存在或者账号删除的情况
             return JSONResponse.API_1000_Success
+        elif requset_code == 500:
+            raise GameAPIException
         elif requset_code == 200:
             # 正常返回值的处理
             requset_result = res.json()
@@ -75,6 +80,8 @@ class HttpClient:
         if requset_code == 200:
             data = requset_result.get('search_autocomplete_result', [])
             return JSONResponse.get_success_response(data)
+        elif requset_code == 500:
+            raise GameAPIException
         else:
             res.raise_for_status()  # 其他状态码
 
@@ -86,5 +93,7 @@ class HttpClient:
         requset_result = res.json()
         if requset_code == 200:
             return JSONResponse.get_success_response(requset_result)
+        elif requset_code == 500:
+            raise GameAPIException
         else:
             res.raise_for_status()  # 其他状态码

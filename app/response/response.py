@@ -23,6 +23,14 @@ class ErrorInfo(TypedDict):
     trace_id: str      # 链路追踪 ID，便于日志排查
     platform: str      # 当前服务所在的平台标识
 
+class APIFiledInfo(TypedDict):
+    """错误追踪信息
+
+    用于在错误响应中携带问题定位所需的关键信息。
+    """
+    name: str        # 异常类型
+    region: str      # 地区
+
 class SuccessResponseDict(TypedDict):
     """成功响应结构
 
@@ -44,6 +52,13 @@ class ErrorResponseDict(TypedDict):
     code: int
     message: str
     error: ErrorInfo
+
+class APIFailedResponseDict(TypedDict):
+    """业务错误响应结构"""
+    status: Literal['ok']
+    code: int
+    message: str
+    data: APIFiledInfo
 
 class InfoResponseDict(TypedDict):
     """信息提示响应结构
@@ -178,15 +193,10 @@ class JSONResponse:
         }
     
     @staticmethod
-    def get_error_response(
-        code: int,
-        message: str,
-        error_id: Optional[str] = None
-    ) -> ErrorResponseDict:
-        """构造错误响应
-
-        返回指定错误码和错误信息的失败响应，自动生成 trace_id
-        并注入当前平台标识，便于后期问题定位
+    def get_api_failed_response(
+        error_name: str
+    ) -> APIFailedResponseDict:
+        """构造请求API接口错误响应
 
         Args:
             code: 业务错误码，格式遵循类级别定义的分段规则
@@ -194,17 +204,15 @@ class JSONResponse:
             error_id: 链路追踪 ID。未提供时自动生成 UUID
 
         Returns:
-            符合 ErrorResponseDict 结构的字典
+            符合 APIFailedResponseDict 结构的字典
         """
-        if error_id is None:
-            error_id = str(uuid.uuid4())
         return {
-            'status': ResponseStatus.ERROR,
-            'code': code,
-            'message': message,
-            'error': {
-                'trace_id': error_id,
-                'platform': EnvConfig.PLATFORM
+            'status': ResponseStatus.SUCCESS,
+            'code': 2000,
+            'message': 'APIFailed',
+            'data': {
+                'name': error_name,
+                'region': EnvConfig.REGION
             }
         }
 

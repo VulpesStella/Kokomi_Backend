@@ -83,3 +83,17 @@ CREATE TABLE IF NOT EXISTS T_clan_action (
     INDEX idx_cid (clan_id),
     INDEX idx_aid (account_id)
 );
+
+CREATE TABLE IF NOT EXISTS T_clan_activity (
+    id               INT          AUTO_INCREMENT,
+
+    clan_level       TINYINT      NOT NULL,        -- 工会活跃等级
+    clan_count       INT          DEFAULT 0,       -- 工会数量
+
+    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP    DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+
+    UNIQUE INDEX idx_level (clan_level)
+);

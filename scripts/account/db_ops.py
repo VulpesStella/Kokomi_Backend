@@ -17,7 +17,8 @@ def read_table_batch(cursor: Cursor, start_id: int, end_id: int) -> tuple:
     sql = f"""
         SELECT 
             account_id, 
-            is_enabled,
+            is_enabled, 
+            activity_level, 
             UNIX_TIMESTAMP(next_refresh_at), 
             UNIX_TIMESTAMP(updated_at) 
         FROM T_user_stats
@@ -43,6 +44,12 @@ def write_stats_to_db(cursor, stats_data: dict) -> None:
             "UPDATE T_refresh_stats SET user_count = %s, updated_at = NOW() WHERE status = %s",
             [count, status]
         )
+
+    # 更新用户 activity_distribution
+    cursor.executemany(
+        "UPDATE T_user_activity SET user_count = %s, updated_at = NOW() WHERE user_level = %s",
+        stats_data['activity_distribution']
+    )
 
     # 更新每小时的计划人数（planned_hour 1~24）
     for hour_index, count in enumerate(stats_data['hourly_counts']):
