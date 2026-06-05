@@ -34,6 +34,11 @@ DB_CONFIG = {
 DATABASE = os.getenv("MYSQL_DATABASE")
 
 def main():
+    confirm = input(f"Are you sure you want to rebuild database '{DATABASE}'? (Y/N): ").strip().upper()
+    if confirm != 'Y':
+        logger.info("Operation cancelled by user")
+        return
+    
     conn = pymysql.connect(
         **DB_CONFIG,
         client_flag=CLIENT.MULTI_STATEMENTS
