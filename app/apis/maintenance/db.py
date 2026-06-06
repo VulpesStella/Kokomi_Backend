@@ -5,6 +5,12 @@ from app.response import JSONResponse
 class MaintenanceAPI:
     @ExceptionLogger.handle_program_exception_async
     async def get_database_meta():
+        error, game_version = JSONResponse.extract_data_strict(
+            response=await PlatformModel.read_latest_version()
+        )
+        if error:
+            return game_version
+        
         error, table_meta = JSONResponse.extract_data_strict(
             response=await PlatformModel.read_table_meta()
         )
@@ -38,6 +44,7 @@ class MaintenanceAPI:
             clan_activity_distribution[str(clan[0])] = clan[1]
         
         result = {
+            'version': game_version,
             'user': {
                 'total': table_meta.get('base_users', 0),
                 'recent_lv1': table_meta.get('recent_lv1', 0),
