@@ -5,12 +5,12 @@ import os
 import asyncio
 import threading
 from fastapi import FastAPI, Request, Security
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from starlette.responses import StreamingResponse
 
-from app.response import JSONResponse as API_JSONResponse
+from app.response import JSONResponse
 from app.core import EnvConfig, api_logger
 from app.utils import TimeUtils
 from app.loggers import CSVWriter, log_queue
@@ -140,11 +140,11 @@ async def root():
     """
     测试接口连通性
     """
-    return API_JSONResponse.API_1000_Success
+    return JSONResponse.API_1000_Success
 
 @app.get("/permission/", summary="测试当前token是否可用", tags=['Default'])
 async def testRootPermission(role: bool = Security(SecurityManager.get_current_role)):
-    return API_JSONResponse.get_success_response(role)
+    return JSONResponse.get_success_response(role)
 
 @app.get("/dashboard")
 async def redirect():

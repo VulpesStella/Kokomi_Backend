@@ -207,8 +207,8 @@ def main():
                         conn.rollback()
                         tqdm.write(f'Ship {ship_id} refresh failed: {type(e).__name__}')
                     pbar.update()
-                # 重构 Redis 的缓存
-                refresh_leaderboard_redis(cursor, redis_client, ship_id)
+                    # 重构 Redis 的缓存
+                    refresh_leaderboard_redis(cursor, redis_client, ship_id)
             
             # 记录 leaderboard_rows 数据
             try:
