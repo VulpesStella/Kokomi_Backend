@@ -80,9 +80,10 @@ class RatingUtils:
     
     def get_metric_level(metric_id: int, value: float) -> int:
         thresholds_map = {
-            0: [40, 45, 50, 52.5, 55, 60, 67],         # win_rate 等级阈值
-            1: [0.8, 0.95, 1.0, 1.1, 1.2, 1.4, 1.7],   # avg_damage 等级阈值
-            2: [0.2, 0.3, 0.6, 1.0, 1.3, 1.5, 2.0]     # avg_frags 等级阈值
+            0: [40, 45, 50, 52.5, 55, 60, 67],           # win_rate 等级阈值
+            1: [0.8, 0.95, 1.0, 1.1, 1.2, 1.4, 1.7],     # avg_damage 等级阈值
+            2: [0.2, 0.3, 0.6, 1.0, 1.3, 1.5, 2.0],      # avg_frags 等级阈值
+            3: [750, 1100, 1350, 1550, 1750, 2100, 2450] # rating 等级阈值
         }
 
         thresholds = thresholds_map.get(metric_id)

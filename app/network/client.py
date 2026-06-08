@@ -39,7 +39,7 @@ class HttpClient:
         requset_code = res.status_code
         if requset_code == 404:
             # 用户不存在或者账号删除的情况
-            return JSONResponse.get_success_response({})
+            return JSONResponse.success({})
         elif requset_code == 500:
             raise GameAPIException
         elif requset_code == 200:
@@ -47,7 +47,7 @@ class HttpClient:
             requset_result = res.json()
             if requset_result.get('status') == 'ok':
                 data = requset_result['data']
-                return JSONResponse.get_success_response(data)
+                return JSONResponse.success(data)
             else:
                 raise GameAPIException
         else:
@@ -66,7 +66,7 @@ class HttpClient:
         elif requset_code == 200:
             # 正常返回值的处理
             requset_result = res.json()
-            return JSONResponse.get_success_response(requset_result)
+            return JSONResponse.success(requset_result)
         else:
             res.raise_for_status()  # 其他状态码
 
@@ -79,7 +79,7 @@ class HttpClient:
         requset_result = res.json()
         if requset_code == 200:
             data = requset_result.get('search_autocomplete_result', [])
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.success(data)
         elif requset_code == 500:
             raise GameAPIException
         else:
@@ -92,7 +92,7 @@ class HttpClient:
         requset_code = res.status_code
         requset_result = res.json()
         if requset_code == 200:
-            return JSONResponse.get_success_response(requset_result)
+            return JSONResponse.success(requset_result)
         elif requset_code == 500:
             raise GameAPIException
         else:

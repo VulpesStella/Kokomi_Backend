@@ -1,13 +1,35 @@
+from typing import Dict, Any
+from dataclasses import dataclass, field
+
 from app.core import EnvConfig
 from app.response import JSONResponse
 from app.loggers import ExceptionLogger
-from app.models import PlayerModel, UserStatsSyncer
+from app.models import UserStatsSyncer
 from app.network import ExternalAPI
+
+
+@dataclass
+class BasicResponse:
+    """PVE响应数据结构"""
+    mode: str = ''
+    type: str = ''
+    basic: Dict[str, Any] = field(default_factory=dict)
+    statistics: Dict[str, Any] = field(default_factory=dict)
+    credits: int = 0
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'mode': self.mode,
+            'type': self.type,
+            'basic': self.basic,
+            'statistics': self.statistics,
+            'credits': self.credits
+        }
 
 class BasicAPI:
     @ExceptionLogger.handle_program_exception_async
     async def get_user_basic(account_id: int, access_token: str = None):
-        error, response = JSONResponse.extract_data_strict(
+        error, response = JSONResponse.extract_data(
             response=await ExternalAPI.get_user_basic(account_id, access_token)
         )
         if error:
@@ -17,11 +39,11 @@ class BasicAPI:
 
         # 用户不存在(404 not found)
         if user_info is None:
-            return JSONResponse.API_2011_UserNotExist
+            return JSONResponse.API_UserNotExist
         
         # 用户隐藏战绩
         if 'hidden_profile' in user_info:
-            return JSONResponse.API_2015_UserHiddenProfile
+            return JSONResponse.API_UserHiddenProfile
         
         # 用户没有战绩
         if (
@@ -29,11 +51,11 @@ class BasicAPI:
             'statistics' not in user_info or 
             'basic' not in user_info['statistics']
         ):
-            return JSONResponse.API_2013_UserDataIsNone
+            return JSONResponse.API_UserDataIsNone
         
         if not EnvConfig.DEV_MODE:
             # 非开发模式下，刷新用户的数据库缓存数据
-            error, refresh = JSONResponse.extract_data_strict(
+            error, refresh = JSONResponse.extract_data(
                 response=await UserStatsSyncer.refresh(account_id, response)
             )
             if error:
@@ -48,7 +70,7 @@ class BasicAPI:
         
         # 用户没有战绩
         if leveling_points == 0:
-            return JSONResponse.API_2013_UserDataIsNone
+            return JSONResponse.API_UserDataIsNone
         
         register_time = int(user_info.get('created_at', 0))
         
@@ -62,4 +84,4 @@ class BasicAPI:
             'insignias': user_info.get('dog_tag')
         }
 
-        return JSONResponse.get_success_response(user_basic)
+        return JSONResponse.success(user_basic)

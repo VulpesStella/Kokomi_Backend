@@ -1,10 +1,11 @@
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
+from app.utils import RatingUtils, GameUtils
 
 class RankingModel:
     @ExceptionLogger.handle_database_exception_async
-    async def get_ship_leaderboard(ship_id: int, account_ids: list[str]):
+    async def get_ship_leaderboard(ship_id: int, account_ids: list[str], dogtag: bool = False):
         """根据用户ID列表，从数据库中批量读取排行榜数据"""
         async with MySQLManager.read_only_cursor() as cur:
             placeholders = ','.join(['%s'] * len(account_ids))
@@ -15,29 +16,10 @@ class RankingModel:
                     u.clan_tag,
                     u.league,
                     u.username,
+                    u.insignias,
                     s.battles,
                     s.rating,
-                    CASE
-                        WHEN s.rating < 750 THEN 1
-                        WHEN s.rating < 1100 THEN 2
-                        WHEN s.rating < 1350 THEN 3
-                        WHEN s.rating < 1550 THEN 4
-                        WHEN s.rating < 1750 THEN 5
-                        WHEN s.rating < 2100 THEN 6
-                        WHEN s.rating < 2450 THEN 7
-                        ELSE 8
-                    END AS rating_level,
                     ROUND(s.win_rate, 2) AS win_rate,
-                    CASE
-                        WHEN s.win_rate < 40 THEN 1
-                        WHEN s.win_rate < 45 THEN 2
-                        WHEN s.win_rate < 50 THEN 3
-                        WHEN s.win_rate < 52.5 THEN 4
-                        WHEN s.win_rate < 55 THEN 5
-                        WHEN s.win_rate < 60 THEN 6
-                        WHEN s.win_rate < 67 THEN 7
-                        ELSE 8
-                    END AS win_rate_level,
                     s.avg_damage,
                     s.avg_damage_level AS avg_damage_level,
                     s.avg_frags,
@@ -62,22 +44,25 @@ class RankingModel:
                     'clan_tag': row[2],
                     'league': row[3],
                     'username': row[4],
-                    'battles': row[5],
-                    'rating': row[6],
-                    'rating_level': row[7],
+                    'dogtag': None,
+                    'battles': row[6],
+                    'rating': row[7],
+                    'rating_level': RatingUtils.get_metric_level(3, row[7]),
                     'win_rate': row[8],
-                    'win_rate_level': row[9],
-                    'avg_damage': row[10],
-                    'avg_damage_level': row[11],
-                    'avg_frags': row[12],
-                    'avg_frags_level': row[13],
-                    'avg_exp': row[14],
-                    'hit_ratio': row[15],
-                    'max_exp': row[16],
-                    'max_damage': row[17]
+                    'win_rate_level': RatingUtils.get_metric_level(0, row[8]),
+                    'avg_damage': row[9],
+                    'avg_damage_level': row[10],
+                    'avg_frags': row[11],
+                    'avg_frags_level': row[12],
+                    'avg_exp': row[13],
+                    'hit_ratio': row[14],
+                    'max_exp': row[15],
+                    'max_damage': row[16]
                 }
+                if dogtag:
+                    result[account_id]['dogtag'] = GameUtils.get_dog_tag(row[5])
             
-            return JSONResponse.get_success_response(result)
+            return JSONResponse.success(result)
 
     @ExceptionLogger.handle_database_exception_async
     async def get_clan_leaderboard(clan_ids: list[str]):
@@ -134,4 +119,4 @@ class RankingModel:
                     'last_battle_at': row[12]
                 }
             
-            return JSONResponse.get_success_response(result)
+            return JSONResponse.success(result)

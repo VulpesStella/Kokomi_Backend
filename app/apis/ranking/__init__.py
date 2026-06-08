@@ -1,10 +1,11 @@
 from .user import UserRankingAPI
-from .ship import ShipRankingAPI
 from .clan import ClanRankingAPI
+from .ship import ShipRankingAPI, ShipRankingExternalAPI
 
 
 __all__ = [
     'UserRankingAPI',
+    'ClanRankingAPI',
     'ShipRankingAPI',
-    'ClanRankingAPI'
+    'ShipRankingExternalAPI'
 ]

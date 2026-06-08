@@ -27,7 +27,7 @@ class DemoClanModel:
             await cur.execute(sql, [clan_id])
             row = await cur.fetchone()
             if not row:
-                return JSONResponse.API_2017_ClanNotInDB
+                return JSONResponse.API_ClanNotInDB
             data['clan_tag'] = row[0]
             data['league'] = row[1]
 
@@ -45,7 +45,7 @@ class DemoClanModel:
             data['member_count'] = row[1]
             data['next_refresh_at'] = TimeUtils.fromtimestamp(row[2])
 
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.success(data)
         
     @ExceptionLogger.handle_database_exception_async
     async def set_clan_status(clan_id: int, status: int):
@@ -57,7 +57,7 @@ class DemoClanModel:
             """
             await cur.execute(sql, [status, clan_id])
             data = cur.rowcount
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.success(data)
 
 class ClanModel:
     @ExceptionLogger.handle_database_exception_async
@@ -68,4 +68,4 @@ class ClanModel:
             """
             await cur.execute(sql)
             data = await cur.fetchone()
-            return JSONResponse.get_success_response(data[0] if data else 0)
+            return JSONResponse.success(data[0] if data else 0)

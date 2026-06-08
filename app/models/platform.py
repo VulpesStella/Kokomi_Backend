@@ -17,7 +17,7 @@ class PlatformModel:
             await cur.execute(sql)
             rows = await cur.fetchall()
             data = {row[0]: row[1] for row in rows}
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.success(data)
         
     @ExceptionLogger.handle_database_exception_async
     async def read_database_meta():
@@ -32,7 +32,7 @@ class PlatformModel:
             await cur.execute(sql)
             rows = await cur.fetchall()
             data = {row[0]: row[1] for row in rows}
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.success(data)
         
     @ExceptionLogger.handle_database_exception_async
     async def read_latest_version():
@@ -47,7 +47,7 @@ class PlatformModel:
             await cur.execute(sql)
             data = await cur.fetchone()
 
-            return JSONResponse.get_success_response(data[0] if data else None)
+            return JSONResponse.success(data[0] if data else None)
         
     @ExceptionLogger.handle_database_exception_async
     async def read_table_meta():
@@ -63,7 +63,7 @@ class PlatformModel:
             data = {}
             for row in rows:
                 data[row[0]] = row[1]
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.success(data)
 
     @ExceptionLogger.handle_database_exception_async
     async def read_archive_base_count():
@@ -83,7 +83,7 @@ class PlatformModel:
             await cur.execute(sql)
             rows = await cur.fetchall()
             data = [(row[0].isoformat() if hasattr(row[0], 'isoformat') else str(row[0]), row[1]) for row in rows]
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.success(data)
 
     @ExceptionLogger.handle_database_exception_async
     async def read_user_refresh_stats():
@@ -111,7 +111,7 @@ class PlatformModel:
             await cur.execute(sql)
             rows = await cur.fetchall()
             data = [(row[0], row[1], row[2]) for row in rows]
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.success(data)
 
     @ExceptionLogger.handle_database_exception_async
     async def read_clan_activity_distribution():
@@ -131,7 +131,7 @@ class PlatformModel:
             await cur.execute(sql)
             rows = await cur.fetchall()
             data = [(row[0], row[1]) for row in rows]
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.success(data)
 
     @ExceptionLogger.handle_database_exception_async
     async def read_user_activity_distribution():
@@ -151,7 +151,7 @@ class PlatformModel:
             await cur.execute(sql)
             rows = await cur.fetchall()
             data = [(row[0], row[1]) for row in rows]
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.success(data)
 
     @ExceptionLogger.handle_database_exception_async
     async def read_user_refresh_hourly_stats():
@@ -172,7 +172,7 @@ class PlatformModel:
             await cur.execute(sql)
             rows = await cur.fetchall()
             data = [(row[0], row[1], row[2]) for row in rows]
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.success(data)
 
     @ExceptionLogger.handle_database_exception_async
     async def reset_tracking_time(tracking_key: str, tracking_type: str):

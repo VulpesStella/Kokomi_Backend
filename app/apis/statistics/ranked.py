@@ -1,15 +1,36 @@
+from typing import List, Dict, Any
+from dataclasses import dataclass, field
+
 from app.core import EnvConfig
+from app.utils import DevUtils, RatingUtils
 from app.response import JSONResponse
 from app.loggers import ExceptionLogger
 from app.network import ExternalAPI
-from app.models import PlayerModel, ShipModel, UserStatsSyncer
-from app.utils import RatingUtils, DevUtils
 from app.middlewares import RedisClient
+from app.models import PlayerModel, ShipModel, UserStatsSyncer
 
-from .basic import BasicAPI
+from .basic import BasicAPI, BasicResponse
 from .process import format_overall, accumulate_overall
 from .schema import OriginalData, ProcessedData
 
+
+@dataclass
+class RankedStatistics:
+    """PVE统计数据"""
+    overall: Dict[str, Any] = field(default_factory=dict)
+    battle_type: Dict[str, Any] = field(default_factory=dict)
+    ship_type: Dict[str, Any] = field(default_factory=dict)
+    record: Dict[str, Any] = field(default_factory=dict)
+    chart: List[List[int]] = field(default_factory=list)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'overall': self.overall,
+            'battle_type': self.battle_type,
+            'ship_type': self.ship_type,
+            'record': self.record,
+            'chart': self.chart
+        }
 
 class RankedAPI:
     @ExceptionLogger.handle_program_exception_async
@@ -21,23 +42,19 @@ class RankedAPI:
         credits_spent = 1
 
         if EnvConfig.DEV_MODE:
-            # 跳过读取 token 步骤
+            # 跳过读取数据库步骤，后续直接请求 API 获取数据
             access_token = None
+            user = None
         else:
             # 从 Redis 中获取用户的 access_token
             redis_key = f"token:ac:{account_id}"
             response = await RedisClient.get_token(redis_key)
-            error, access_token = JSONResponse.extract_data_strict(response)
+            error, access_token = JSONResponse.extract_data(response)
             if error:
                 return access_token
-        
-        # 读取用户的基本信息（name, clan等）
-        if EnvConfig.DEV_MODE:
-            # 跳过读取数据库步骤，后续直接请求 API 获取数据
-            user = None
-        else:
+            
             # 先读数据库，读不到数据再请求
-            error, user = JSONResponse.extract_data_strict(
+            error, user = JSONResponse.extract_data(
                 response=await PlayerModel.get_user_name_and_clan(account_id)
             )
             if error:
@@ -47,7 +64,7 @@ class RankedAPI:
         # 1. 没有读取到用户的缓存数据
         # 2. 用户的缓存数据表示该用户可能隐藏战绩或无数据
         if user is None or not user['stats']:
-            error, user_basic = JSONResponse.extract_data_strict(
+            error, user_basic = JSONResponse.extract_data(
                 response=await BasicAPI.get_user_basic(account_id, access_token)
             )
             if error:
@@ -58,7 +75,7 @@ class RankedAPI:
             user_basic = user['basic']
         
         # 读取用户的排位信息
-        error, response = JSONResponse.extract_data_strict(
+        error, response = JSONResponse.extract_data(
             response=await ExternalAPI.get_user_ranked(account_id, access_token)
         )
         if error:
@@ -71,12 +88,12 @@ class RankedAPI:
         if 'hidden_profile' in response.get(str(account_id)):
             if not EnvConfig.DEV_MODE:
                 # 将用户的缓存数据刷新为隐藏战绩
-                error, refresh = JSONResponse.extract_data_strict(
+                error, refresh = JSONResponse.extract_data(
                     response=await UserStatsSyncer.refresh(account_id, {str(account_id): {'hidden_profile': True}})
                 )
                 if error:
                     return refresh
-            return JSONResponse.API_2015_UserHiddenProfile
+            return JSONResponse.API_UserHiddenProfile
     
         if EnvConfig.DEV_MODE:
             # 从本地的初始化文件中读取船只数据
@@ -84,12 +101,12 @@ class RankedAPI:
             ship_stats = DevUtils.read_ship_stats()
         else:
             # 从数据库中读取船只数据
-            error, ship_info = JSONResponse.extract_data_strict(
+            error, ship_info = JSONResponse.extract_data(
                 response=await ShipModel.get_ship_base()
             )
             if error:
                 return ship_info
-            error, ship_stats = JSONResponse.extract_data_strict(
+            error, ship_stats = JSONResponse.extract_data(
                 response=await ShipModel.get_ship_stats()
             )
             if error:
@@ -119,6 +136,10 @@ class RankedAPI:
             'max_scouting_damage': 0,
             'max_total_agro': 0
         }
+        original_ship_mode_data = {
+            'solo': ProcessedData.copy(),
+            'div': ProcessedData.copy()
+        }
         response = response.get(str(account_id)).get('statistics', {})
 
         for ship_id, ship_data in response.items():
@@ -143,7 +164,7 @@ class RankedAPI:
                     record[key] = field_data[key]
         
         if original_data == {}:
-            return JSONResponse.API_2022_NoStatisticsData
+            return JSONResponse.API_NoStatisticsData
 
         ShipTypeIndex = {
             'AirCarrier': 0,
@@ -176,32 +197,37 @@ class RankedAPI:
             accumulate_overall(original_overall_data, ship_data)
             accumulate_overall(original_ship_type_data[ship_type], ship_data)
 
-        # 将累加后的数据进行数据格式化
-        statistics['overall'] = format_overall(original_overall_data, True)
-        statistics['ship_type'] = {
-            'AirCarrier': format_overall(original_ship_type_data['AirCarrier']),
-            'Battleship': format_overall(original_ship_type_data['Battleship']),
-            'Cruiser': format_overall(original_ship_type_data['Cruiser']),
-            'Destroyer': format_overall(original_ship_type_data['Destroyer']),
-            'Submarine': format_overall(original_ship_type_data['Submarine'])
-        }
-        statistics['record'] = {
-            'damage': '{:,}'.format(record['max_damage_dealt']).replace(',', ' '),
-            'exp': '{:,}'.format(record['max_exp']).replace(',', ' '),
-            'frags': '{:,}'.format(record['max_frags']).replace(',', ' '),
-            'planes': '{:,}'.format(record['max_planes_killed']).replace(',', ' '),
-            'scout': '{:,}'.format(record['max_scouting_damage']).replace(',', ' '),
-            'potent': '{:,}'.format(record['max_total_agro']).replace(',', ' ')
-        }
-        statistics['chart'] = original_chart_data
+        statistics = RankedStatistics(
+            overall=format_overall(original_overall_data, True),
+            battle_type={
+                'solo': format_overall(original_overall_data),
+                'div': format_overall(ProcessedData.copy())
+            },
+            ship_type={
+                'AirCarrier': format_overall(original_ship_type_data['AirCarrier']),
+                'Battleship': format_overall(original_ship_type_data['Battleship']),
+                'Cruiser': format_overall(original_ship_type_data['Cruiser']),
+                'Destroyer': format_overall(original_ship_type_data['Destroyer']),
+                'Submarine': format_overall(original_ship_type_data['Submarine'])
+            },
+            record={
+                'damage': '{:,}'.format(record['max_damage_dealt']).replace(',', ' '),
+                'exp': '{:,}'.format(record['max_exp']).replace(',', ' '),
+                'frags': '{:,}'.format(record['max_frags']).replace(',', ' '),
+                'planes': '{:,}'.format(record['max_planes_killed']).replace(',', ' '),
+                'scout': '{:,}'.format(record['max_scouting_damage']).replace(',', ' '),
+                'potent': '{:,}'.format(record['max_total_agro']).replace(',', ' ')
+            },
+            chart=original_chart_data
+        )
 
-    
-        result = {
-            'mode': 'Ranked',
-            'type': 'Overall',
-            'basic': user_basic,
-            'statistics': statistics,
-            'credits_spent': credits_spent
-        }
-        return JSONResponse.get_success_response(result)
+        data = BasicResponse(
+            mode='Ranked',
+            type='Overall',
+            basic=user_basic,
+            statistics=statistics.to_dict(),
+            credits=credits_spent
+        )
+
+        return JSONResponse.success(data.to_dict())
     

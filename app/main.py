@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import asyncio
 import threading
 from fastapi import FastAPI, Request, Security
 from fastapi.responses import RedirectResponse
@@ -15,11 +14,11 @@ from app.core import EnvConfig, api_logger
 from app.utils import TimeUtils
 from app.loggers import CSVWriter, log_queue
 from app.database import MySQLManager
-from app.health import HealthManager, ServiceMetrics
 from app.network import HttpClient
 from app.middlewares import (
     RedisConnection,
-    SecurityManager
+    SecurityManager, 
+    ServiceMetrics
 )
 from app.dashboard import dashboard_router
 from app.routers import (
@@ -31,14 +30,6 @@ from app.routers import (
     miantenance_router
 )
 
-
-# 应用程序的定期刷新任务
-async def schedule():
-    while True:
-        # 检查各服务状态
-        # await HealthManager.refresh()
-        # 检查
-        await asyncio.sleep(60)  # 每 60 秒执行一次任务
 
 # 后台日志写入线程，用于将日志队列中的请求信息写入CSV文件
 def csv_writer_thread():
@@ -91,8 +82,6 @@ async def lifespan(app: FastAPI):
         # 发送退出信号，等待剩下数据写入并退出线程
         log_queue.put(None)
         writer_thread.join()
-        # 关闭时取消定时任务
-        # task.cancel()  
 
 
 # 加载APP
@@ -144,7 +133,7 @@ async def root():
 
 @app.get("/permission/", summary="测试当前token是否可用", tags=['Default'])
 async def testRootPermission(role: bool = Security(SecurityManager.get_current_role)):
-    return JSONResponse.get_success_response(role)
+    return JSONResponse.success(role)
 
 @app.get("/dashboard")
 async def redirect():

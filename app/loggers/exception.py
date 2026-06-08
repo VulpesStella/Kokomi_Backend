@@ -6,6 +6,7 @@ import aiomysql
 
 from app.schemas import GameAPIException
 from app.response import JSONResponse
+
 from .error_log import write_exception
 
 
@@ -25,7 +26,7 @@ class ExceptionLogger:
                     error_info = traceback.format_exc(),
                     error_id=error_id
                 )
-                return JSONResponse.get_error_response(3000,'ProgramError',error_id)
+                return JSONResponse.exception('ProgramError',error_id,type(e).__name__)
         return wrapper
     
     @staticmethod
@@ -36,19 +37,19 @@ class ExceptionLogger:
                 result = await func(*args, **kwargs)
                 return result
             except httpx.ConnectTimeout:
-                return JSONResponse.get_api_failed_response('HttpxConnectTimeout')
+                return JSONResponse.game_api_failed('HttpxConnectTimeout')
             except httpx.ReadTimeout:
-                return JSONResponse.get_api_failed_response('HttpxReadTimeout')
+                return JSONResponse.game_api_failed('HttpxReadTimeout')
             except httpx.TimeoutException:
-                return JSONResponse.get_api_failed_response('HttpxTimeoutError')
+                return JSONResponse.game_api_failed('HttpxTimeoutError')
             except httpx.ConnectError:
-                return JSONResponse.get_api_failed_response('HttpxConnectError')
+                return JSONResponse.game_api_failed('HttpxConnectError')
             except httpx.ReadError:
-                return JSONResponse.get_api_failed_response('HttpxReadError')
+                return JSONResponse.game_api_failed('HttpxReadError')
             except httpx.HTTPStatusError:
-                return JSONResponse.get_api_failed_response('HttpxHTTPStatusError')
+                return JSONResponse.game_api_failed('HttpxHTTPStatusError')
             except GameAPIException:
-                return JSONResponse.get_api_failed_response('GameAPIException')
+                return JSONResponse.game_api_failed('GameAPIException')
             except Exception as e:
                 error_id = str(uuid.uuid4())
                 write_exception(
@@ -57,7 +58,7 @@ class ExceptionLogger:
                     error_info = traceback.format_exc(),
                     error_id=error_id
                 )
-                return JSONResponse.get_error_response(3000,'ProgramError',error_id)
+                return JSONResponse.exception('ProgramError',error_id,type(e).__name__)
         return wrapper
         
     @staticmethod
@@ -75,7 +76,7 @@ class ExceptionLogger:
                     error_info = traceback.format_exc(),
                     error_id=error_id
                 )
-                return JSONResponse.get_error_response(3002,'MySQLProgrammingError',error_id)
+                return JSONResponse.exception('MySQLError',error_id,'ProgrammingError')
             except aiomysql.OperationalError as e:
                 error_id = str(uuid.uuid4())
                 write_exception(
@@ -84,7 +85,7 @@ class ExceptionLogger:
                     error_info = traceback.format_exc(),
                     error_id=error_id
                 )
-                return JSONResponse.get_error_response(3003,'MySQLOperationalError',error_id)
+                return JSONResponse.exception('MySQLError',error_id,'OperationalError')
             except aiomysql.IntegrityError as e:
                 error_id = str(uuid.uuid4())
                 write_exception(
@@ -93,7 +94,7 @@ class ExceptionLogger:
                     error_info = traceback.format_exc(),
                     error_id=error_id
                 )
-                return JSONResponse.get_error_response(3004,'MySQLIntegrityError',error_id)
+                return JSONResponse.exception('MySQLError',error_id,'IntegrityError')
             except aiomysql.DatabaseError as e:
                 error_id = str(uuid.uuid4())
                 write_exception(
@@ -102,7 +103,7 @@ class ExceptionLogger:
                     error_info = traceback.format_exc(),
                     error_id=error_id
                 )
-                return JSONResponse.get_error_response(3001,'MySQLDatabaseError',error_id)
+                return JSONResponse.exception('MySQLError',error_id,'DatabaseError')
             except Exception as e:
                 error_id = str(uuid.uuid4())
                 write_exception(
@@ -111,7 +112,7 @@ class ExceptionLogger:
                     error_info = traceback.format_exc(),
                     error_id=error_id
                 )
-                return JSONResponse.get_error_response(3000,'ProgramError',error_id)
+                return JSONResponse.exception('ProgramError',error_id,type(e).__name__)
         return wrapper
     
     @staticmethod
@@ -129,7 +130,7 @@ class ExceptionLogger:
                     error_info = traceback.format_exc(),
                     error_id=error_id
                 )
-                return JSONResponse.get_error_response(3005,'RedisError',error_id)
+                return JSONResponse.exception('RedisError',error_id,type(e).__name__)
             except Exception as e:
                 error_id = str(uuid.uuid4())
                 write_exception(
@@ -138,6 +139,6 @@ class ExceptionLogger:
                     error_info = traceback.format_exc(),
                     error_id=error_id
                 )
-                return JSONResponse.get_error_response(3000,'ProgramError',error_id)
+                return JSONResponse.exception('ProgramError',error_id,type(e).__name__)
         return wrapper
     

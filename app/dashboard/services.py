@@ -5,11 +5,11 @@ from typing import Dict, Any
 import math
 
 from app.core import EnvConfig
-from app.health import ServiceMetrics
 from app.middlewares import RedisClient
 from app.models import PlatformModel
 from app.utils import JsonUtils
 
+from .metrics import ServiceMetrics
 
 def _is_dev_mode() -> bool:
     return EnvConfig.DEV_MODE

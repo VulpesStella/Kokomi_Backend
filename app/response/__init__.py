@@ -1,4 +1,5 @@
-from .response import JSONResponse, ResponseDict 
+from .response import JSONResponse
+from .typed_dict import ResponseDict 
 
 __all__ = [
     'JSONResponse',

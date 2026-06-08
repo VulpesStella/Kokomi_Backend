@@ -31,7 +31,7 @@ class DemoPlayerModel:
             await cur.execute(sql, [account_id])
             row = await cur.fetchone()
             if not row:
-                return JSONResponse.API_2016_UserNotInDB
+                return JSONResponse.API_UserNotInDB
             data['username'] = row[0]
             # 读user_stats库
             sql = """
@@ -50,7 +50,7 @@ class DemoPlayerModel:
                 data['is_enabled'] = row[0]
                 data['is_public'] = row[1]
             if not data['is_enabled'] or not data['is_public']:
-                return JSONResponse.get_success_response(data)
+                return JSONResponse.success(data)
             data['activity_level'] = row[2]
             data['total_battles'] = row[3]
             data['next_refresh_at'] = TimeUtils.fromtimestamp(row[4])
@@ -82,7 +82,7 @@ class DemoPlayerModel:
             row = await cur.fetchone()
             if row:
                 data['clan_id'] = row[0]
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.success(data)
         
     @ExceptionLogger.handle_database_exception_async
     async def set_user_status(account_id: int, status: int):
@@ -94,7 +94,7 @@ class DemoPlayerModel:
             """
             await cur.execute(sql, [status, account_id])
             data = cur.rowcount
-            return JSONResponse.get_success_response(data)
+            return JSONResponse.success(data)
 
 class PlayerModel:
     @ExceptionLogger.handle_database_exception_async
@@ -175,7 +175,7 @@ class PlayerModel:
             await cur.execute(sql, [account_id])
             data = await cur.fetchone()
             if not data:
-                return JSONResponse.API_2020_DataIntegrityError
+                return JSONResponse.API_DataIntegrityError
             
             if data[3] is None:
                 result['stats'] = False
@@ -184,7 +184,7 @@ class PlayerModel:
             else:
                 result['stats'] = True
                 result['basic']['karma'] = data[2]
-            return JSONResponse.get_success_response(result)
+            return JSONResponse.success(result)
         
     @ExceptionLogger.handle_database_exception_async
     async def get_user_cache(account_id: int):
@@ -200,7 +200,7 @@ class PlayerModel:
             data = await cur.fetchone()
             if data:
                 result = json.loads(data[0])
-            return JSONResponse.get_success_response(result)
+            return JSONResponse.success(result)
         
     @ExceptionLogger.handle_database_exception_async
     async def get_user_config(account_id: int):
@@ -215,6 +215,6 @@ class PlayerModel:
             await cur.execute(sql, [account_id])
             data = await cur.fetchone()
             if data is None:
-                return JSONResponse.API_2016_UserNotInDB
+                return JSONResponse.API_UserNotInDB
             else:
-                return JSONResponse.get_success_response(data)
+                return JSONResponse.success(data)

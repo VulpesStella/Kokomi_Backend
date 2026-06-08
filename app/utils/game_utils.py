@@ -30,11 +30,11 @@ class GameUtils:
             return {}
         data = data.split('-')
         return {
-            "texture_id": data[0],
-            "symbol_id": data[1],
-            "border_color_id": data[2],
-            "background_color_id": data[3],
-            "background_id": data[4]
+            "texture_id": int(data[0]),
+            "symbol_id": int(data[1]),
+            "border_color_id": int(data[2]),
+            "background_color_id": int(data[3]),
+            "background_id": int(data[4])
         }
 
     def check_uid(account_id: int) -> bool:

@@ -12,10 +12,10 @@ async def getRecentSummary(
     user_id: int = Path(..., description="用户ID"),
 ):
     if EnvConfig.DEV_MODE:
-        return JSONResponse.API_2018_Maintenance
+        return JSONResponse.API_Maintenance
     
     if GameUtils.check_uid(user_id) == False:
-        return JSONResponse.API_2001_IllegalAccountID
+        return JSONResponse.API_IllegalAccountID
     
     result = await RecentAPI.summary(user_id)
 

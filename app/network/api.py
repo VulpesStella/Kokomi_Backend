@@ -4,8 +4,8 @@ from typing import Optional, Union, Any
 
 from app.loggers import ExceptionLogger
 from app.utils import TimeUtils
-from app.health import ServiceMetrics
 from app.core import EnvConfig, api_logger
+from app.middlewares import ServiceMetrics
 from app.response import JSONResponse, ResponseDict
 
 from .client import HttpClient
@@ -74,7 +74,7 @@ class DemoExternalAPI:
         if error:
             return results
         
-        return JSONResponse.get_success_response(results[0])
+        return JSONResponse.success(results[0])
     
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
@@ -91,7 +91,7 @@ class DemoExternalAPI:
         if error:
             return results
         
-        return JSONResponse.get_success_response(results[0])
+        return JSONResponse.success(results[0])
     
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
@@ -108,7 +108,7 @@ class DemoExternalAPI:
         if error:
             return results
         
-        return JSONResponse.get_success_response(results[0])
+        return JSONResponse.success(results[0])
     
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
@@ -125,9 +125,9 @@ class DemoExternalAPI:
         if error:
             return results
         
-        return JSONResponse.get_success_response(results[0])
+        return JSONResponse.success(results[0])
        
-class  ExternalAPI:
+class ExternalAPI:
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
     async def get_user_search(nickname: str):
@@ -151,7 +151,7 @@ class  ExternalAPI:
         if error:
             return results
         
-        return JSONResponse.get_success_response(results[0])
+        return JSONResponse.success(results[0])
     
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
@@ -175,7 +175,7 @@ class  ExternalAPI:
         if error:
             return results
         
-        return JSONResponse.get_success_response(results[0].get('search_autocomplete_result', []))
+        return JSONResponse.success(results[0].get('search_autocomplete_result', []))
 
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
@@ -197,7 +197,7 @@ class  ExternalAPI:
         if error:
             return results
         
-        return JSONResponse.get_success_response(results)
+        return JSONResponse.success(results)
 
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
@@ -211,7 +211,7 @@ class  ExternalAPI:
         if error:
             return results
         
-        return JSONResponse.get_success_response(results[0])
+        return JSONResponse.success(results[0])
         
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
@@ -225,7 +225,7 @@ class  ExternalAPI:
         if error:
             return results
         
-        return JSONResponse.get_success_response(results[0])
+        return JSONResponse.success(results[0])
 
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
@@ -248,7 +248,7 @@ class  ExternalAPI:
         if error:
             return results
         
-        return JSONResponse.get_success_response(results)
+        return JSONResponse.success(results)
         
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
@@ -262,7 +262,7 @@ class  ExternalAPI:
         if error:
             return results
         
-        return JSONResponse.get_success_response(results[0])
+        return JSONResponse.success(results[0])
         
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
@@ -276,7 +276,7 @@ class  ExternalAPI:
         if error:
             return results
         
-        return JSONResponse.get_success_response(results[0])
+        return JSONResponse.success(results[0])
 
     @staticmethod
     @ExceptionLogger.handle_program_exception_async
@@ -300,4 +300,4 @@ class  ExternalAPI:
         if error:
             return results
         
-        return JSONResponse.get_success_response(results)
+        return JSONResponse.success(results)

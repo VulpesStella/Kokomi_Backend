@@ -377,13 +377,13 @@ class UserStatsSyncer:
             
             if existing is None:
                 lock_key = 'refresh_lock:user_insert'
-                error, lock = JSONResponse.extract_data_strict(
+                error, lock = JSONResponse.extract_data(
                     response=await RedisClient.acquire_lock(lock_key)
                 )
                 if error:
                     return lock
                 if not lock:
-                    return JSONResponse.API_2019_AcqurieLockFailed
+                    return JSONResponse.API_AcqurieLockFailed
                 await cls._init_new_user(cursor, account_id, user_data['username'])
                 await RedisClient.drop(lock_key)
                 old_username = user_data['username']
@@ -395,7 +395,7 @@ class UserStatsSyncer:
                 old_username, old_timestamp, random, ranked, user_level = existing
 
             if random is None or ranked is None:
-                    return JSONResponse.API_2016_UserNotInDB
+                    return JSONResponse.API_UserNotInDB
 
             # 更新 T_user_base
             await cls._update_user_base(cursor, account_id, user_data, old_username, old_timestamp)

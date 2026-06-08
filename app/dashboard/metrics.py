@@ -6,41 +6,9 @@ from typing import Any, Dict, List, Tuple
 
 from app.core import EnvConfig
 from app.middlewares import RedisClient
-from app.loggers import ExceptionLogger
 
 
 class ServiceMetrics:
-    @ExceptionLogger.handle_cache_exception_async
-    async def api_incr(date: str):
-        if EnvConfig.DEV_MODE:
-            return
-        
-        keys = [
-            f"metrics:api:annual:{date[:4]}",
-            f"metrics:api:monthly:{date[:7]}",
-            f"metrics:api:daily:{date}"
-        ]
-        await RedisClient.api_incr(keys)
-
-    @ExceptionLogger.handle_cache_exception_async
-    async def http_incrby(date: str, amount: int):
-        if EnvConfig.DEV_MODE:
-            return
-        
-        keys = [
-            f"metrics:http:annual:{date[:4]}",
-            f"metrics:http:monthly:{date[:7]}",
-            f"metrics:http:daily:total:{date}"
-        ]
-        await RedisClient.http_incr(keys, amount)
-
-    @ExceptionLogger.handle_cache_exception_async
-    async def http_error_incrby(date: str, amount: int):
-        if EnvConfig.DEV_MODE:
-            return
-        
-        await RedisClient.incrby(f"metrics:http:daily:error:{date}", amount)
-
     async def get_today_celery_error_count(date_str: str) -> int:
         """获取今日 Celery 任务失败数量"""
         result = await RedisClient.get(f"metrics:celery:daily:error:{date_str}")

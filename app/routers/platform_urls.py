@@ -16,7 +16,7 @@ async def searchUser(
         result = await SearchAPI.search_user(name)
         return result
     else:
-        return JSONResponse.API_2003_IllegalUserName
+        return JSONResponse.API_IllegalUserName
 
 @router.get("/search/clan/", summary="搜索游戏工会")
 async def searchClan(
@@ -26,16 +26,13 @@ async def searchClan(
         result = await SearchAPI.search_clan(tag)
         return result
     else:
-        return JSONResponse.API_2004_IllegalClanTag
+        return JSONResponse.API_IllegalClanTag
 
 
 @router.patch("/user/{user_id}/", summary="刷新用户基本信息的缓存")
 async def getUserBasic(user_id: int = Path(...)):
-    if EnvConfig.DEV_MODE:
-        return JSONResponse.API_2018_Maintenance
-    
     if GameUtils.check_uid(user_id) == False:
-        return JSONResponse.API_2001_IllegalAccountID
+        return JSONResponse.API_IllegalAccountID
     result = await RefreshAPI.refresh_user(user_id)
     return result
 

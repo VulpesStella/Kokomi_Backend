@@ -82,7 +82,44 @@ class RedisConnection:
         if cls._conn is None:
             raise RuntimeError("Redis connection is not initialized")
         return cls._conn
+
+class ServiceMetrics:
+    @ExceptionLogger.handle_cache_exception_async
+    async def api_incr(date: str):
+        if EnvConfig.DEV_MODE:
+            return
         
+        keys = [
+            f"metrics:api:annual:{date[:4]}",
+            f"metrics:api:monthly:{date[:7]}",
+            f"metrics:api:daily:{date}"
+        ]
+        conn = RedisConnection.acquire_conn()
+        for key in keys:
+            await conn.incr(key)
+
+    @ExceptionLogger.handle_cache_exception_async
+    async def http_incrby(date: str, amount: int):
+        if EnvConfig.DEV_MODE:
+            return
+        
+        keys = [
+            f"metrics:http:annual:{date[:4]}",
+            f"metrics:http:monthly:{date[:7]}",
+            f"metrics:http:daily:total:{date}"
+        ]
+        conn = RedisConnection.acquire_conn()
+        for key in keys:
+            await conn.incrby(key, amount)
+
+    @ExceptionLogger.handle_cache_exception_async
+    async def http_error_incrby(date: str, amount: int):
+        if EnvConfig.DEV_MODE:
+            return
+        key = f"metrics:http:daily:error:{date}"
+        conn = RedisConnection.acquire_conn()
+        await conn.incrby(key, amount)
+
 class RedisClient:
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
@@ -91,14 +128,14 @@ class RedisClient:
         data = await conn.get(key)
         if data:
             data = json.loads(data)
-        return JSONResponse.get_success_response(data)
+        return JSONResponse.success(data)
     
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
     async def get_token(key: str) -> dict:
         conn = RedisConnection.acquire_conn()
         data = await conn.get(key)
-        return JSONResponse.get_success_response(data)
+        return JSONResponse.success(data)
     
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
@@ -112,7 +149,7 @@ class RedisClient:
         values = await pipe.execute()
         for v in values:
             data.append(int(v) if v else 0)
-        return JSONResponse.get_success_response(data)
+        return JSONResponse.success(data)
     
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
@@ -131,7 +168,7 @@ class RedisClient:
     async def exists(key: str) -> dict:
         conn = RedisConnection.acquire_conn()
         data = await conn.exists(key)
-        return JSONResponse.get_success_response(data)
+        return JSONResponse.success(data)
     
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
@@ -153,20 +190,6 @@ class RedisClient:
     
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
-    async def api_incr(keys: list) -> None:
-        conn = RedisConnection.acquire_conn()
-        for key in keys:
-            await conn.incr(key)
-    
-    @staticmethod
-    @ExceptionLogger.handle_cache_exception_async
-    async def http_incr(keys: list, amount: int) -> None:
-        conn = RedisConnection.acquire_conn()
-        for key in keys:
-            await conn.incrby(key, amount)
-    
-    @staticmethod
-    @ExceptionLogger.handle_cache_exception_async
     async def acquire_lock(key: str, ex: int = 5, max_retries: int = 5, intervel: float = 0.2):
         conn = RedisConnection.acquire_conn()
         for _ in range(1, max_retries + 1):
@@ -175,10 +198,10 @@ class RedisClient:
             )
 
             if acquired:
-                return JSONResponse.get_success_response(True)
+                return JSONResponse.success(True)
 
             await asyncio.sleep(intervel)
-        return JSONResponse.get_success_response(False)
+        return JSONResponse.success(False)
 
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
@@ -188,14 +211,14 @@ class RedisClient:
             return []
         # 索引从0开始，所以前N个的结束索引是 n-1
         data = await conn.zrevrange(key, 0, n - 1)
-        return JSONResponse.get_success_response(data)
+        return JSONResponse.success(data)
 
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
     async def zget_range(key: str, start: int, stop: int):
         conn = RedisConnection.acquire_conn()
         data = await conn.zrevrange(key, start, stop)
-        return JSONResponse.get_success_response(data)
+        return JSONResponse.success(data)
     
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
@@ -204,11 +227,12 @@ class RedisClient:
         conn = RedisConnection.acquire_conn()
         data = await conn.zcard(key)
         count = int(data) if data else 0
-        return JSONResponse.get_success_response(count)
+        return JSONResponse.success(count)
 
     @staticmethod
     @ExceptionLogger.handle_cache_exception_async
     async def zget_rank(key: str, member: str):
         conn = RedisConnection.acquire_conn()
         data = await conn.zrevrank(key, member)
-        return JSONResponse.get_success_response(data)
+        return JSONResponse.success(data)
+

@@ -1,29 +1,29 @@
 from app.loggers import ExceptionLogger
-from app.models import PlatformModel
+from app.models import PlatformModel, ShipModel
 from app.response import JSONResponse
 
 class MaintenanceAPI:
     @ExceptionLogger.handle_program_exception_async
     async def get_database_meta():
-        error, game_version = JSONResponse.extract_data_strict(
+        error, game_version = JSONResponse.extract_data(
             response=await PlatformModel.read_latest_version()
         )
         if error:
             return game_version
         
-        error, table_meta = JSONResponse.extract_data_strict(
+        error, table_meta = JSONResponse.extract_data(
             response=await PlatformModel.read_table_meta()
         )
         if error:
             return table_meta
         
-        error, database_meta = JSONResponse.extract_data_strict(
+        error, database_meta = JSONResponse.extract_data(
             response=await PlatformModel.read_database_meta()
         )
         if error:
             return database_meta
         
-        error, user_activity = JSONResponse.extract_data_strict(
+        error, user_activity = JSONResponse.extract_data(
             response=await PlatformModel.read_user_activity_distribution()
         )
         if error:
@@ -33,7 +33,7 @@ class MaintenanceAPI:
         for user in user_activity:
             user_activity_distribution[str(user[0])] = user[1]
 
-        error, clan_activity = JSONResponse.extract_data_strict(
+        error, clan_activity = JSONResponse.extract_data(
             response=await PlatformModel.read_clan_activity_distribution()
         )
         if error:
@@ -72,4 +72,8 @@ class MaintenanceAPI:
             }
         }
 
-        return JSONResponse.get_success_response(result)
+        return JSONResponse.success(result)
+    
+    @ExceptionLogger.handle_program_exception_async
+    async def get_ship_stats():
+        return await ShipModel.get_all_ship_stats()

@@ -22,7 +22,7 @@ class RecentAPI:
             'user_id': account_id
         }
 
-        error, user_config = JSONResponse.extract_data_strict(
+        error, user_config = JSONResponse.extract_data(
             response=await PlayerModel.get_user_config(account_id)
         ) 
         if error:
@@ -34,11 +34,11 @@ class RecentAPI:
         }.get(user_config[0])
         storage_limit = user_config[1]
         if user_level is None:
-            return JSONResponse.API_2023_UserRecentDisabled
+            return JSONResponse.API_RecentNotEnable
         
         db_path = EnvConfig.SQLITE_DIR / f'{account_id}.db'
         if not db_path.exists():
-            return JSONResponse.API_2020_DataIntegrityError
+            return JSONResponse.API_DataIntegrityError
         
         total_dates = 0
         total_rows = 0
@@ -59,7 +59,7 @@ class RecentAPI:
                 total_rows = RecentSummary.read_total_rows(cursor)
                 summary = RecentSummary.read_daily_summary(cursor, current_timestamp, start_date)
                 if summary == {}:
-                    return JSONResponse.API_2020_DataIntegrityError
+                    return JSONResponse.API_DataIntegrityError
             finally:
                 cursor.close()
 
@@ -102,14 +102,14 @@ class RecentAPI:
             'credits_spent': credits_spent
         }
 
-        return JSONResponse.get_success_response(result)
+        return JSONResponse.success(result)
 
     @ExceptionLogger.handle_program_exception_async
     async def ranked(account_id: int, start_date: int, end_date: int):
         db_path = EnvConfig.SQLITE_DIR / f'{account_id}.db'
         if not db_path.exists():
-            return JSONResponse.API_2023_UserRecentDisabled
+            return JSONResponse.API_RecentNotEnable
         
         result = CalculateRecent.calc_ranked_recent(account_id, start_date, end_date)
 
-        return JSONResponse.get_success_response(result)
+        return JSONResponse.success(result)

@@ -1,15 +1,34 @@
+from typing import List, Dict, Any
+from dataclasses import dataclass, field
+
 from app.core import EnvConfig
+from app.utils import DevUtils
 from app.response import JSONResponse
 from app.loggers import ExceptionLogger
 from app.network import ExternalAPI
-from app.models import PlayerModel, ShipModel, UserStatsSyncer
 from app.middlewares import RedisClient
-from app.utils import DevUtils
+from app.models import PlayerModel, ShipModel, UserStatsSyncer
 
-from .basic import BasicAPI
+from .basic import BasicAPI, BasicResponse
 from .process import format_overall, accumulate_overall
 from .schema import OriginalData, ProcessedData
 
+
+@dataclass
+class PVEStatistics:
+    """PVE统计数据"""
+    overall: Dict[str, Any] = field(default_factory=dict)
+    ship_type: Dict[str, Any] = field(default_factory=dict)
+    record: Dict[str, Any] = field(default_factory=dict)
+    chart: List[List[int]] = field(default_factory=list)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'overall': self.overall,
+            'ship_type': self.ship_type,
+            'record': self.record,
+            'chart': self.chart
+        }
 
 class PVEAPI:
     @ExceptionLogger.handle_program_exception_async
@@ -20,22 +39,20 @@ class PVEAPI:
         # Credits 消耗
         credits_spent = 1
 
-        # 从 Redis 中获取用户的 access_token
-        if EnvConfig.DEV_MODE:
-            access_token = None
-        else:
-            redis_key = f"token:ac:{account_id}"
-            response = await RedisClient.get_token(redis_key)
-            error, access_token = JSONResponse.extract_data_strict(response)
-            if error:
-                return access_token
-        
         if EnvConfig.DEV_MODE:
             # 跳过读取数据库步骤，后续直接请求 API 获取数据
+            access_token = None
             user = None
         else:
+            # 从 Redis 中获取用户的 access_token
+            redis_key = f"token:ac:{account_id}"
+            response = await RedisClient.get_token(redis_key)
+            error, access_token = JSONResponse.extract_data(response)
+            if error:
+                return access_token
+            
             # 先读数据库，读不到数据再请求
-            error, user = JSONResponse.extract_data_strict(
+            error, user = JSONResponse.extract_data(
                 response=await PlayerModel.get_user_name_and_clan(account_id)
             )
             if error:
@@ -45,7 +62,7 @@ class PVEAPI:
         # 1. 没有读取到用户的缓存数据
         # 2. 用户的缓存数据表示该用户可能隐藏战绩或无数据
         if user is None or not user['stats']:
-            error, user_basic = JSONResponse.extract_data_strict(
+            error, user_basic = JSONResponse.extract_data(
                 response=await BasicAPI.get_user_basic(account_id, access_token)
             )
             if error:
@@ -55,7 +72,7 @@ class PVEAPI:
         else:
             user_basic = user['basic']
     
-        error, response = JSONResponse.extract_data_strict(
+        error, response = JSONResponse.extract_data(
             response=await ExternalAPI.get_user_pve(account_id, access_token)
         )
         if error:
@@ -65,28 +82,21 @@ class PVEAPI:
         
         if 'hidden_profile' in response.get(str(account_id)):
             if not EnvConfig.DEV_MODE:
-                error, refresh = JSONResponse.extract_data_strict(
+                error, refresh = JSONResponse.extract_data(
                     response=await UserStatsSyncer.refresh(account_id, {str(account_id): {'hidden_profile': True}})
                 )
                 if error:
                     return refresh
-            return JSONResponse.API_2015_UserHiddenProfile
+            return JSONResponse.API_UserHiddenProfile
     
         if EnvConfig.DEV_MODE:
             ship_info = DevUtils.read_ship_info()
         else:
-            error, ship_info = JSONResponse.extract_data_strict(
+            error, ship_info = JSONResponse.extract_data(
                 response=await ShipModel.get_ship_base()
             )
             if error:
                 return ship_info
-
-        statistics = {
-            'overall': {},
-            'ship_type': {},
-            'record': {},
-            'chart': {}
-        }
             
         old_ship_ids = []
         for ship_id, ship_base in ship_info.items():
@@ -124,7 +134,7 @@ class PVEAPI:
                     record[key] = field_data[key]
         
         if original_data == {}:
-            return JSONResponse.API_2022_NoStatisticsData
+            return JSONResponse.API_NoStatisticsData
 
         ShipTypeIndex = {
             'AirCarrier': 0,
@@ -154,31 +164,33 @@ class PVEAPI:
             accumulate_overall(original_ship_type_data[ship_type], ship_data)
             original_chart_data[ship_tier-1][ShipTypeIndex[ship_type]] += ship_data['battles_count']
 
-        statistics['overall'] = format_overall(original_overall_data)
-        statistics['ship_type'] = {
-            'AirCarrier': format_overall(original_ship_type_data['AirCarrier']),
-            'Battleship': format_overall(original_ship_type_data['Battleship']),
-            'Cruiser': format_overall(original_ship_type_data['Cruiser']),
-            'Destroyer': format_overall(original_ship_type_data['Destroyer']),
-            'Submarine': format_overall(original_ship_type_data['Submarine'])
-        }
-        statistics['record'] = {
-            'damage': '{:,}'.format(record['max_damage_dealt']).replace(',', ' '),
-            'exp': '{:,}'.format(record['max_exp']).replace(',', ' '),
-            'frags': '{:,}'.format(record['max_frags']).replace(',', ' '),
-            'planes': '{:,}'.format(record['max_planes_killed']).replace(',', ' '),
-            'scout': '{:,}'.format(record['max_scouting_damage']).replace(',', ' '),
-            'potent': '{:,}'.format(record['max_total_agro']).replace(',', ' ')
-        }
-        statistics['chart'] = original_chart_data
+        statistics = PVEStatistics(
+            overall=format_overall(original_overall_data),
+            ship_type={
+                'AirCarrier': format_overall(original_ship_type_data['AirCarrier']),
+                'Battleship': format_overall(original_ship_type_data['Battleship']),
+                'Cruiser': format_overall(original_ship_type_data['Cruiser']),
+                'Destroyer': format_overall(original_ship_type_data['Destroyer']),
+                'Submarine': format_overall(original_ship_type_data['Submarine'])
+            },
+            record={
+                'damage': '{:,}'.format(record['max_damage_dealt']).replace(',', ' '),
+                'exp': '{:,}'.format(record['max_exp']).replace(',', ' '),
+                'frags': '{:,}'.format(record['max_frags']).replace(',', ' '),
+                'planes': '{:,}'.format(record['max_planes_killed']).replace(',', ' '),
+                'scout': '{:,}'.format(record['max_scouting_damage']).replace(',', ' '),
+                'potent': '{:,}'.format(record['max_total_agro']).replace(',', ' ')
+            },
+            chart=original_chart_data
+        )
 
-        result = {
-            'mode': 'PvE',
-            'type': 'Overall',
-            'basic': user_basic,
-            'statistics': statistics,
-            'credits_spent': credits_spent
-        }
+        data = BasicResponse(
+            mode='PvE',
+            type='Overall',
+            basic=user_basic,
+            statistics=statistics.to_dict(),
+            credits=credits_spent
+        )
 
-        return JSONResponse.get_success_response(result)
+        return JSONResponse.success(data.to_dict())
     

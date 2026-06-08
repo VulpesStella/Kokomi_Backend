@@ -21,7 +21,7 @@ class ShipModel:
             rows = await cur.fetchall()
             for row in rows:
                 result[row[0]] = row[1]
-            return JSONResponse.get_success_response(result)
+            return JSONResponse.success(result)
         
     @ExceptionLogger.handle_database_exception_async
     async def get_ranking_ship_stats():
@@ -43,7 +43,7 @@ class ShipModel:
                 if row[2] < 1000:
                     continue
                 result[row[0]] = [row[1], [row[3], row[4], row[5]]]
-            return JSONResponse.get_success_response(result)
+            return JSONResponse.success(result)
             
     @ExceptionLogger.handle_database_exception_async
     async def get_ship_base():
@@ -74,7 +74,7 @@ class ShipModel:
                     row[3],
                     row[4]
                 ]
-            return JSONResponse.get_success_response(result)
+            return JSONResponse.success(result)
   
     @ExceptionLogger.handle_database_exception_async
     async def get_ship_info(language: str):
@@ -113,7 +113,7 @@ class ShipModel:
                     'index': row[4],
                     'name': row[5]
                 } 
-            return JSONResponse.get_success_response(result)
+            return JSONResponse.success(result)
     
     @ExceptionLogger.handle_database_exception_async
     async def get_ship_info_by_id(ship_id: int, language: str):
@@ -150,6 +150,7 @@ class ShipModel:
             await cur.execute(sql, [ship_id])
             row = await cur.fetchone()
             result = {
+                'id': ship_id,
                 'tier': row[0],
                 'type': row[1],
                 'nation': row[2],
@@ -159,7 +160,7 @@ class ShipModel:
                 'index': row[6],
                 'name': row[7]
             } 
-            return JSONResponse.get_success_response(result)
+            return JSONResponse.success(result)
       
     @ExceptionLogger.handle_database_exception_async
     async def get_ship_stats():
@@ -188,7 +189,27 @@ class ShipModel:
                         row[4]
                     ]
         
-        return JSONResponse.get_success_response(result)
+        return JSONResponse.success(result)
+        
+    @ExceptionLogger.handle_database_exception_async
+    async def get_all_ship_stats():
+        async with MySQLManager.read_only_cursor() as cur:
+            result = {}
+            sql = """
+                SELECT 
+                    ship_id, 
+                    battles, 
+                    win_rate,
+                    avg_damage, 
+                    avg_frags 
+                FROM T_ship_stats_by_battles;
+            """
+            await cur.execute(sql)
+            rows = await cur.fetchall()
+            for row in rows:
+                if row[1] > 0:
+                    result[row[0]] = [row[1], row[2], row[3], row[4]]
+            return JSONResponse.success(result)
 
     # @ExceptionLogger.handle_database_exception_async
     # async def del_ships(ship_ids: list):
