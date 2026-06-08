@@ -118,8 +118,8 @@ def refresh_leaderboard_mysql(cursor, ship_id: int) -> int:
                 l.win_rate, l.avg_damage, l.avg_frags,
                 s.win_rate, s.avg_damage, s.avg_frags
             ),
-            l.avg_damage_level = F_get_metric_level(1, l.avg_damage, s.avg_damage),
-            l.avg_frags_level = F_get_metric_level(2, l.avg_frags, s.avg_frags),
+            l.avg_damage_level = F_get_metric_level(3, l.avg_damage, s.avg_damage),
+            l.avg_frags_level = F_get_metric_level(4, l.avg_frags, s.avg_frags),
             l.updated_at = NOW()
         WHERE l.ship_id = %s;
     """
