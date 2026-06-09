@@ -35,7 +35,7 @@ class DemoClanModel:
                 SELECT
                     is_enabled,
                     member_count, 
-                    next_refresh_at
+                    UNIX_TIMESTAMP(next_refresh_at) 
                 FROM T_clan_users
                 WHERE clan_id = %s;
             """
