@@ -141,9 +141,9 @@ class ShipModel:
                     ON b.type_id = t.id
                 INNER JOIN D_ship_nation n
                     ON b.nation_id = n.id
-                INNER JOIN D_ship_rarity r
+                LEFT JOIN D_ship_rarity r
                     ON b.rarity_id = r.id
-                INNER JOIN T_ship_name a
+                LEFT JOIN T_ship_name a
                     ON b.ship_id = a.ship_id
                 WHERE b.ship_id = %s;
             """
