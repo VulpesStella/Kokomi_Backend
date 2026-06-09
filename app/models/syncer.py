@@ -451,6 +451,24 @@ class UserClanSyncer:
             await cursor.execute(sql, [clan_id])
 
     @staticmethod
+    async def _update_user_base(cursor: Cursor, clan_id: int, clan_tag: str, league: int) -> None:
+        """批量更新公会成员关系
+
+        Args:
+            cursor: 数据库游标
+            clan_id: 公会 ID
+        """
+        sql = """
+            UPDATE T_clan_base
+            SET 
+                tag = %s, 
+                league = %s, 
+                updated_at = NOW() 
+            WHERE clan_id = %s;
+        """
+        await cursor.execute(sql, [clan_tag, league, clan_id])
+
+    @staticmethod
     async def _update_user_clan(cursor: Cursor, account_id: int, clan_id: Optional[int]) -> None:
         """批量更新公会成员关系
 
@@ -492,6 +510,8 @@ class UserClanSyncer:
                 existing = await cls._is_existing(cursor, clan_id)
                 if not existing:
                     await cls._init_new_clan(cursor, clan_id, clan_tag, league)
+                else:
+                    await cls._update_user_base(cursor, clan_id, clan_tag, league)
             await cls._update_user_clan(cursor, account_id, clan_id)
 
         return JSONResponse.API_1000_Success

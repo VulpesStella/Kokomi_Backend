@@ -1,5 +1,4 @@
 import traceback
-from redis import Redis
 from pymysql import Connection
 from pymysql.cursors import Cursor
 from typing import Optional
@@ -280,52 +279,24 @@ def get_update_ids(
                 # 2. last_battle_at 时间戳不同（有新战斗发生）
                 # 3. 赛季 ID 不同（新赛季首次获取数据）
                 update_ids.append(clan_id)
+
+    if existing_rows:
+        # 批量更新
+        update_sql = """
+            UPDATE T_clan_base
+            SET 
+                tag = %s, 
+                league = %s, 
+                updated_at = NOW()
+            WHERE clan_id = %s;
+        """
+        update_params = [
+            [d[1], d[2], d[0]] for d in existing_rows
+        ]
+        cursor.executemany(update_sql, update_params)
     
     if missing_rows:
         init_new_clans(cursor, missing_rows)
         logger.info(f'Insert {len(missing_rows)} new clans')
     
     return update_ids
-
-def refresh_clan_cache(
-    redis_client: Redis, conn: Connection, season_id: int
-) -> None:
-    """全量刷新 Redis 中的公会排行榜缓存
-
-    从 T_clan_stats 读取当前赛季所有公会的公开评分和晋级赛数据，
-    加权计算 Rating 后全量写入 Redis 有序集合 leaderboard:clan。
-
-    Args:
-        redis_client: Redis 客户端
-        conn: 数据库连接
-        season_id: 当前赛季 ID
-    """
-    try:
-        with conn.cursor() as cursor:
-            sql = """
-                SELECT 
-                    clan_id, 
-                    public_rating, 
-                    stage_battles, 
-                    stage_victories 
-                FROM T_clan_stats
-                WHERE season = %s;
-            """
-            cursor.execute(sql, [season_id])
-            rows = cursor.fetchall()
-
-            result = {}
-            for row in rows:
-                # Rating = 公开评分 + 晋级赛场次*0.1 + 晋级赛胜场*0.01
-                result[row[0]] = round(row[1] + row[2] * 0.1 + row[3] * 0.01, 2)
-
-            key = 'leaderboard:clan'
-            pipe = redis_client.pipeline()
-            pipe.delete(key)
-            if result:
-                pipe.zadd(key, {str(k): float(v) for k, v in result.items()})
-            pipe.execute()
-
-            logger.info('Clan leaderboard cache refreshed')
-    except Exception:
-        logger.error(traceback.format_exc())
