@@ -27,7 +27,7 @@ class DemoClanModel:
             await cur.execute(sql, [clan_id])
             row = await cur.fetchone()
             if not row:
-                return JSONResponse.API_ClanNotInDB
+                return JSONResponse.API_1000_Success
             data['clan_tag'] = row[0]
             data['league'] = row[1]
 

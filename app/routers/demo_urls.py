@@ -39,7 +39,7 @@ async def resetTrackingTime(
     用于强制服务在下个更新轮次里触发立即刷新。
     """
     if EnvConfig.DEV_MODE:
-        return JSONResponse.API_Maintenance
+        return JSONResponse.API_NodeNotAvailable
     
     return await MySQLAPI.reset_tracking_time(key)
 
@@ -49,7 +49,7 @@ async def getUserDB(
     user_id: int = Path(..., description="用户ID")
 ):
     if EnvConfig.DEV_MODE:
-        return JSONResponse.API_Maintenance
+        return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(user_id):
         return JSONResponse.API_IllegalAccountID
@@ -62,7 +62,7 @@ async def delUserDB(
     user_id: int = Path(..., description="用户ID")
 ):
     if EnvConfig.DEV_MODE:
-        return JSONResponse.API_Maintenance
+        return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(user_id):
         return JSONResponse.API_IllegalAccountID
@@ -75,7 +75,7 @@ async def patchUserDB(
     user_id: int = Path(..., description="用户ID")
 ):
     if EnvConfig.DEV_MODE:
-        return JSONResponse.API_Maintenance
+        return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(user_id):
         return JSONResponse.API_IllegalAccountID
@@ -88,7 +88,7 @@ async def getClanDB(
     clan_id: int = Path(..., description="工会ID")
 ):
     if EnvConfig.DEV_MODE:
-        return JSONResponse.API_Maintenance
+        return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(clan_id):
         return JSONResponse.API_IllegalClanID
@@ -101,7 +101,7 @@ async def delClanDB(
     clan_id: int = Path(..., description="工会ID")
 ):
     if EnvConfig.DEV_MODE:
-        return JSONResponse.API_Maintenance
+        return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(clan_id):
         return JSONResponse.API_IllegalClanID
@@ -114,7 +114,7 @@ async def patchClanDB(
     clan_id: int = Path(..., description="工会ID")
 ):
     if EnvConfig.DEV_MODE:
-        return JSONResponse.API_Maintenance
+        return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(clan_id):
         return JSONResponse.API_IllegalClanID
@@ -173,7 +173,7 @@ async def enable_features(
     - plus: 启用详细的近期数据记录
     """
     if EnvConfig.DEV_MODE:
-        return JSONResponse.API_Maintenance
+        return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(user_id):
         return JSONResponse.API_IllegalAccountID
@@ -192,7 +192,7 @@ async def disable_features(
     - standard: 从Plus降级到标准版
     """
     if EnvConfig.DEV_MODE:
-        return JSONResponse.API_Maintenance
+        return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(user_id):
         return JSONResponse.API_IllegalAccountID

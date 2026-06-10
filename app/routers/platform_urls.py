@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query, Path
 
-from app.core import EnvConfig
+from app.core import EnvConfig, AppState
 from app.schemas import ACResponse, AuthResponse
 from app.apis.platform import TokenAPI, SearchAPI, RefreshAPI
 from app.response import JSONResponse
@@ -12,6 +12,10 @@ router = APIRouter(prefix="/platform")
 async def searchUser(
     name: str = Query(..., description="用户昵称")
 ):
+    # 检查应用状态
+    if not AppState.is_available():
+        return JSONResponse.API_NodeNotAvailable
+    
     if 2 < len(name) < 25:
         result = await SearchAPI.search_user(name)
         return result
@@ -22,6 +26,10 @@ async def searchUser(
 async def searchClan(
     tag: str = Query(..., description="工会昵称")
 ):
+    # 检查应用状态
+    if not AppState.is_available():
+        return JSONResponse.API_NodeNotAvailable
+    
     if 1 < len(tag) < 9:
         result = await SearchAPI.search_clan(tag)
         return result
@@ -31,6 +39,10 @@ async def searchClan(
 
 @router.patch("/user/{user_id}/", summary="刷新用户基本信息的缓存")
 async def getUserBasic(user_id: int = Path(...)):
+    # 检查应用状态
+    if not AppState.is_available():
+        return JSONResponse.API_NodeNotAvailable
+    
     if GameUtils.check_uid(user_id) == False:
         return JSONResponse.API_IllegalAccountID
     result = await RefreshAPI.refresh_user(user_id)

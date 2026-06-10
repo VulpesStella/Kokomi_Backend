@@ -8,7 +8,7 @@ from typing import Optional, Union
 from logger import logger
 from utils import get_current_iso_time
 from exception import write_exception
-from settings import VORTEX_API
+from settings import VORTEX_API, MAIN_NODE_URL, MAIN_NODE_TOKEN
 
 
 def fetch_data(session: Session, url: str) -> Union[dict, str]:
@@ -20,6 +20,24 @@ def fetch_data(session: Session, url: str) -> Union[dict, str]:
     Returns:
         成功时返回解析后的 dict，失败时返回错误标识字符串
     """
+    try:
+        resp = session.get(url, timeout=5)
+
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('status') == 'ok':
+                return data.get('data', {})
+            else:
+                return "Game_API_Error"
+        elif resp.status_code == 404:
+            return {}
+        
+        return f'HTTP_STATUS_{resp.status_code}'
+    except Exception as e:
+        return f'ERROR_{type(e).__name__}'
+
+def post_ranking(session: Session, payload: dict):
+    
     try:
         resp = session.get(url, timeout=5)
 

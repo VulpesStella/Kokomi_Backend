@@ -4,6 +4,7 @@ from app.core import EnvConfig
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
+from app.schemas import DataIntegrityError
 from app.utils import TimeUtils, StringUtils
 
 
@@ -31,7 +32,7 @@ class DemoPlayerModel:
             await cur.execute(sql, [account_id])
             row = await cur.fetchone()
             if not row:
-                return JSONResponse.API_UserNotInDB
+                return JSONResponse.API_1000_Success
             data['username'] = row[0]
             # 读user_stats库
             sql = """
@@ -175,7 +176,7 @@ class PlayerModel:
             await cur.execute(sql, [account_id])
             data = await cur.fetchone()
             if not data:
-                return JSONResponse.API_DataIntegrityError
+                raise DataIntegrityError(account_id)
             
             if data[3] is None:
                 result['stats'] = False
@@ -215,6 +216,6 @@ class PlayerModel:
             await cur.execute(sql, [account_id])
             data = await cur.fetchone()
             if data is None:
-                return JSONResponse.API_UserNotInDB
+                raise DataIntegrityError(account_id)
             else:
                 return JSONResponse.success(data)

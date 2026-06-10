@@ -4,7 +4,9 @@
 import os
 import gc
 import time
+import zlib
 import redis
+import msgpack
 import pymysql
 import requests
 import traceback
@@ -17,13 +19,14 @@ from typing import Any, Iterator
 from logger import TqdmAwareLogger, logger
 from updater import UserCacheUpdater
 from exception import write_exception
-from utils import get_formatted_date
+from utils import get_formatted_date, get_current_timestamp
 from db_ops import (
     get_update_ids,
     read_ship_data,
     read_ship_record,
     read_game_version,
-    update_ship_record
+    update_ship_record,
+    get_ship_leaderboard
 )
 from settings import (
     REGION, 
@@ -32,7 +35,8 @@ from settings import (
     SSL_CA_BUNDLE,
     REFRESH_INTERVAL,
     MYSQL_CONFIG, 
-    REDIS_CONFIG
+    REDIS_CONFIG,
+    DATA_DIR
 )
 
 
@@ -70,6 +74,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
         mysql_connection: MySQL 数据库连接
         redis_client: Redis 客户端
     """
+
     # 加载待更新用户列表、船只基准数据和极值记录
     try:
         with mysql_connection.cursor() as cursor:
@@ -78,8 +83,6 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
 
             len_update_ids = len(update_ids)
             logger.info(f'Current loop plan update count: {len_update_ids}')
-            if len_update_ids == 0:
-                return
 
             # 加载符合排行榜统计船只的数据
             ship_data = read_ship_data(cursor)
@@ -100,30 +103,71 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
         )
         return
     
-    # 主更新循环
-    updater = UserCacheUpdater(ship_record, ship_data, game_version, version_start)
-    logger.enable_tqdm()
-    for update_data in progress_iterable(
-        items=update_ids, 
-        desc="Processing cache",
-        logger_obj=logger
-    ):
-        updater.main(
-            mysql_connection,
-            redis_client,
-            session,
-            update_data
-        )
-    logger.disable_tqdm()
+    if len_update_ids > 0:
+        # 主更新循环
+        updater = UserCacheUpdater(ship_record, ship_data, game_version, version_start)
+        logger.enable_tqdm()
+        for update_data in progress_iterable(
+            items=update_ids, 
+            desc="Processing cache",
+            logger_obj=logger
+        ):
+            updater.main(
+                mysql_connection,
+                redis_client,
+                session,
+                update_data
+            )
+        logger.disable_tqdm()
 
+        try:
+            with mysql_connection.cursor() as cursor:
+                row_count = update_ship_record(cursor, updater.ship_record)
+                logger.info(f"Highest record of ships refreshed: {row_count}")
+                
+            mysql_connection.commit()
+        except Exception as e:
+            mysql_connection.rollback()
+            error_name = type(e).__name__
+            logger.error(f"Database operation exception: {error_name}")
+            write_exception(
+                error_type="DatabaseError",
+                error_name=error_name,
+                error_info=traceback.format_exc()
+            )
+    total_top50_users = 0
+    payload = {
+        'time': get_current_timestamp(),
+        'data': {}
+    }
     try:
         with mysql_connection.cursor() as cursor:
-            row_count = update_ship_record(cursor, updater.ship_record)
-            logger.info(f"Highest record of ships refreshed: {row_count}")
-            
-        mysql_connection.commit()
+            for ship_id, ship_stats in ship_data.items():
+                if ship_stats[1] is None:
+                    continue
+                min_battles = ship_stats[0]
+                ship_ranking_key = f"leaderboard:ship:{ship_id}"
+                start = 0
+                stop = 49
+                total_users = redis_client.zcard(ship_ranking_key)
+                if total_users == 0:
+                    continue
+
+                total_top50_users += total_users
+
+                users = redis_client.zrevrange(ship_ranking_key, start, stop)
+                if len(users) == 0:
+                    continue
+
+                ship_ranking = {
+                    'limit': min_battles,
+                    'users': total_users,
+                    'rows': get_ship_leaderboard(cursor, ship_id, users)
+                }
+
+                payload['data'][ship_id] = ship_ranking
+
     except Exception as e:
-        mysql_connection.rollback()
         error_name = type(e).__name__
         logger.error(f"Database operation exception: {error_name}")
         write_exception(
@@ -131,6 +175,14 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
             error_name=error_name,
             error_info=traceback.format_exc()
         )
+    
+    logger.info(f'Cached top50 users: {total_top50_users}')
+    
+    packed_bytes = msgpack.packb(payload, use_bin_type=True)
+    compressed_bytes = zlib.compress(packed_bytes)
+    with open(DATA_DIR / 'trash/ranking.msgpack', "wb") as f:
+        f.write(compressed_bytes)
+
 
 def main():
     """主调度循环

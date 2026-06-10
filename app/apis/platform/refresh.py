@@ -24,9 +24,6 @@ class UserRefreshResponse:
 class RefreshAPI:
     @ExceptionLogger.handle_program_exception_async
     async def refresh_user(account_id: int) -> ResponseDict:
-        if EnvConfig.DEV_MODE:
-            return JSONResponse.API_Maintenance
-        
         # 从 Redis 中获取用户的 access_token
         redis_key = f"token:ac:{account_id}"
         error, access_token = JSONResponse.extract_data(

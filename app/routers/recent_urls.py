@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query, Path
 
-from app.core import EnvConfig
+from app.core import EnvConfig, AppState
 from app.response import JSONResponse
 from app.apis.recent import RecentAPI
 from app.utils import GameUtils
@@ -12,7 +12,11 @@ async def getRecentSummary(
     user_id: int = Path(..., description="用户ID"),
 ):
     if EnvConfig.DEV_MODE:
-        return JSONResponse.API_Maintenance
+        return JSONResponse.API_NodeNotAvailable
+    
+    # 检查应用状态
+    if not AppState.is_available():
+        return JSONResponse.API_NodeNotAvailable
     
     if GameUtils.check_uid(user_id) == False:
         return JSONResponse.API_IllegalAccountID

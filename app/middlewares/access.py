@@ -9,6 +9,7 @@ from app.core import EnvConfig
 class Role(str, Enum):
     ROOT = "root"
     USER = "user"
+    VISITOR = "visitor"
 
 
 class SecurityManager:
@@ -33,6 +34,8 @@ class SecurityManager:
             return Role.ROOT
         elif api_key == config.SECURITY.user:
             return Role.USER
+        elif api_key in config.SECURITY.visitor:
+            return Role.VISITOR
         else:
             raise HTTPException(status_code=403, detail="Invalid Access Token")
     
@@ -49,6 +52,22 @@ class SecurityManager:
         """要求 User 或 Root 权限"""
         role = cls._validate_api_key(api_key)
         if role in [Role.ROOT, Role.USER]:
+            return True
+        raise HTTPException(status_code=403, detail="User permission required")
+    
+    @classmethod
+    async def require_user(cls, api_key: str = Security(_api_key_scheme)) -> bool:
+        """要求 User 或 Root 权限"""
+        role = cls._validate_api_key(api_key)
+        if role in [Role.ROOT, Role.USER]:
+            return True
+        raise HTTPException(status_code=403, detail="User permission required")
+    
+    @classmethod
+    async def require_vistor(cls, api_key: str = Security(_api_key_scheme)) -> bool:
+        """要求 Visitor、User 或者 Root 权限"""
+        role = cls._validate_api_key(api_key)
+        if role in [Role.ROOT, Role.USER, Role.VISITOR]:
             return True
         raise HTTPException(status_code=403, detail="User permission required")
     

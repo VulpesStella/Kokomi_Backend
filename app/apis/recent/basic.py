@@ -38,7 +38,7 @@ class RecentAPI:
         
         db_path = EnvConfig.SQLITE_DIR / f'{account_id}.db'
         if not db_path.exists():
-            return JSONResponse.API_DataIntegrityError
+            return JSONResponse.API_1000_Success
         
         total_dates = 0
         total_rows = 0
@@ -59,7 +59,7 @@ class RecentAPI:
                 total_rows = RecentSummary.read_total_rows(cursor)
                 summary = RecentSummary.read_daily_summary(cursor, current_timestamp, start_date)
                 if summary == {}:
-                    return JSONResponse.API_DataIntegrityError
+                    return JSONResponse.API_1000_Success
             finally:
                 cursor.close()
 

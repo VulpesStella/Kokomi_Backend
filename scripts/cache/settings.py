@@ -29,6 +29,8 @@ else:
     print(f"{datetime.now().strftime(DATE_FMT)} [INIT] Env config loaded: env.prod")
 
 SSL_CA_BUNDLE = os.getenv("SSL_CA_BUNDLE")
+MAIN_NODE_URL = os.getenv("MAIN_NODE_URL")
+MAIN_NODE_TOKEN = os.getenv("MAIN_NODE_TOKEN")
 LOG_LEVEL = os.getenv("LOG_LEVEL")
 MYSQL_CONFIG = {
     "host": os.getenv("MYSQL_HOST"),

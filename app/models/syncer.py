@@ -7,6 +7,7 @@ from app.database import MySQLManager
 from app.middlewares import RedisClient
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
+from app.schemas import DataIntegrityError
 from app.utils import TimeUtils
 
 
@@ -395,7 +396,7 @@ class UserStatsSyncer:
                 old_username, old_timestamp, random, ranked, user_level = existing
 
             if random is None or ranked is None:
-                    return JSONResponse.API_UserNotInDB
+                raise DataIntegrityError(account_id)
 
             # 更新 T_user_base
             await cls._update_user_base(cursor, account_id, user_data, old_username, old_timestamp)

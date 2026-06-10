@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query, Path
 from typing import Optional
 
+from app.core import AppState, EnvConfig
 from app.response import JSONResponse
 from app.utils import GameUtils
 from app.schemas import ShipTier, ShipType, ShipNation, PVPField
@@ -12,8 +13,12 @@ router = APIRouter(prefix='/stats')
 @router.get("/users/{user_id}/pve/overall/", summary="获取用户人机战斗总体数据")
 async def getPvEOverall(
     user_id: int = Path(..., description="用户ID"),
-    include_old: Optional[bool] = Query(None, description="是否包含旧船")
+    include_old: Optional[bool] = Query(None, description="是否包含旧船数据")
 ):
+    # 检查应用状态
+    if not AppState.is_available():
+        return JSONResponse.API_NodeNotAvailable
+    
     if GameUtils.check_uid(user_id) == False:
         return JSONResponse.API_IllegalAccountID
     
@@ -29,8 +34,12 @@ async def getPvPOverall(
     ship_tier: Optional[ShipTier] = Query(None, description="船只等级"),
     ship_type: Optional[ShipType] = Query(None, description="船只类型"),
     ship_nation: Optional[ShipNation] = Query(None, description="船只国籍"),
-    include_old: Optional[bool] = Query(None, description="是否包含旧船")
+    include_old: Optional[bool] = Query(None, description="是否包含旧船数据")
 ):
+    # 检查应用状态
+    if not AppState.is_available():
+        return JSONResponse.API_NodeNotAvailable
+    
     if GameUtils.check_uid(user_id) == False:
         return JSONResponse.API_IllegalAccountID
     
@@ -82,8 +91,12 @@ async def getPvPOverall(
 @router.get("/users/{user_id}/ranked/overall/", summary="获取用户排位战斗总体数据")
 async def getRankedOverall(
     user_id: int = Path(..., description="用户ID"),
-    include_old: Optional[bool] = Query(None, description="是否包含旧船")
+    include_old: Optional[bool] = Query(None, description="是否包含旧船数据")
 ):
+    # 检查应用状态
+    if not AppState.is_available():
+        return JSONResponse.API_NodeNotAvailable
+    
     if GameUtils.check_uid(user_id) == False:
         return JSONResponse.API_IllegalAccountID
     

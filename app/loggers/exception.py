@@ -4,8 +4,8 @@ import httpx
 import traceback
 import aiomysql
 
-from app.schemas import GameAPIException
 from app.response import JSONResponse
+from app.schemas import GameAPIException, DataIntegrityError
 
 from .error_log import write_exception
 
@@ -104,6 +104,15 @@ class ExceptionLogger:
                     error_id=error_id
                 )
                 return JSONResponse.exception('MySQLError',error_id,'DatabaseError')
+            except DataIntegrityError as e:
+                error_id = str(uuid.uuid4())
+                write_exception(
+                    error_type = 'MySQLError',
+                    error_name = e,
+                    error_info = traceback.format_exc(),
+                    error_id=error_id
+                )
+                return JSONResponse.exception('MySQLError',error_id,e)
             except Exception as e:
                 error_id = str(uuid.uuid4())
                 write_exception(

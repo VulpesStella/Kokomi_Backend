@@ -22,7 +22,7 @@ class DemoRecentModel:
             await cur.execute(sql, [account_id])
             data = await cur.fetchone()
             if data is None:
-                return JSONResponse.API_UserNotInDB
+                return JSONResponse.API_1000_Success
             
             current_level = data[0]
             # 只允许向上升级
@@ -56,7 +56,7 @@ class DemoRecentModel:
             await cur.execute(sql, [account_id])
             data = await cur.fetchone()
             if data is None:
-                return JSONResponse.API_UserNotInDB
+                return JSONResponse.API_1000_Success
             
             current_level = data[0]
             # 只允许向下降级：2→1/0, 1→0

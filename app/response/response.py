@@ -22,26 +22,15 @@ class JSONResponse:
     # 部分接口只执行操作而不返回数据，此时返回 API_1000_Success 结果
     API_1000_Success = {'status': 'ok', 'code': 1000, 'message': 'Success', 'data': None}
     
-    API_IllegalAccountID = {'status': 'ok', 'code': 1001, 'message': 'IllegalAccountID'}
-    API_IllegalClanID = {'status': 'ok', 'code': 1002, 'message': 'IllegalClanID'}
-    API_IllegalUserName = {'status': 'ok', 'code': 1003, 'message': 'IllegalUserName'}
-    API_IllegalClanTag = {'status': 'ok', 'code': 1004, 'message': 'IllegalClanTag'}
-    API_InvalidAccessToken = {'status': 'ok', 'code': 1005, 'message': 'InvalidAccessToken'}
-    API_InvalidAuthToken = {'status': 'ok', 'code': 1006, 'message': 'InvalidAuthToken'}
-    API_RegionNotSupported = {'status': 'ok', 'code': 1007, 'message': 'RegionNotSupported'}
-    API_UserNotExist = {'status': 'ok', 'code': 1008, 'message': 'UserNotExist'}
-    API_ClanNotExist = {'status': 'ok', 'code': 1009, 'message': 'ClanNotExist'}
-    API_UserDataIsNone = {'status': 'ok', 'code': 1010, 'message': 'UserDataIsNone'}
-    API_ClanDataIsNone = {'status': 'ok', 'code': 1011, 'message': 'ClanDataIsNone'}
-    API_UserHiddenProfile = {'status': 'ok', 'code': 1012, 'message': 'UserHiddenProfile'}
-    API_UserNotInDB = {'status': 'ok', 'code': 1013, 'message': 'UserNotInDB'}
-    API_ClanNotInDB = {'status': 'ok', 'code': 1014, 'message': 'ClanNotInDB'}
-    API_Maintenance = {'status': 'ok', 'code': 1015, 'message': 'Maintenance'}
-    API_AcqurieLockFailed = {'status': 'ok', 'code': 1016, 'message': 'AcqurieLockFailed'}
-    API_DataIntegrityError = {'status': 'ok', 'code': 1017, 'message': 'DataIntegrityError'}
-    API_InvalidFilter = {'status': 'ok', 'code': 1018, 'message': 'InvalidFilter'}
-    API_NoStatisticsData = {'status': 'ok', 'code': 1019, 'message': 'NoStatisticsData'}
-    API_RecentNotEnable = {'status': 'ok', 'code': 1020, 'message': 'RecentNotEnable'}
+    API_NodeNotAvailable = {'status': 'ok', 'code': 1001, 'message': 'NodeNotAvailable'}
+    API_RegionNotSupported = {'status': 'ok', 'code': 1002, 'message': 'RegionNotSupported'}
+    API_UserNotExist = {'status': 'ok', 'code': 1003, 'message': 'UserNotExist'}
+    API_ClanNotExist = {'status': 'ok', 'code': 1004, 'message': 'ClanNotExist'}
+    API_UserDataIsNone = {'status': 'ok', 'code': 1005, 'message': 'UserDataIsNone'}
+    API_ClanDataIsNone = {'status': 'ok', 'code': 1006, 'message': 'ClanDataIsNone'}
+    API_UserHiddenProfile = {'status': 'ok', 'code': 1007, 'message': 'UserHiddenProfile'}
+    API_AcqurieLockFailed = {'status': 'ok', 'code': 1008, 'message': 'AcqurieLockFailed'}
+    API_NoStatisticsData = {'status': 'ok', 'code': 1009, 'message': 'NoStatisticsData'}
 
     @staticmethod
     def success(

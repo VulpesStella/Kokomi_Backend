@@ -7,19 +7,16 @@ import json
 async def sync_ship_data():
     # 同步lesta最新的船只数据
     csv_path = r'F:\Kokomi_PJ_API\init\data\ship_name_lesta.csv'
-    # api_url = 'https://vortex.korabli.su/api/encyclopedia/en/vehicles/'
-    # print(f"正在获取俄服最新接口数据...")
-    # async with httpx.AsyncClient() as client:
-    #     try:
-    #         res = await client.get(api_url, timeout=10)
-    #         res.raise_for_status()
-    #         api_data = res.json().get('data', {})
-    #     except Exception as e:
-    #         print(f"API 请求失败: {e}")
-    #         return
-    fp = r'F:\Kokomi_PJ_API\temp\response.json'
-    with open(fp, "r", encoding="utf-8") as f:
-        api_data = json.load(f).get('data', {})
+    api_url = 'https://vortex.korabli.su/api/encyclopedia/en/vehicles/'
+    print(f"正在获取俄服最新接口数据...")
+    async with httpx.AsyncClient() as client:
+        try:
+            res = await client.get(api_url, timeout=10)
+            res.raise_for_status()
+            api_data = res.json().get('data', {})
+        except Exception as e:
+            print(f"API 请求失败: {e}")
+            return
     fieldnames = [
         'ship_id', 'tier', 'type', 'nation', 'is_old', 'premium', 'special', 'rarity', 
         'index', 'en_short', 'en_full', 'zh_cn', 'zh_sg', 'zh_tw', 'ja', 'ru', 'verify'

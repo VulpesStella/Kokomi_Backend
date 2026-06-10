@@ -1,4 +1,4 @@
-from .exception import GameAPIException
+from .exception import GameAPIException, DataIntegrityError
 from .req_params import (
     Language, RecentLevel, ShipTier, ShipType, ShipNation, PVPField
 )

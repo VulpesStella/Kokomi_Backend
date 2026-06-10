@@ -58,6 +58,15 @@ class PVEAPI:
             if error:
                 return user
             
+            # 记录用户的调用信息
+            if user:
+                error, record = JSONResponse.extract_data(
+                    response=await PlayerModel.record_query(account_id)
+                )
+                if error:
+                    return record
+            
+            
         # 通过 API 接口读取用户的基本信息：
         # 1. 没有读取到用户的缓存数据
         # 2. 用户的缓存数据表示该用户可能隐藏战绩或无数据

@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from starlette.responses import StreamingResponse
 
 from app.response import JSONResponse
-from app.core import EnvConfig, api_logger
+from app.core import EnvConfig, AppState, api_logger
 from app.utils import TimeUtils
 from app.loggers import CSVWriter, log_queue
 from app.database import MySQLManager
@@ -27,7 +27,8 @@ from app.routers import (
     statistics_router,
     recent_router,
     ranking_router,
-    miantenance_router
+    miantenance_router,
+    external_router
 )
 
 
@@ -72,6 +73,9 @@ async def lifespan(app: FastAPI):
     # 初始化并测试redis连接
     await RedisConnection.init_conn()
     await RedisConnection.test_redis()
+    app_state = await RedisConnection.load_state()
+    AppState.init(app_state)
+    api_logger.info(f'API available: {app_state}')
     # 启动 lifespan
     try:
         yield
@@ -83,9 +87,14 @@ async def lifespan(app: FastAPI):
         log_queue.put(None)
         writer_thread.join()
 
-
+app_description = """
+接口返回值文档：https://github.com/SangonomiyaKoko/Kokomi_Backend/blob/main/docs/return.md
+"""
 # 加载APP
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    description=app_description
+)
 # 挂载静态文件
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
@@ -159,6 +168,13 @@ app.include_router(
     prefix='/api',
     tags=['Miantenance Interface'],
     dependencies=[Security(SecurityManager.require_user)]
+)
+
+app.include_router(
+    external_router, 
+    prefix='/api',
+    tags=['External Interface'],
+    dependencies=[Security(SecurityManager.require_vistor)]
 )
 
 app.include_router(

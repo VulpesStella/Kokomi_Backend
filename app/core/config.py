@@ -35,6 +35,7 @@ class SecurityConfig:
     """RabbitMQ 配置"""
     root: str
     user: str
+    visitor: list
 
 @dataclass(frozen=True)
 class RuntimeConfig:
@@ -122,7 +123,8 @@ class EnvConfig:
         cls._config = RuntimeConfig(
             SECURITY=SecurityConfig(
                 root=cls._require_env("API_ROOT_TOKEN"),
-                user=cls._require_env("API_USER_TOKEN")
+                user=cls._require_env("API_USER_TOKEN"),
+                visitor=cls._require_env("API_VISITOR_TOKENS").split(';')
             ),
             MYSQL=MySQLConfig(
                 host=cls._require_env("MYSQL_HOST"),

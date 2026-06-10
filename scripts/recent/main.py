@@ -142,7 +142,10 @@ async def worker(mysql_connection: Connection, redis_client: Redis, async_client
                 
             # 用户数据不存在
             basic_data = basic_data.get(str(account_id))
-            if basic_data is None or 'statistics' not in basic_data:
+            if 'hidden_profile' not in basic_data and (
+                basic_data is None or 
+                'statistics' not in basic_data
+            ):
                 logger.info(f'{account_id} | User not found')
                 continue
 

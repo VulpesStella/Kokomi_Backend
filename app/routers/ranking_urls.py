@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from fastapi import APIRouter, Path, Query
 
-from app.core import EnvConfig
+from app.core import EnvConfig, AppState
 from app.schemas import Language
 from app.response import JSONResponse
 from app.apis.ranking import (
@@ -35,7 +35,11 @@ async def getShipRanking(
     size: int = Query(50, ge=50, le=100, description="每页条数，只能选 50 或 100")
 ):
     if EnvConfig.DEV_MODE:
-        return JSONResponse.API_Maintenance
+        return JSONResponse.API_NodeNotAvailable
+    
+    # 检查应用状态
+    if not AppState.is_available():
+        return JSONResponse.API_NodeNotAvailable
     
     if size not in (50, 100):
         raise HTTPException(status_code=422, detail="Page size must be 50 or 100")
@@ -48,8 +52,13 @@ async def getShipRankingYYK(
     size: int = Query(50, ge=50, le=100, description="每页条数，只能选 50 或 100"),
     dogtag: int = Query(1, ge=0, le=1, description="是否在返回数据中展示用户的dogtag数据")
 ):
+    # DEPRECATED: 该接口后续将弃用
     if EnvConfig.DEV_MODE:
-        return JSONResponse.API_Maintenance
+        return JSONResponse.API_NodeNotAvailable
+    
+    # 检查应用状态
+    if not AppState.is_available():
+        return JSONResponse.API_NodeNotAvailable
     
     if size not in (50, 100):
         raise HTTPException(status_code=422, detail="Page size must be 50 or 100")
@@ -76,7 +85,11 @@ async def getClanRanking(
     size: int = Query(50, ge=50, le=100, description="每页条数，只能选 50 或 100")
 ):
     if EnvConfig.DEV_MODE:
-        return JSONResponse.API_Maintenance
+        return JSONResponse.API_NodeNotAvailable
+    
+    # 检查应用状态
+    if not AppState.is_available():
+        return JSONResponse.API_NodeNotAvailable
     
     if size not in (50, 100):
         raise HTTPException(status_code=422, detail="Page size must be 50 or 100")

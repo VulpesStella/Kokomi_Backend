@@ -859,7 +859,7 @@
 3719247056,9,Battleship,pan_asia,0,1,0,,PZSB549_Julang,Julang,Julang,,巨浪,,Julang,Julang,1
 3760174832,10,AirCarrier,italy,0,0,1,,PISA510_Lazio,Lazio,Lazio,,拉齐奥,,Lazio,Lazio,1
 4075730672,9,Cruiser,italy,0,0,0,,PISC209_Elio_Adriano,Elio Adriano,Elio Adriano,,埃利乌斯·哈德良,,Elio Adriano,Elio Adriano,1
-4178523888,11,Battleship,italy,0,0,1,,PISB111_Galileo,Galileo,Galileo,,伽利略,,Galileo,Galileo,1
+4178523888,11,Battleship,italy,0,0,0,,PISB111_Galileo,Galileo,Galileo,,伽利略,,Galileo,Galileo,1
 3728651984,10,Cruiser,japan,0,0,1,,PJSC540_Chikugo,Chikugo,Chikugo,,筑后,,Chikugo,Chikugo,1
 3750672336,9,Cruiser,uk,0,1,0,,PBSC519_Mita,Mita,Mita,,米塔,,Mita,Mita,1
 3719247312,9,Battleship,ussr,0,1,0,,PRSB549_Sovetskaya_Gruzia,Грузия,Грузия,,格鲁吉亚,,Грузия,Грузия,1
@@ -881,9 +881,9 @@
 3655218384,10,Destroyer,pan_asia,0,0,1,,PZSD610_Huang_Long_Chuan,Tuntou,Tuntou,,黄龙船,,Tuntou,Tuntou,1
 4073633520,11,Cruiser,italy,0,0,1,,PISC211_Liguria,Liguria,Liguria,,利古里亚,,Liguria,Liguria,1
 3760076624,10,Destroyer,france,0,0,1,,PFSD510_Voltigeur,Voltigeur,Voltigeur,,腾跃兵,,Voltigeur,Voltigeur,1
-4074747888,10,AirCarrier,usa,0,0,1,,PASA210_Essex,Essex,Essex,,埃塞克斯,,Essex,Essex,1
-4076845040,8,AirCarrier,usa,0,0,1,,PASA208_Yorktown,Yorktown,Yorktown,,约克城,,Yorktown,Yorktown,1
-4078942192,6,AirCarrier,usa,0,0,1,,PASA206_Independence,Independence,Independence,,独立,,Independence,Independence,1
+4074747888,10,AirCarrier,usa,0,0,0,,PASA210_Essex,Essex,Essex,,埃塞克斯,,Essex,Essex,1
+4076845040,8,AirCarrier,usa,0,0,0,,PASA208_Yorktown,Yorktown,Yorktown,,约克城,,Yorktown,Yorktown,1
+4078942192,6,AirCarrier,usa,0,0,0,,PASA206_Independence,Independence,Independence,,独立,,Independence,Independence,1
 3749656272,10,Battleship,japan,0,0,1,,PJSB520_Raiju,Raijū,Raijū,,雷兽,,Raijū,Raijū,1
 3247388112,10,Battleship,ussr,0,0,1,,PRSB999_Krasnoe_Znamya_rubka,Красное Знамя (Р),Красное Знамя (Р),,红旗（R）,,Красное Знамя (Р),Красное Знамя (Р),1
 3678386160,8,AirCarrier,usa,0,1,0,,PASA588_Black_Hornet,Hornet B,Hornet B,,大黄蜂 B,,Hornet B,Hornet B,1
@@ -939,3 +939,11 @@
 3435018224,10,Destroyer,usa,0,0,1,,PASD820_Colorful_Lynch,Lynch CLR,Lynch CLR,,林奇 CLR,,Lynch CLR,Lynch CLR,1
 3444520912,11,Battleship,uk,0,0,1,,PBSB811_Colorful_Devastation,Devastation CLR,Devastation CLR,,毁灭 CLR,,Devastation CLR,Devastation CLR,1
 3447633232,8,Cruiser,pan_america,0,1,0,,PVSC808_Colorful_Ignacio_Allende,I. Allende CLR,I. Allende CLR,,伊格纳西奥·阿连德 CLR,,I. Allende CLR,I. Allende CLR,1
+3759027952,11,Destroyer,italy,0,0,1,,PISD511_Amerigo_Vespucci,A. Vespucci,A. Vespucci,,A. Vespucci,,A. Vespucci,A. Vespucci,0
+3740186320,9,Cruiser,japan,0,1,0,,PJSC529_Chokai,Chōkai,Chōkai,,Chōkai,,Chōkai,Chōkai,0
+3719214896,9,Cruiser,germany,0,1,0,,PGSC549_Nibelung,Nibelung,Nibelung,,Nibelung,,Nibelung,Nibelung,0
+3748542448,11,Destroyer,usa,0,0,1,,PASD521_Jenkins,Jenkins,Jenkins,,Jenkins,,Jenkins,Jenkins,0
+3718198736,10,Battleship,ussr,0,0,1,,PRSB550_GDR,ГДР,ГДР,,ГДР,,ГДР,ГДР,0
+3707680208,10,Cruiser,ussr,0,0,1,,PRSC560_Gen_Suvorov,Суворов,Суворов,,Суворов,,Суворов,Суворов,0
+3750704432,9,Battleship,europe,0,1,0,,PWSB519_Budapest,Budapest,Budapest,,Budapest,,Budapest,Budapest,0
+3749590384,10,Destroyer,commonwealth,0,0,1,,PUSD520_Anzac,Anzac,Anzac,,Anzac,,Anzac,Anzac,0

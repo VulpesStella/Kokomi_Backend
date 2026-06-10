@@ -8,17 +8,17 @@ async def patch_translation():
     # 下载汉化并汉化为汉化的船只中文名称
     csv_path = r'F:\Kokomi_PJ_API\init\data\ship_name_lesta.csv'
     temp_mo_path = r"F:\Kokomi_PJ_API\temp\temp_global.mo"
-    # mo_url = "https://raw.githubusercontent.com/DDFantasyV/MK_RU_Data/main/Live/latest/global.mo"
-    # print(f"正在从 GitHub 下载最新汉化包...")
-    # async with httpx.AsyncClient() as client:
-    #     try:
-    #         res = await client.get(mo_url, timeout=30)
-    #         res.raise_for_status()
-    #         with open(temp_mo_path, "wb") as f:
-    #             f.write(res.content)
-    #     except Exception as e:
-    #         print(f"下载失败: {e}")
-    #         return
+    mo_url = "https://raw.githubusercontent.com/DDFantasyV/MK_RU_Data/main/Live/latest/global.mo"
+    print(f"正在从 GitHub 下载最新汉化包...")
+    async with httpx.AsyncClient() as client:
+        try:
+            res = await client.get(mo_url, timeout=30)
+            res.raise_for_status()
+            with open(temp_mo_path, "wb") as f:
+                f.write(res.content)
+        except Exception as e:
+            print(f"下载失败: {e}")
+            return
     mo_dict = {}
     try:
         mo_file = polib.mofile(temp_mo_path)

@@ -1,6 +1,7 @@
 import json
 from pymysql.cursors import Cursor
 
+from utils import get_metric_level
 from settings import (
     MAX_REFRESH_BATCH,
     METRIC_ID_TO_INDEX, 
@@ -169,3 +170,49 @@ def get_update_ids(cursor: Cursor) -> list:
     """
     cursor.execute(sql, [MAX_REFRESH_BATCH])
     return [row[0] for row in cursor.fetchall()]
+
+def get_ship_leaderboard(cursor: Cursor, ship_id: int, account_ids: list[str]):
+    """根据用户ID列表，从数据库中批量读取排行榜数据"""
+    placeholders = ','.join(['%s'] * len(account_ids))
+    sql = f"""
+        SELECT 
+            s.account_id,
+            u.clan_tag,
+            u.league,
+            u.username,
+            s.battles,
+            s.rating,
+            ROUND(s.win_rate, 2) AS win_rate,
+            s.avg_damage,
+            s.avg_damage_level AS avg_damage_level,
+            s.avg_frags,
+            s.avg_frags_level AS avg_frags_level,
+            s.avg_exp,
+            ROUND(s.hit_ratio, 2) AS hit_ratio,
+            s.max_exp,
+            s.max_damage
+        FROM T_ship_pvp_leaderboard s
+        LEFT JOIN V_user_basic_with_clan u
+            ON s.account_id = u.account_id
+        WHERE s.account_id IN ({placeholders})
+            AND s.ship_id = %s;
+    """
+    cursor.execute(sql, account_ids + [ship_id])
+    rows = cursor.fetchall()
+
+    result = {}
+    for row in rows:
+        account_id = str(row[0])
+        result[account_id] = [
+            row[1], row[2], row[3], row[4],
+            int(row[5]), get_metric_level(1, row[5]),
+            row[6], get_metric_level(0, row[6]),
+            row[7], row[8], row[9], row[10],
+            row[11], row[12], row[13], row[14]
+        ]
+    
+    payload = []
+    for i, user_id in enumerate(account_ids):
+        payload.append([i+1, int(user_id)] + result.get(user_id))
+
+    return payload

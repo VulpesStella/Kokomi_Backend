@@ -62,6 +62,24 @@ class RedisConnection:
             api_logger.warning(f"Test Redis connection failed: {e}")
 
     @classmethod
+    async def load_state(cls) -> bool:
+        """加载APP当前状态"""
+        if EnvConfig.DEV_MODE:
+            return True
+        
+        try:
+            key = 'status:maintenance'
+            conn = cls.acquire_conn()
+            response = await conn.exists(key)
+            if response:
+                return False
+            else: 
+                return True
+        except Exception as e:
+            api_logger.warning(f"Test Redis connection failed: {e}")
+            return False
+
+    @classmethod
     async def close_redis(cls) -> None:
         """关闭Redis连接"""
         if cls._conn is None:
