@@ -4,7 +4,7 @@ from fastapi.responses import FileResponse
 from app.core import EnvConfig, AppState
 from app.response import JSONResponse
 from app.middlewares import RedisClient
-from app.apis.maintenance import MaintenanceAPI
+from app.apis.maintenance import StateAPI, MaintenanceAPI
 
 
 router = APIRouter(prefix="/maintenance")
@@ -12,10 +12,10 @@ router = APIRouter(prefix="/maintenance")
 @router.get("/state/", summary="获取当前状态")
 async def get_app_state():
     """返回当前应用是否可用的全局状态"""
-    result = {
-        "available": AppState.is_available()
-    }
-    return JSONResponse.success(result)
+    if EnvConfig.DEV_MODE:
+        return JSONResponse.API_NodeNotAvailable
+    
+    return await StateAPI.get_node_state()
 
 
 @router.put("/state/", summary="设置应用可用状态")
@@ -24,25 +24,7 @@ async def set_app_state(available: bool = Query(..., description="设置应用�
     if EnvConfig.DEV_MODE:
         return JSONResponse.API_NodeNotAvailable
     
-    key = 'status:maintenance'
-
-    if available:
-        error, response = JSONResponse.extract_data(
-            response=await RedisClient.drop(key)
-        )
-    else:
-        error, response = JSONResponse.extract_data(
-            response=await RedisClient.set(key, 1)
-        )
-    if error:
-        return response
-    
-    AppState.set_available(available)
-
-    result = {
-        "available": AppState.is_available()
-    }
-    return JSONResponse.success(result)
+    return await StateAPI.set_node_state(available)
 
 @router.get("/database/meta/", summary="数据库统计指标")
 async def getDatabaseMeta():
