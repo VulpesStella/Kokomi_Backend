@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, Path
+from fastapi import HTTPException, APIRouter, Query, Path
 from typing import Optional
 
 from app.core import AppState, EnvConfig
@@ -20,7 +20,7 @@ async def getPvEOverall(
         return JSONResponse.API_NodeNotAvailable
     
     if GameUtils.check_uid(user_id) == False:
-        return JSONResponse.API_IllegalAccountID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     
     if include_old is None:
         include_old = True
@@ -41,7 +41,7 @@ async def getPvPOverall(
         return JSONResponse.API_NodeNotAvailable
     
     if GameUtils.check_uid(user_id) == False:
-        return JSONResponse.API_IllegalAccountID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     
     if include_old is None:
         include_old = True
@@ -54,7 +54,7 @@ async def getPvPOverall(
     }
     provided_filters = [name for name, val in filter_params.items() if val is not None]
     if len(provided_filters) > 1:
-        return JSONResponse.API_InvalidFilter
+        raise HTTPException(status_code=422, detail="Only one filter allowed")
     
     if not provided_filters:
         filter_type = "overall"
@@ -98,7 +98,7 @@ async def getRankedOverall(
         return JSONResponse.API_NodeNotAvailable
     
     if GameUtils.check_uid(user_id) == False:
-        return JSONResponse.API_IllegalAccountID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     
     if include_old is None:
         include_old = True

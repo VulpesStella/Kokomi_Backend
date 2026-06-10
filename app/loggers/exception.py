@@ -112,7 +112,7 @@ class ExceptionLogger:
                     error_info = traceback.format_exc(),
                     error_id=error_id
                 )
-                return JSONResponse.exception('MySQLError',error_id,e)
+                return JSONResponse.exception('MySQLError',error_id,'DataIntegrityError')
             except Exception as e:
                 error_id = str(uuid.uuid4())
                 write_exception(

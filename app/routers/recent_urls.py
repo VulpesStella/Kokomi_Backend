@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, Path
+from fastapi import HTTPException, APIRouter, Query, Path
 
 from app.core import EnvConfig, AppState
 from app.response import JSONResponse
@@ -19,7 +19,7 @@ async def getRecentSummary(
         return JSONResponse.API_NodeNotAvailable
     
     if GameUtils.check_uid(user_id) == False:
-        return JSONResponse.API_IllegalAccountID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     
     result = await RecentAPI.summary(user_id)
 

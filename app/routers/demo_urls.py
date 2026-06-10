@@ -1,5 +1,5 @@
 from typing import Literal
-from fastapi import APIRouter, Query, Path
+from fastapi import HTTPException, APIRouter, Query, Path
 
 from app.response import JSONResponse
 from app.core import EnvConfig
@@ -52,7 +52,7 @@ async def getUserDB(
         return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(user_id):
-        return JSONResponse.API_IllegalAccountID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     result = await MySQLAPI.get_user_overview(user_id)
     return result
 
@@ -65,7 +65,7 @@ async def delUserDB(
         return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(user_id):
-        return JSONResponse.API_IllegalAccountID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     result = await MySQLAPI.set_user_status(user_id, 0)
     return result
 
@@ -78,7 +78,7 @@ async def patchUserDB(
         return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(user_id):
-        return JSONResponse.API_IllegalAccountID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     result = await MySQLAPI.set_user_status(user_id, 1)
     return result
 
@@ -91,7 +91,7 @@ async def getClanDB(
         return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(clan_id):
-        return JSONResponse.API_IllegalClanID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     result = await MySQLAPI.get_clan_overview(clan_id)
     return result
 
@@ -104,7 +104,7 @@ async def delClanDB(
         return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(clan_id):
-        return JSONResponse.API_IllegalClanID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     result = await MySQLAPI.set_clan_status(clan_id, 0)
     return result
 
@@ -117,7 +117,7 @@ async def patchClanDB(
         return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(clan_id):
-        return JSONResponse.API_IllegalClanID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     result = await MySQLAPI.set_clan_status(clan_id, 1)
     return result
 
@@ -127,7 +127,7 @@ async def getUserAPI(
     user_id: int = Path(..., description="用户ID")
 ):
     if not GameUtils.check_uid(user_id):
-        return JSONResponse.API_IllegalAccountID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     result = await TestAPI.get_user_basic(user_id)
     return result
 
@@ -137,7 +137,7 @@ async def getUserAPI(
     user_id: int = Path(..., description="用户ID")
 ):
     if not GameUtils.check_uid(user_id):
-        return JSONResponse.API_IllegalAccountID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     result = await TestAPI.get_user_clan(user_id)
     return result
 
@@ -147,7 +147,7 @@ async def getUserAPI(
     clan_id: int = Path(..., description="工会ID")
 ):
     if not GameUtils.check_uid(clan_id):
-        return JSONResponse.API_IllegalClanID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     result = await TestAPI.get_clan_basic(clan_id)
     return result
 
@@ -157,7 +157,7 @@ async def getUserAPI(
     clan_id: int = Path(..., description="工会ID")
 ):
     if not GameUtils.check_uid(clan_id):
-        return JSONResponse.API_IllegalClanID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     result = await TestAPI.get_clan_members(clan_id)
     return result
 
@@ -176,7 +176,7 @@ async def enable_features(
         return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(user_id):
-        return JSONResponse.API_IllegalAccountID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     
     return await TestAPI.set_recent(user_id, level.value)
 
@@ -195,6 +195,6 @@ async def disable_features(
         return JSONResponse.API_NodeNotAvailable
     
     if not GameUtils.check_uid(user_id):
-        return JSONResponse.API_IllegalAccountID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     
     return await TestAPI.del_recent(user_id, level.value)

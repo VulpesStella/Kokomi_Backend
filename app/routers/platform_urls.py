@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, Path
+from fastapi import HTTPException, APIRouter, Query, Path
 
 from app.core import EnvConfig, AppState
 from app.schemas import ACResponse, AuthResponse
@@ -20,7 +20,7 @@ async def searchUser(
         result = await SearchAPI.search_user(name)
         return result
     else:
-        return JSONResponse.API_IllegalUserName
+        raise HTTPException(status_code=422, detail="Invalid tag length (2-25 required)")
 
 @router.get("/search/clan/", summary="搜索游戏工会")
 async def searchClan(
@@ -34,7 +34,7 @@ async def searchClan(
         result = await SearchAPI.search_clan(tag)
         return result
     else:
-        return JSONResponse.API_IllegalClanTag
+        raise HTTPException(status_code=422, detail="Invalid tag length (2-8 required)")
 
 
 @router.patch("/user/{user_id}/", summary="刷新用户基本信息的缓存")
@@ -44,7 +44,8 @@ async def getUserBasic(user_id: int = Path(...)):
         return JSONResponse.API_NodeNotAvailable
     
     if GameUtils.check_uid(user_id) == False:
-        return JSONResponse.API_IllegalAccountID
+        raise HTTPException(status_code=422, detail="Invalid UID")
+    
     result = await RefreshAPI.refresh_user(user_id)
     return result
 

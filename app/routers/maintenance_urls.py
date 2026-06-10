@@ -1,9 +1,8 @@
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 
-from app.core import EnvConfig, AppState
+from app.core import EnvConfig
 from app.response import JSONResponse
-from app.middlewares import RedisClient
 from app.apis.maintenance import StateAPI, MaintenanceAPI
 
 

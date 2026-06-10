@@ -111,12 +111,12 @@ interface ErrorResponse extends BaseResponse {
 
 #### 2. ⚠️ 服务器维护响应
 
-> 检测到 `code === 1015` 时，表示该节点服务器正在维护
+> 检测到 `code === 1001` 时，表示该节点服务器正在维护
 
 ```json
 {
     "status": "ok",
-    "code": 1015,
+    "code": 1001,
     "message": "NodeNotAvailable"
 }
 ```
@@ -128,7 +128,7 @@ interface ErrorResponse extends BaseResponse {
 ```json
 {
     "status": "ok",
-    "code": 1008,
+    "code": 1003,
     "message": "UserNotExist"
 }
 ```
@@ -215,7 +215,7 @@ async function callAPI<T>(
         return result.data as T;
     }
     
-    if (result.code === 1015) {
+    if (result.code === 1001) {
         throw new Error('服务器维护中，请稍后重试');
     }
 

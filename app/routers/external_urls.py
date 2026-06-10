@@ -75,7 +75,7 @@ async def refreshUserBasic(user_id: int = Path(...)):
         return JSONResponse.API_NodeNotAvailable
     
     if GameUtils.check_uid(user_id) == False:
-        return JSONResponse.API_IllegalAccountID
+        raise HTTPException(status_code=422, detail="Invalid UID")
     
     return await ShipRankingExternalAPI.refresh_user(user_id)
 
