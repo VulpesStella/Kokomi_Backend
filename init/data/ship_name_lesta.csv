@@ -87,7 +87,7 @@
 3763222256,7,Destroyer,italy,0,1,0,,PISD507_FR25,FR25,FR25,,FR25,,FR25,FR25,1
 3762206032,8,Cruiser,pan_america,0,1,0,,PVSC508_Almirante_Grau,Almte. Grau,Almirante Grau,,格劳海军上将,,Almte. Grau,Almte. Grau,1
 4186879728,3,Cruiser,italy,0,0,0,,PISC103_Taranto,Taranto,Taranto,,塔兰托,,Taranto,Taranto,1
-3763288048,6,Battleship,usa,0,1,0,,PASB507_West_Virginia,W. Virginia '41,W. Virginia '41,,西弗吉尼亚41,,W. Virginia '41,W. Virginia '41,1
+3763288048,6,Battleship,usa,0,1,0,,PASB507_West_Virginia,W. Virginia '41,W. Virginia '41,,西弗吉尼亚 41,,W. Virginia '41,W. Virginia '41,1
 4186879952,3,Cruiser,uk,0,0,0,,PBSC103_Caledon,Caledon,Caledon,,卡利登,,Caledon,Caledon,1
 3761157936,9,Cruiser,germany,0,1,0,,PGSC509_Siegfried,Siegfried,Siegfried,,齐格菲,,Siegfried,Siegfried,1
 4292818736,8,Battleship,germany,0,1,0,,PGSB002_Tirpiz_1942,Tirpitz,Tirpitz,,提尔皮茨,,Tirpitz,Tirpitz,1
@@ -157,7 +157,7 @@
 3655219024,10,Destroyer,france,0,0,1,,PFSD610_Chateaurenault,Châteaurenault,Châteaurenault,,沙托雷诺,,Châteaurenault,Châteaurenault,1
 4186879824,3,Cruiser,france,0,0,0,,PFSC103_Friant,Friant,Friant,,弗利昂,,Friant,Friant,1
 4181669712,8,Battleship,france,0,0,0,,PFSB108_Richelieu,Richelieu,Richelieu,,黎塞留,,Richelieu,Richelieu,1
-3331241680,8,Cruiser,japan,0,0,1,,PJSC919_Tone_Third,Tone 3,Tone 3,,利根3,,利根 3,Tone 3,1
+3331241680,8,Cruiser,japan,0,0,1,,PJSC919_Tone_Third,Tone 3,Tone 3,,利根 3,,利根 3,Tone 3,1
 4081039312,4,AirCarrier,uk,0,0,0,,PBSA204_Hermes,Hermes,Hermes,,竞技神,,Hermes,Hermes,1
 3655317296,10,AirCarrier,germany,0,0,1,,PGSA610_Max_Immelmann,M. Immelmann,Max Immelmann,,M.殷麦曼,,M. Immelmann,M. Immelmann,1
 3764270288,6,Destroyer,pan_asia,0,1,0,,PZSD506_Anshan,Anshan,Anshan,,鞍山,,Anshan,Anshan,1
@@ -352,7 +352,7 @@
 4183766480,6,Battleship,ussr,0,0,0,,PRSB106_Izmail,Izmail,Izmail,,伊兹梅尔,,Izmail,Измаил,1
 3667801808,8,Destroyer,japan,0,1,0,,PJSD598_Black_Asashio,Asashio B,Asashio B,,朝潮 B,,朝潮 B,Asashio B,1
 4266538992,3,Destroyer,usa,0,0,0,,PASD027_Wickes_1918,Wickes,Wickes,,维克斯,,Wickes,Wickes,1
-3751720912,8,Cruiser,uk,0,1,0,,PBSC518_Tiger_1959,Tiger '59,Tiger '59,,虎59,,Tiger '59,Tiger '59,1
+3751720912,8,Cruiser,uk,0,1,0,,PBSC518_Tiger_1959,Tiger '59,Tiger '59,,虎 59,,Tiger '59,Tiger '59,1
 4183799792,6,AirCarrier,usa,0,0,0,,PASA106_Ranger,Ranger,Ranger,,突击者,,Ranger,Ranger,1
 3761157904,9,Cruiser,netherlands,0,1,0,,PHSC509_Van_Speijk,Van Speijk,Van Speijk,,范·斯佩克,,Van Speijk,Van Speijk,1
 3763287888,7,Battleship,france,0,1,0,,PFSB507_Strasbourg,Strasbourg,Strasbourg,,斯特拉斯堡,,Strasbourg,Strasbourg,1
@@ -487,7 +487,7 @@
 4076778960,8,Cruiser,ussr,0,0,0,,PRSC208_Tallin,Tallinn,Tallinn,,塔林,,Tallinn,Таллин,1
 4178491376,11,Cruiser,usa,0,0,0,,PASC111_Annapolis,Annapolis,Annapolis,,安纳波利斯,,Annapolis,Annapolis,1
 4181603632,8,Destroyer,europe,0,0,0,,PWSD108_Oland,Öland,Öland,,厄兰,,Öland,Öland,1
-3344905936,6,Battleship,japan,0,0,1,,PJSB906_Ise_TEST1,Ise 2,Ise 2,,伊势2,,伊勢 2,Ise 2,1
+3344905936,6,Battleship,japan,0,0,1,,PJSB906_Ise_TEST1,Ise 2,Ise 2,,伊势 2,,伊勢 2,Ise 2,1
 4069438928,5,Cruiser,ussr,0,0,0,,PRSC215_Kotovsky,Kotovsky,Kotovsky,,科托夫斯基,,Kotovsky,Котовский,1
 4180587856,9,Cruiser,pan_america,0,0,0,,PVSC109_Santander,Santander,Santander,,桑坦德,,Santander,Santander,1
 4179539696,10,Cruiser,italy,0,0,0,,PISC110_Venezia,Venezia,Venezia,,威尼斯,,Venezia,Venezia,1
@@ -543,7 +543,7 @@
 4184815568,5,Battleship,uk,0,0,0,,PBSB105_Iron_Duke,Iron Duke,Iron Duke,,铁公爵,,Iron Duke,Iron Duke,1
 3764303664,6,Cruiser,germany,0,1,0,,PGSC506_Admiral_Graf_Spee,Graf Spee,Admiral Graf Spee,,施佩伯爵,,Graf Spee,Graf Spee,1
 4075763152,9,Battleship,ussr,0,0,0,,PRSB209_Admiral_Kornilov,Admiral Kornilov,Admiral Kornilov,,科尔尼洛夫,,Admiral Kornilov,Корнилов,1
-3752736208,7,Destroyer,ussr,0,1,0,,PRSD517_Tashkent_1939,Tashkent '39,Tashkent '39,,塔什干39,,Tashkent '39,Ташкент '39,1
+3752736208,7,Destroyer,ussr,0,1,0,,PRSD517_Tashkent_1939,Tashkent '39,Tashkent '39,,塔什干 39,,Tashkent '39,Ташкент '39,1
 3760108912,10,Cruiser,commonwealth,0,0,1,,PUSC510_Brisbane,Brisbane,Brisbane,,布里斯班,,Brisbane,Brisbane,1
 4182685456,7,Cruiser,netherlands,0,0,0,,PHSC107_Eendracht,Eendracht,Eendracht,,团结,,Eendracht,Eendracht,1
 4074649040,10,Destroyer,ussr,0,0,0,,PRSD210_Grozovoy_pr_40N,Grozovoi,Grozovoi,,雷暴,,Grozovoi,Грозовой,1
@@ -683,7 +683,7 @@
 3751753520,8,Battleship,germany,0,1,0,,PGSB518_Brandenburg,Brandenburg,Brandenburg,,勃兰登堡,,Brandenburg,Brandenburg,1
 4182652720,7,Destroyer,germany,0,0,0,,PGSD107_Leberecht_Maass,Maass,Leberecht Maass,,马斯,,Maass,Maass,1
 3764369200,6,AirCarrier,germany,0,1,0,,PGSA506_Erich_Loewenhardt,E. Loewenhardt,Erich Loewenhardt,,E.勒文哈尔特,,E. Loewenhardt,E. Loewenhardt,1
-3334420176,6,Battleship,japan,0,0,1,,PJSB916_Ise_TEST2,Ise 3,Ise 3,,伊势3,,伊勢 3,Ise 3,1
+3334420176,6,Battleship,japan,0,0,1,,PJSB916_Ise_TEST2,Ise 3,Ise 3,,伊势 3,,伊勢 3,Ise 3,1
 3744380368,5,Cruiser,ussr,0,1,0,,PRSC525_Kirov,Kirov,Kirov,,基洛夫,,Kirov,Киров,1
 4074714576,10,Battleship,ussr,0,0,0,,PRSB210_Admiral_Lazarev,Admiral Lazarev,Admiral Lazarev,,拉扎列夫,,Admiral Lazarev,Лазарев,1
 4181637104,8,Cruiser,usa,0,0,0,,PASC108_Baltimore_1944,Baltimore,Baltimore,,巴尔的摩,,Baltimore,Baltimore,1
@@ -827,22 +827,22 @@
 3763779408,6,Submarine,france,0,1,0,,PFSS506_Saphir,Saphir,Saphir,,蓝宝石,,Saphir,Saphir,1
 3761682160,8,Submarine,italy,0,1,0,,PISS508_Nani,G. Nani,G. Nani,,贾科莫·纳尼,,G. Nani,G. Nani,1
 3741234384,8,Cruiser,pan_asia,0,1,0,,PZSC528_Dou_Jian,Dou Jian,Dou Jian,,斗舰,,Dou Jian,Dou Jian,1
-3729700304,9,Cruiser,ussr,0,1,0,,PRSC539_Yuri_Dolgorukiy,Ю. Долгорукий,Ю. Долгорукий,,尤里·多尔戈鲁基,,Ю. Долгорукий,Ю. Долгорукий,1
+3729700304,9,Cruiser,ussr,0,1,0,,PRSC539_Yuri_Dolgorukiy,Y. Dolgoruky,Y. Dolgoruky,,尤里·多尔戈鲁基,,Y. Dolgoruky,Ю. Долгорукий,1
 3751785680,8,AirCarrier,pan_asia,0,1,0,,PZSA518_Xian_Deng,Xian Deng,Xian Deng,,先登,,Xian Deng,Xian Deng,1
-4178556368,11,AirCarrier,ussr,0,0,0,,PRSA111_Ulyanovsk,Ульяновск,Ульяновск,,乌里扬诺夫斯克,,Ульяновск,Ульяновск,1
+4178556368,11,AirCarrier,ussr,0,0,0,,PRSA111_Ulyanovsk,Ulyanovsk,Ulyanovsk,,乌里扬诺夫斯克,,Ulyanovsk,Ульяновск,1
 3760108976,10,Cruiser,spain,0,0,1,,PSSC510_Madrid,Madrid,Madrid,,马德里,,Madrid,Madrid,1
-3973985744,6,Destroyer,ussr,0,0,0,,PRSD306_Soobrazitelny,Сообразительный,Сообразительный,,灵敏,,Сообразительный,Сообразительный,1
-3743364560,6,Battleship,ussr,0,1,0,,PRSB526_Top_Secret,Топ Сикрет,Топ Сикрет,,最高机密,,Топ Сикрет,Топ Сикрет,1
-3962451408,7,Destroyer,ussr,0,0,0,,PRSD317_Osmotritelny,Осмотрительный,Осмотрительный,,谨慎,,Осмотрительный,Осмотрительный,1
-3960354256,9,Destroyer,ussr,0,0,0,,PRSD319_Spokoiny,Спокойный,Спокойный,,平静,,Спокойный,Спокойный,1
-3761124816,9,Destroyer,ussr,0,1,0,,PRSD509_Sovremenny,Современный,Современный,,现代,,Современный,Современный,1
-3754898896,5,Battleship,ussr,0,1,0,,PRSB515_Parizhskaya_Kommuna,П. коммуна,П. коммуна,,巴黎公社,,П. коммуна,П. коммуна,1
+3973985744,6,Destroyer,ussr,0,0,0,,PRSD306_Soobrazitelny,Soobrazitelny,Soobrazitelny,,灵敏,,Soobrazitelny,Сообразительный,1
+3743364560,6,Battleship,ussr,0,1,0,,PRSB526_Top_Secret,Top Secret,Top Secret,,最高机密,,Top Secret,Топ Сикрет,1
+3962451408,7,Destroyer,ussr,0,0,0,,PRSD317_Osmotritelny,Osmotritelny,Osmotritelny,,谨慎,,Osmotritelny,Осмотрительный,1
+3960354256,9,Destroyer,ussr,0,0,0,,PRSD319_Spokoiny,Spokoiny,Spokoiny,,平静,,Spokoiny,Спокойный,1
+3761124816,9,Destroyer,ussr,0,1,0,,PRSD509_Sovremenny,Sovremenny,Sovremenny,,现代,,Sovremenny,Современный,1
+3754898896,5,Battleship,ussr,0,1,0,,PRSB515_Parizhskaya_Kommuna,P. Commune,P. Commune,,巴黎公社,,P. Commune,П. коммуна,1
 3761190736,9,Battleship,france,0,1,0,,PFSB509_Bernadotte,Bernadotte,Bernadotte,,贝尔纳多特,,Bernadotte,Bernadotte,1
-4066260432,8,Destroyer,ussr,0,0,0,,PRSD218_Opytny,Опытный,Опытный,,老练,,Опытный,Опытный,1
-3334387152,6,Cruiser,ussr,0,0,1,,PRSC916_Makarov_challenge,Макаров У,Макаров У,,马卡洛夫 U,,Макаров У,Макаров У,1
+4066260432,8,Destroyer,ussr,0,0,0,,PRSD218_Opytny,Opytniy,Opytniy,,老练,,Opytniy,Опытный,1
+3334387152,6,Cruiser,ussr,0,0,1,,PRSC916_Makarov_challenge,Makarov U,Makarov U,,马卡洛夫 U,,Makarov U,Макаров У,1
 3751753680,8,Battleship,uk,0,1,0,,PBSB518_Anson,Anson,Anson,,安森,,Anson,Anson,1
-3959305680,10,Destroyer,ussr,0,0,0,,PRSD320_Gordelivy,Горделивый,Горделивый,,高傲,,Горделивый,Горделивый,1
-3961402832,8,Destroyer,ussr,0,0,0,,PRSD318_Smely,Смелый,Смелый,,大胆,,Смелый,Смелый,1
+3959305680,10,Destroyer,ussr,0,0,0,,PRSD320_Gordelivy,Gordelivy,Gordelivy,,高傲,,Gordelivy,Горделивый,1
+3961402832,8,Destroyer,ussr,0,0,0,,PRSD318_Smely,Smely,Smely,,大胆,,Smely,Смелый,1
 3750639440,9,Destroyer,france,0,1,0,,PFSD519_Forbin,Forbin,Forbin,,福尔班,,Forbin,Forbin,1
 3761157456,9,Cruiser,pan_america,0,1,0,,PVSC509_Francisco_Miranda,F. de Miranda,F. de Miranda,,弗朗西斯科·德·米兰达,,F. de Miranda,F. de Miranda,1
 4179015504,10,Submarine,france,0,0,0,,PFSS110_Casabianca,Casabianca,Casabianca,,卡萨比安卡,,Casabianca,Casabianca,1
@@ -851,7 +851,7 @@
 3749623600,10,Cruiser,germany,0,0,1,,PGSC520_Falkenhayn,Falkenhayn,Falkenhayn,,法金汉,,Falkenhayn,Falkenhayn,1
 4178458448,11,Destroyer,france,0,0,0,,PFSD111_Robespierre,Robespierre,Robespierre,,罗伯斯庇尔,,Robespierre,Robespierre,1
 3761125200,9,Destroyer,france,0,1,0,,PFSD509_Duperre,Duperré,Duperré,,杜佩雷,,Duperré,Duperré,1
-3739170256,10,Battleship,ussr,0,0,1,,PRSB530_Krasnoe_Znamya,Кр. Знамя,Кр. Знамя,,红旗,,Кр. Знамя,Кр. Знамя,1
+3739170256,10,Battleship,ussr,0,0,1,,PRSB530_Krasnoe_Znamya,Krasnoe Znamya,Krasnoe Znamya,,红旗,,Krasnoe Znamya,Кр. Знамя,1
 3445569232,10,Battleship,japan,0,0,1,,PJSB810_Colorful_Yamato,Yamato CLR,Yamato CLR,,大和 CLR,,Yamato CLR,Yamato CLR,1
 3446552528,9,Destroyer,uk,0,1,0,,PBSD809_Colorful_Jutland,Jutland CLR,Jutland CLR,,日德兰 CLR,,Jutland CLR,Jutland CLR,1
 3764336592,6,Battleship,uk,0,1,0,,PBSB506_Royal_Sovereign,Royal Sovereign,Royal Sovereign,,君权,,Royal Sovereign,Royal Sovereign,1
@@ -862,10 +862,10 @@
 4178523888,11,Battleship,italy,0,0,0,,PISB111_Galileo,Galileo,Galileo,,伽利略,,Galileo,Galileo,1
 3728651984,10,Cruiser,japan,0,0,1,,PJSC540_Chikugo,Chikugo,Chikugo,,筑后,,Chikugo,Chikugo,1
 3750672336,9,Cruiser,uk,0,1,0,,PBSC519_Mita,Mita,Mita,,米塔,,Mita,Mita,1
-3719247312,9,Battleship,ussr,0,1,0,,PRSB549_Sovetskaya_Gruzia,Грузия,Грузия,,格鲁吉亚,,Грузия,Грузия,1
+3719247312,9,Battleship,ussr,0,1,0,,PRSB549_Sovetskaya_Gruzia,Gruzia,Gruzia,,格鲁吉亚,,Gruzia,Грузия,1
 4074682096,10,Cruiser,italy,0,0,0,,PISC210_Ulpio_Traiano,Ulpio Traiano,Ulpio Traiano,,乌尔皮乌斯·图拉真,,Ulpio Traiano,Ulpio Traiano,1
 3729733360,9,Battleship,italy,0,1,0,,PISB539_Impero,Impero,Impero,,帝国,,Impero,Impero,1
-3334354384,6,Destroyer,ussr,0,0,1,,PRSD916_Destroyer_challenge,Упорный,Упорный,,倔强,,Упорный,Упорный,1
+3334354384,6,Destroyer,ussr,0,0,1,,PRSD916_Destroyer_challenge,Uporny,Uporny,,顽强,,Uporny,Упорный,1
 3729700656,9,Cruiser,germany,0,1,0,,PGSC539_Danzig,Danzig,Danzig,,但泽,,Danzig,Danzig,1
 4077827824,7,Cruiser,italy,0,0,0,,PISC207_Valerio_Constantino,V. Constantino,V. Constantino,,瓦莱里乌斯·君士坦丁,,V. Constantino,V. Constantino,1
 4076779248,8,Cruiser,italy,0,0,0,,PISC208_Marco_Aurelio,Marco Aurelio,Marco Aurelio,,马可·奥勒留,,Marco Aurelio,Marco Aurelio,1
@@ -877,7 +877,7 @@
 3550361584,10,Destroyer,usa,0,0,1,,PASD710_William_R_Rush,William R. Rush,William R. Rush,,威廉·R·拉什,,William R. Rush,William R. Rush,1
 3709777904,8,Cruiser,usa,0,1,0,,PASC558_Constitution,Constitution,Constitution,,宪法,,Constitution,Constitution,1
 3760108848,10,Cruiser,europe,0,0,1,,PWSC510_Tordenskjold,Tordenskjold,Tordenskjold,,托登斯基尔德,,Tordenskjold,Tordenskjold,1
-3750639056,9,Destroyer,ussr,0,1,0,,PRSD519_Pr_31_Ognenny,Огненный,Огненный,,火红,,Огненный,Огненный,1
+3750639056,9,Destroyer,ussr,0,1,0,,PRSD519_Pr_31_Ognenny,Ognenny,Ognenny,,火红,,Ognenny,Огненный,1
 3655218384,10,Destroyer,pan_asia,0,0,1,,PZSD610_Huang_Long_Chuan,Tuntou,Tuntou,,黄龙船,,Tuntou,Tuntou,1
 4073633520,11,Cruiser,italy,0,0,1,,PISC211_Liguria,Liguria,Liguria,,利古里亚,,Liguria,Liguria,1
 3760076624,10,Destroyer,france,0,0,1,,PFSD510_Voltigeur,Voltigeur,Voltigeur,,腾跃兵,,Voltigeur,Voltigeur,1
@@ -885,24 +885,24 @@
 4076845040,8,AirCarrier,usa,0,0,0,,PASA208_Yorktown,Yorktown,Yorktown,,约克城,,Yorktown,Yorktown,1
 4078942192,6,AirCarrier,usa,0,0,0,,PASA206_Independence,Independence,Independence,,独立,,Independence,Independence,1
 3749656272,10,Battleship,japan,0,0,1,,PJSB520_Raiju,Raijū,Raijū,,雷兽,,Raijū,Raijū,1
-3247388112,10,Battleship,ussr,0,0,1,,PRSB999_Krasnoe_Znamya_rubka,Красное Знамя (Р),Красное Знамя (Р),,红旗（R）,,Красное Знамя (Р),Красное Знамя (Р),1
+3247388112,10,Battleship,ussr,0,0,1,,PRSB999_Krasnoe_Znamya_rubka,Krasnoe Znamya (R),Krasnoe Znamya (R),,红旗（R）,,Krasnoe Znamya (R),Красное Знамя (Р),1
 3678386160,8,AirCarrier,usa,0,1,0,,PASA588_Black_Hornet,Hornet B,Hornet B,,大黄蜂 B,,Hornet B,Hornet B,1
 3760108880,10,Cruiser,pan_america,0,0,1,,PVSC510_Simon_Bolivar,Simón Bolívar,Simón Bolívar,,西蒙·玻利瓦尔,,Simón Bolívar,Simón Bolívar,1
 3676222832,10,Cruiser,commonwealth,0,0,1,,PUSC590_Black_Brisbane,Brisbane B,Brisbane B,,布里斯班 B,,Brisbane B,Brisbane B,1
 3678320432,8,Cruiser,germany,0,1,0,,PGSC588_Black_Prinz_Eugen,Prinz Eugen B,Prinz Eugen B,,欧根亲王 B,,Prinz Eugen B,Prinz Eugen B,1
 3666752816,9,Destroyer,europe,0,1,0,,PWSD599_Black_Jager,Jäger B,Jäger B,,猎兵 B,,Jäger B,Jäger B,1
-3552490960,8,Cruiser,ussr,0,1,0,,PRSC708_Grem,Грем,Грем,,格列姆,,Грем,Грем,1
+3552490960,8,Cruiser,ussr,0,1,0,,PRSC708_Grem,Grem,Grem,,格列姆,,Grem,Грем,1
 3739170768,10,Battleship,uk,0,0,1,,PBSB530_Jellicoe,Jellicoe,Jellicoe,,杰利科,,Jellicoe,Jellicoe,1
 3667867472,8,Battleship,france,0,1,0,,PFSB598_Black_Gascogne,Gascogne B,Gascogne B,,加斯科涅 B,,Gascogne B,Gascogne B,1
-3728684496,10,Battleship,ussr,0,0,1,,PRSB540_Strana_Sovetov,Страна Советов,Страна Советов,,苏维埃国家,,Страна Советов,Страна Советов,1
+3728684496,10,Battleship,ussr,0,0,1,,PRSB540_Strana_Sovetov,Strana Sovetov,Strana Sovetov,,苏维埃国家,,Strana Sovetov,Страна Советов,1
 3761681712,8,Submarine,europe,0,1,0,,PWSS508_Saldiray,Saldıray,Saldıray,,萨尔迪雷,,Saldıray,Saldıray,1
 3666818768,9,Battleship,japan,0,1,0,,PJSB599_Owari_no_Oni,Owari-no-Oni,Owari-no-Oni,,尾张之鬼,,Owari-no-Oni,Owari-no-Oni,1
-3550426576,10,Battleship,ussr,0,0,1,,PRSB710_Kiberslava,Киберслава,Киберслава,,赛博光荣,,Киберслава,Киберслава,1
-3753784784,6,Destroyer,ussr,0,1,0,,PRSD516_Shaumian,Шаумян,Шаумян,,邵武勉,,Шаумян,Шаумян,1
+3550426576,10,Battleship,ussr,0,0,1,,PRSB710_Kiberslava,Cyberslava,Cyberslava,,赛博光荣,,Cyberslava,Киберслава,1
+3753784784,6,Destroyer,ussr,0,1,0,,PRSD516_Shaumian,Shaumian,Shaumian,,邵武勉,,Shaumian,Шаумян,1
 3720296432,8,Battleship,usa,0,1,0,,PASB548_Oregon,Oregon,Oregon,,俄勒冈,,Oregon,Oregon,1
 4178457936,11,Destroyer,pan_america,0,0,1,,PVSD111_20_de_Julio,20 de Julio,20 de Julio,,七月二十日,,20 de Julio,20 de Julio,1
 4179506512,10,Destroyer,pan_america,0,0,1,,PVSD110_Nueva_Esparta,Nueva Esparta,Nueva Esparta,,新埃斯帕塔,,Nueva Esparta,Nueva Esparta,1
-3729733072,9,Battleship,ussr,0,1,0,,PRSB539_Ural,Урал,Урал,,乌拉尔,,Урал,Урал,1
+3729733072,9,Battleship,ussr,0,1,0,,PRSB539_Ural,Ural,Ural,,乌拉尔,,Ural,Урал,1
 3750704976,9,Battleship,france,0,1,0,,PFSB519_Jean_Bart_1943,Jean Bart '43,Jean Bart '43,,让·巴尔43,,Jean Bart '43,Jean Bart '43,1
 4073666352,11,Battleship,germany,0,0,1,,PGSB211_Ludendorff,Ludendorff,Ludendorff,,鲁登道夫,,Ludendorff,Ludendorff,1
 4183700816,6,Destroyer,pan_america,0,0,1,,PVSD106_Buenos_Aires,Buenos Aires,Buenos Aires,,布宜诺斯艾利斯,,Buenos Aires,Buenos Aires,1
@@ -914,15 +914,15 @@
 3644798160,10,Battleship,pan_asia,0,0,1,,PZSB620_Huangdi,Huángdì,Huángdì,,黄帝,,Huángdì,Huángdì,1
 3750672208,9,Cruiser,france,0,1,0,,PFSC519_De_Grasse_1956,De Grasse '56,De Grasse '56,,德·格拉斯56,,De Grasse '56,De Grasse '56,1
 3729700048,9,Cruiser,pan_asia,0,1,0,,PZSC539_Chidi,Chìdì,Chìdì,,赤帝,,Chìdì,Chìdì,1
-3657348560,8,Cruiser,ussr,0,1,0,,PRSC608_Latanu,Латану,Латану,,洛坦,,Латану,Латану,1
-3256760048,10,Destroyer,italy,0,0,1,,PISD990_Destroyer_test,A. Regolo (ЭМ),A. Regolo (ЭМ),,阿蒂略·莱戈洛（测试）,,A. Regolo (ЭМ),A. Regolo (ЭМ),1
-3646862800,8,Cruiser,ussr,0,1,0,,PRSC618_Albatros,Альбатрос,Альбатрос,,信天翁,,Альбатрос,Альбатрос,1
-3255777072,10,Battleship,germany,0,0,1,,PGSB991_Battleship_test_1,Schlieffen (ЭМ),Schlieffen (ЭМ),,施里芬（测试）,,Schlieffen (ЭМ),Schlieffen (ЭМ),1
-3656299984,9,Cruiser,ussr,0,1,0,,PRSC609_Kometa,Комета,Комета,,彗星,,Комета,Комета,1
-3256825648,10,Battleship,germany,0,0,1,,PGSB990_Battleship_test,Preussen (ЭМ),Preussen (ЭМ),,普鲁士（测试）,,Preussen (ЭМ),Preussen (ЭМ),1
+3657348560,8,Cruiser,ussr,0,1,0,,PRSC608_Latanu,Latanu,Latanu,,洛坦,,Latanu,Латану,1
+3256760048,10,Destroyer,italy,0,0,1,,PISD990_Destroyer_test,A. Regolo (Test),A. Regolo (Test),,阿蒂略·莱戈洛（测试）,,A. Regolo (Test),A. Regolo (ЭМ),1
+3646862800,8,Cruiser,ussr,0,1,0,,PRSC618_Albatros,Albatross,Albatross,,信天翁,,Albatross,Альбатрос,1
+3255777072,10,Battleship,germany,0,0,1,,PGSB991_Battleship_test_1,Schlieffen (Test),Schlieffen (Test),,施里芬（测试）,,Schlieffen (Test),Schlieffen (ЭМ),1
+3656299984,9,Cruiser,ussr,0,1,0,,PRSC609_Kometa,Kometa,Kometa,,彗星,,Kometa,Комета,1
+3256825648,10,Battleship,germany,0,0,1,,PGSB990_Battleship_test,Preussen (Test),Preussen (Test),,普鲁士（测试）,,Preussen (Test),Preussen (ЭМ),1
 3657348304,8,Cruiser,pan_asia,0,1,0,,PZSC608_Tanifa,Tanifa,Tanifa,,塔尼瓦,,Tanifa,Tanifa,1
 3718166224,10,Cruiser,japan,0,0,1,,PJSC550_Kaimon,Kaimon,Kaimon,,海门,,Kaimon,Kaimon,1
-3256792912,10,Cruiser,france,0,0,1,,PFSC990_Cruiser_test,Marseille (ЭМ),Marseille (ЭМ),,马赛（测试）,,Marseille (ЭМ),Marseille (ЭМ),1
+3256792912,10,Cruiser,france,0,0,1,,PFSC990_Cruiser_test,Marseille (Test),Marseille (Test),,马赛（测试）,,Marseille (Test),Marseille (ЭМ),1
 3759028208,11,Destroyer,usa,0,0,1,,PASD511_Stonewall,Stonewall,Stonewall,,石墙,,Stonewall,Stonewall,1
 3759028176,11,Destroyer,uk,0,0,1,,PBSD511_Waterloo,Waterloo,Waterloo,,滑铁卢,,Waterloo,Waterloo,1
 3970906096,9,Battleship,usa,0,0,1,,PASB309_Indiana,Indiana,Indiana,,印第安纳,,Indiana,Indiana,1
@@ -934,16 +934,16 @@
 4073666544,11,Battleship,usa,0,0,1,,PASB211_Virginia,Virginia,Virginia,,弗吉尼亚,,Virginia,Virginia,1
 3973003248,7,Battleship,usa,0,0,1,,PASB307_Connecticut,Connecticut,Connecticut,,康涅狄格,,Connecticut,Connecticut,1
 3762271952,8,AirCarrier,japan,0,1,0,,PJSA508_Akagi,Akagi,Akagi,,赤城,,Akagi,Akagi,1
-3446584784,9,Cruiser,ussr,0,1,0,,PRSC809_Colorful_Riga,Рига CLR,Рига CLR,,里加 CLR,,Рига CLR,Рига CLR,1
+3446584784,9,Cruiser,ussr,0,1,0,,PRSC809_Colorful_Riga,Riga CLR,Riga CLR,,里加 CLR,,Riga CLR,Riga CLR,1
 3749623792,10,Cruiser,usa,0,0,1,,PASC520_Northampton,Northampton,Northampton,,北安普顿,,Northampton,Northampton,1
 3435018224,10,Destroyer,usa,0,0,1,,PASD820_Colorful_Lynch,Lynch CLR,Lynch CLR,,林奇 CLR,,Lynch CLR,Lynch CLR,1
 3444520912,11,Battleship,uk,0,0,1,,PBSB811_Colorful_Devastation,Devastation CLR,Devastation CLR,,毁灭 CLR,,Devastation CLR,Devastation CLR,1
 3447633232,8,Cruiser,pan_america,0,1,0,,PVSC808_Colorful_Ignacio_Allende,I. Allende CLR,I. Allende CLR,,伊格纳西奥·阿连德 CLR,,I. Allende CLR,I. Allende CLR,1
-3759027952,11,Destroyer,italy,0,0,1,,PISD511_Amerigo_Vespucci,A. Vespucci,A. Vespucci,,A. Vespucci,,A. Vespucci,A. Vespucci,0
-3740186320,9,Cruiser,japan,0,1,0,,PJSC529_Chokai,Chōkai,Chōkai,,Chōkai,,Chōkai,Chōkai,0
-3719214896,9,Cruiser,germany,0,1,0,,PGSC549_Nibelung,Nibelung,Nibelung,,Nibelung,,Nibelung,Nibelung,0
-3748542448,11,Destroyer,usa,0,0,1,,PASD521_Jenkins,Jenkins,Jenkins,,Jenkins,,Jenkins,Jenkins,0
-3718198736,10,Battleship,ussr,0,0,1,,PRSB550_GDR,ГДР,ГДР,,ГДР,,ГДР,ГДР,0
-3707680208,10,Cruiser,ussr,0,0,1,,PRSC560_Gen_Suvorov,Суворов,Суворов,,Суворов,,Суворов,Суворов,0
-3750704432,9,Battleship,europe,0,1,0,,PWSB519_Budapest,Budapest,Budapest,,Budapest,,Budapest,Budapest,0
-3749590384,10,Destroyer,commonwealth,0,0,1,,PUSD520_Anzac,Anzac,Anzac,,Anzac,,Anzac,Anzac,0
+3759027952,11,Destroyer,italy,0,0,1,,PISD511_Amerigo_Vespucci,A. Vespucci,A. Vespucci,,亚美瑞格·韦斯普奇,,A. Vespucci,A. Vespucci,1
+3740186320,9,Cruiser,japan,0,1,0,,PJSC529_Chokai,Chōkai,Chōkai,,鸟海,,Chōkai,Chōkai,1
+3719214896,9,Cruiser,germany,0,1,0,,PGSC549_Nibelung,Nibelung,Nibelung,,尼伯龙根,,Nibelung,Nibelung,1
+3748542448,11,Destroyer,usa,0,0,1,,PASD521_Jenkins,Jenkins,Jenkins,,詹金斯,,Jenkins,Jenkins,1
+3718198736,10,Battleship,ussr,0,0,1,,PRSB550_GDR,GDR,GDR,,民主德国,,GDR,ГДР,1
+3707680208,10,Cruiser,ussr,0,0,1,,PRSC560_Gen_Suvorov,G. Suvorov,G. Suvorov,,苏沃洛夫大元帅,,G. Suvorov,Суворов,1
+3750704432,9,Battleship,europe,0,1,0,,PWSB519_Budapest,Budapest,Budapest,,布达佩斯,,Budapest,Budapest,1
+3749590384,10,Destroyer,commonwealth,0,0,1,,PUSD520_Anzac,Anzac,Anzac,,澳新军团,,Anzac,Anzac,1
