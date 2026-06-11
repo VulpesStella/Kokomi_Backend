@@ -1,3 +1,4 @@
+import uuid
 import json
 from pymysql.cursors import Cursor
 from collections import defaultdict
@@ -201,7 +202,7 @@ class ShipRecentAggregator:
             if unknown:
                 unknown_payload = json.dumps(unknown)
                 self.insert_error_params.append(
-                    (uuid_val, game_version, account_id, unknown_payload)
+                    (str(uuid.uuid4()), game_version, account_id, unknown_payload)
                 )
 
     def get_ship_aggregator(self):
