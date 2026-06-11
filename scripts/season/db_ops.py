@@ -327,6 +327,8 @@ def get_clan_leaderboard(cursor: Cursor, clan_ids: list[str]):
             s.public_rating, 
             s.max_streak,
             s.stage_type,
+            s.stage_battles,
+            s.stage_victories,
             s.stage_progress,
             UNIX_TIMESTAMP(s.last_battle_at)
         FROM T_clan_stats s
@@ -340,10 +342,11 @@ def get_clan_leaderboard(cursor: Cursor, clan_ids: list[str]):
 
     for row in rows:
         clan_id = str(row[0])
+        rating = row[8] + 0.1 * row[11] + 0.01 * row[12]
         result[clan_id] = [
             row[1], row[2], row[3], row[4], row[5], 
-            row[6], row[7], row[8], row[9], row[10], 
-            row[11], row[12]
+            row[6], row[7], rating, row[9], row[10], 
+            row[13], row[14]
         ]
     
     payload = []
