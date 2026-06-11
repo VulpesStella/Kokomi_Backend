@@ -44,6 +44,7 @@ requests==2.32.5
 urllib3==2.6.3
 cffi==2.0.0
 tqdm==4.67.3
+msgpack==1.1.2
 
 polib==1.2.0 
 et-xmlfile==2.0.0

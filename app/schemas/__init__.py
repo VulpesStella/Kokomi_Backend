@@ -1,6 +1,6 @@
 from .exception import GameAPIException, DataIntegrityError
 from .req_params import (
-    Language, RecentLevel, ShipTier, ShipType, ShipNation, PVPField
+    Language, RecentLevel, ShipTier, ShipType, ShipNation, PVPField, RankingFileType
 )
 from .req_body import (
     ShipFilter, AuthResponse, ACResponse
@@ -18,6 +18,7 @@ __all__ = [
     'ShipType', 
     'ShipNation',
     'PVPField',
+    'RankingFileType',
     'RecentLevel',
     'AuthResponse',
     'ACResponse',

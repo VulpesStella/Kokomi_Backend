@@ -135,6 +135,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
                 error_name=error_name,
                 error_info=traceback.format_exc()
             )
+    
     total_top50_users = 0
     payload = {
         'time': get_current_timestamp(),
@@ -180,7 +181,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
     
     packed_bytes = msgpack.packb(payload, use_bin_type=True)
     compressed_bytes = zlib.compress(packed_bytes)
-    with open(DATA_DIR / 'trash/ranking.msgpack', "wb") as f:
+    with open(DATA_DIR / 'trash/ship_ranking.msgpack', "wb") as f:
         f.write(compressed_bytes)
 
 

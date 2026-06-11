@@ -52,3 +52,7 @@ class PVPField(str, Enum):
     SOLO = 'solo'
     DIV2 = 'div2'
     DIV3 = 'div3'
+
+class RankingFileType(str, Enum):
+    SHIP_RANKING = "ship_ranking"
+    CLAN_RANKING = "clan_ranking"

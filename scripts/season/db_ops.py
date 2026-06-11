@@ -300,3 +300,54 @@ def get_update_ids(
         logger.info(f'Insert {len(missing_rows)} new clans')
     
     return update_ids
+
+def get_clan_leaderboard(cursor: Cursor, clan_ids: list[str]):
+    """根据用户ID列表，从数据库中批量读取排行榜数据"""
+    placeholders = ','.join(['%s'] * len(clan_ids))
+    sql = f"""
+        SELECT 
+            s.clan_id,
+            b.tag,
+            s.leading_team,
+            s.battles,
+            s.win_rate,
+            CASE
+                WHEN s.battles = 0 THEN 0
+                WHEN s.win_rate < 40 THEN 1
+                WHEN s.win_rate < 45 THEN 2
+                WHEN s.win_rate < 50 THEN 3
+                WHEN s.win_rate < 52.5 THEN 4
+                WHEN s.win_rate < 55 THEN 5
+                WHEN s.win_rate < 60 THEN 6
+                WHEN s.win_rate < 67 THEN 7
+                ELSE 8
+            END,
+            s.league,
+            s.division,
+            s.public_rating, 
+            s.max_streak,
+            s.stage_type,
+            s.stage_progress,
+            UNIX_TIMESTAMP(s.last_battle_at)
+        FROM T_clan_stats s
+        LEFT JOIN T_clan_base b
+            ON s.clan_id = b.clan_id
+        WHERE s.clan_id IN ({placeholders});
+    """
+    cursor.execute(sql, clan_ids)
+    rows = cursor.fetchall()
+    result = {}
+
+    for row in rows:
+        clan_id = str(row[0])
+        result[clan_id] = [
+            row[1], row[2], row[3], row[4], row[5], 
+            row[6], row[7], row[8], row[9], row[10], 
+            row[11], row[12]
+        ]
+    
+    payload = []
+    for i, user_id in enumerate(clan_ids):
+        payload.append([i+1, int(user_id)] + result.get(user_id))
+
+    return payload

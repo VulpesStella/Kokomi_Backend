@@ -3,6 +3,7 @@ from fastapi.responses import FileResponse
 
 from app.core import EnvConfig, AppState
 from app.response import JSONResponse
+from app.schemas import RankingFileType
 from app.utils import GameUtils
 from app.apis.manager import (
     StateAPI, 
@@ -59,26 +60,28 @@ async def getShipStats():
     return await MaintenanceAPI.get_ship_stats()
 
 @router.get("/ranking/download/", summary="下载排行榜数据文件")
-async def download_ranking_msgpack():
+async def download_ranking_msgpack(
+    file_type: RankingFileType = Query(RankingFileType.SHIP_RANKING,description="文件类型")
+):
     """下载 ranking.msgpack 文件"""
     if EnvConfig.DEV_MODE:
         return JSONResponse.API_NodeNotAvailable
     
-    file_path = EnvConfig.DATA_DIR / 'trash/ranking.msgpack'
+    file_path = EnvConfig.DATA_DIR / f'trash/{file_type.value}.msgpack'
     
     # 检查文件是否存在
     if not file_path.exists():
         raise HTTPException(
             status_code=404,
-            detail=f"File does not exist"
+            detail=f"File {file_type.value}.msgpack does not exist"
         )
     
     # 返回文件作为下载响应
     return FileResponse(
         path=file_path,
-        filename="ranking.msgpack",  # 下载时的文件名
-        media_type="application/octet-stream",  # 二进制文件类型
+        filename=f"{file_type.value}.msgpack",
+        media_type="application/octet-stream",
         headers={
-            "Content-Disposition": "attachment; filename=ranking.msgpack"
+            "Content-Disposition": f"attachment; filename={file_type.value}.msgpack"
         }
     )
