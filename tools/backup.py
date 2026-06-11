@@ -1,16 +1,10 @@
-#!/usr/bin/env python3
-"""
-数据库备份脚本 - 导出用户数据和工会数据
-使用CSV格式存储，最后进行压缩，兼顾可读性和存储空间
-"""
-
 import os
 import csv
+import json
 import gzip
 import logging
 import pymysql
 from pathlib import Path
-from datetime import datetime
 from dotenv import load_dotenv
 
 logging.basicConfig(
@@ -44,8 +38,13 @@ DB_CONFIG = {
 # 备份目录
 BACKUP_DIR = ROOT_DIR / 'data/trash'
 
-# 批次大小（每次查询的记录数）
+# 批次大小
 BATCH_SIZE = 50000
+
+file_path = ROOT_DIR / 'data/json/init_marker.json'
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+    REGION: str = data['region']
 
 
 def get_max_id(cursor, table_name: str) -> int:
@@ -60,7 +59,6 @@ def get_max_id(cursor, table_name: str) -> int:
 def export_table_to_compressed_csv(
     cursor, 
     table_name: str, 
-    id_column: str, 
     export_columns: list, 
     output_file: Path
 ):
@@ -128,12 +126,11 @@ def backup_users(cursor):
     logger.info("=" * 60)
     logger.info("Backing up user data...")
     
-    output_file = BACKUP_DIR / f"backup_users.csv.gz"
+    output_file = BACKUP_DIR / f"backup_users_{REGION}.csv.gz"
     
     return export_table_to_compressed_csv(
         cursor=cursor,
         table_name='T_user_base',
-        id_column='id',
         export_columns=['account_id', 'username'],
         output_file=output_file
     )
@@ -144,12 +141,11 @@ def backup_clans(cursor):
     logger.info("=" * 60)
     logger.info("Backing up clan data...")
     
-    output_file = BACKUP_DIR / f"backup_clans.csv.gz"
+    output_file = BACKUP_DIR / f"backup_clans_{REGION}.csv.gz"
     
     return export_table_to_compressed_csv(
         cursor=cursor,
         table_name='T_clan_base',
-        id_column='clan_id',
         export_columns=['clan_id', 'tag'],
         output_file=output_file
     )
