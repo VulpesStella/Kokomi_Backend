@@ -4,7 +4,6 @@
 import os
 import gc
 import time
-import zlib
 import redis
 import msgpack
 import pymysql
@@ -180,9 +179,8 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
     logger.info(f'Cached top50 users: {total_top50_users}')
     
     packed_bytes = msgpack.packb(payload, use_bin_type=True)
-    compressed_bytes = zlib.compress(packed_bytes)
     with open(DATA_DIR / 'trash/ship_ranking.msgpack', "wb") as f:
-        f.write(compressed_bytes)
+        f.write(packed_bytes)
 
 
 def main():
