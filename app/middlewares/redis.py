@@ -253,4 +253,15 @@ class RedisClient:
         conn = RedisConnection.acquire_conn()
         data = await conn.zrevrank(key, member)
         return JSONResponse.success(data)
+    
+    @staticmethod
+    @ExceptionLogger.handle_cache_exception_async
+    async def zrem_member(keys: list, member: str):
+        """从多个 ZSET key 中删除同一个 member"""
+        conn = RedisConnection.acquire_conn()
+        pipe = conn.pipeline()
+        for key in keys:
+            pipe.zrem(key, member)
+        results = await pipe.execute()
+        return JSONResponse.success(results)
 

@@ -3,6 +3,7 @@ from fastapi import APIRouter, Path, Query
 
 from app.core import EnvConfig, AppState
 from app.utils import GameUtils
+from app.middlewares import BlacklistManager
 from app.response import JSONResponse
 from app.apis.external import (
     ShipStatsExternalAPI,
@@ -64,8 +65,9 @@ async def refreshUserBasic(user_id: int = Path(...)):
     - 1001: 当前节点服务器处于维护状态
     - 1003: 该用户 ID 下的数据不存在（404 NOT FOUND）
     - 1005: 用户数据为空，无可刷新数据
-    - 1007: 用户隐藏战绩，无法刷新
-    - 1008: 写入用户数据时获取分布式锁失败（极低概率触发）
+    - 1007: 用户在平台黑名单列表中（极低概率触发）
+    - 1009: 用户隐藏战绩，无法刷新
+    - 1010: 写入用户数据时获取分布式锁失败（极低概率触发）
     """
     if EnvConfig.DEV_MODE:
         return JSONResponse.API_NodeNotAvailable
@@ -73,6 +75,9 @@ async def refreshUserBasic(user_id: int = Path(...)):
     # 检查应用状态
     if not AppState.is_available():
         return JSONResponse.API_NodeNotAvailable
+    
+    if BlacklistManager.is_user_blocked(user_id):
+        return JSONResponse.API_UseInBlacklist
     
     if GameUtils.check_uid(user_id) == False:
         raise HTTPException(status_code=422, detail="Invalid UID")

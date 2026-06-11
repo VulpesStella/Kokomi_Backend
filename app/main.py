@@ -18,7 +18,8 @@ from app.network import HttpClient
 from app.middlewares import (
     RedisConnection,
     SecurityManager, 
-    ServiceMetrics
+    ServiceMetrics,
+    BlacklistManager
 )
 from app.dashboard import dashboard_router
 from app.routers import (
@@ -73,9 +74,12 @@ async def lifespan(app: FastAPI):
     # 初始化并测试redis连接
     await RedisConnection.init_conn()
     await RedisConnection.test_redis()
+    # 初始化全局状态
     app_state = await RedisConnection.load_state()
     AppState.init(app_state)
     api_logger.info(f'API available: {app_state}')
+    # 初始化黑名单管理器
+    BlacklistManager.init()
     # 启动 lifespan
     try:
         yield

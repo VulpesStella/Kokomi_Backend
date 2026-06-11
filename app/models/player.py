@@ -97,6 +97,17 @@ class DemoPlayerModel:
             data = cur.rowcount
             return JSONResponse.success(data)
 
+    @ExceptionLogger.handle_database_exception_async
+    async def remove_user_ranking(account_id: int, ship_ids: list[int]):
+        async with MySQLManager.auto_transaction_cursor() as cur:
+            sql = """
+                DELETE FROM T_ship_pvp_leaderboard 
+                WHERE ship_id = %s AND account_id = %s;
+            """
+            params = [(ship_id, account_id) for ship_id in ship_ids]
+            await cur.executemany(sql, params)
+            return JSONResponse.API_1000_Success
+
 class PlayerModel:
     @ExceptionLogger.handle_database_exception_async
     async def record_query(account_id: int):

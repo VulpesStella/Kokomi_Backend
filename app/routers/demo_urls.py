@@ -5,6 +5,7 @@ from app.response import JSONResponse
 from app.core import EnvConfig
 from app.utils import GameUtils
 from app.schemas import RecentLevel
+from app.middlewares import BlacklistManager
 from app.apis.demo import (
     TestAPI, MySQLAPI
 )
@@ -44,12 +45,15 @@ async def resetTrackingTime(
     return await MySQLAPI.reset_tracking_time(key)
 
 
-@router.get("/users/{user_id}/db/", summary="获取用户数据库中的基本信息")
+@router.get("/user/{user_id}/db/", summary="获取用户数据库中的基本信息")
 async def getUserDB(
     user_id: int = Path(..., description="用户ID")
 ):
     if EnvConfig.DEV_MODE:
         return JSONResponse.API_NodeNotAvailable
+    
+    if BlacklistManager.is_user_blocked(user_id):
+        return JSONResponse.API_UseInBlacklist
     
     if not GameUtils.check_uid(user_id):
         raise HTTPException(status_code=422, detail="Invalid UID")
@@ -57,7 +61,7 @@ async def getUserDB(
     return result
 
 
-@router.delete("/users/{user_id}/db/", summary="关闭指定用户的更新计划")
+@router.delete("/user/{user_id}/db/", summary="关闭指定用户的更新计划")
 async def delUserDB(
     user_id: int = Path(..., description="用户ID")
 ):
@@ -70,7 +74,7 @@ async def delUserDB(
     return result
 
 
-@router.patch("/users/{user_id}/db/", summary="恢复指定用户的更新计划")
+@router.patch("/user/{user_id}/db/", summary="恢复指定用户的更新计划")
 async def patchUserDB(
     user_id: int = Path(..., description="用户ID")
 ):
@@ -83,12 +87,15 @@ async def patchUserDB(
     return result
 
 
-@router.get("/clans/{clan_id}/db/", summary="获取工会数据库中的基本信息")
+@router.get("/clan/{clan_id}/db/", summary="获取工会数据库中的基本信息")
 async def getClanDB(
     clan_id: int = Path(..., description="工会ID")
 ):
     if EnvConfig.DEV_MODE:
         return JSONResponse.API_NodeNotAvailable
+    
+    if BlacklistManager.is_clan_blocked(clan_id):
+        return JSONResponse.API_ClanInBlacklist
     
     if not GameUtils.check_uid(clan_id):
         raise HTTPException(status_code=422, detail="Invalid UID")
@@ -96,7 +103,7 @@ async def getClanDB(
     return result
 
 
-@router.delete("/clans/{clan_id}/db/", summary="关闭指定工会的更新计划")
+@router.delete("/clan/{clan_id}/db/", summary="关闭指定工会的更新计划")
 async def delClanDB(
     clan_id: int = Path(..., description="工会ID")
 ):
@@ -109,7 +116,7 @@ async def delClanDB(
     return result
 
 
-@router.patch("/clans/{clan_id}/db/", summary="恢复指定工会的更新计划")
+@router.patch("/clan/{clan_id}/db/", summary="恢复指定工会的更新计划")
 async def patchClanDB(
     clan_id: int = Path(..., description="工会ID")
 ):
@@ -122,7 +129,7 @@ async def patchClanDB(
     return result
 
 
-@router.get("/users/{user_id}/basic/", summary="获取用户游戏接口中的基本信息，仅读取数据")
+@router.get("/user/{user_id}/basic/", summary="获取用户游戏接口中的基本信息，仅读取数据")
 async def getUserAPI(
     user_id: int = Path(..., description="用户ID")
 ):
@@ -132,7 +139,7 @@ async def getUserAPI(
     return result
 
 
-@router.get("/users/{user_id}/clan/", summary="获取用户游戏接口中的工会信息，仅读取数据")
+@router.get("/user/{user_id}/clan/", summary="获取用户游戏接口中的工会信息，仅读取数据")
 async def getUserAPI(
     user_id: int = Path(..., description="用户ID")
 ):
@@ -142,7 +149,7 @@ async def getUserAPI(
     return result
 
 
-@router.get("/clans/{clan_id}/basic/", summary="获取工会游戏接口中的基本信息，仅读取数据")
+@router.get("/clan/{clan_id}/basic/", summary="获取工会游戏接口中的基本信息，仅读取数据")
 async def getUserAPI(
     clan_id: int = Path(..., description="工会ID")
 ):
@@ -152,7 +159,7 @@ async def getUserAPI(
     return result
 
 
-@router.get("/clans/{clan_id}/members/", summary="获取工会游戏接口中的基本信息，仅读取数据")
+@router.get("/clan/{clan_id}/members/", summary="获取工会游戏接口中的基本信息，仅读取数据")
 async def getUserAPI(
     clan_id: int = Path(..., description="工会ID")
 ):
@@ -162,7 +169,7 @@ async def getUserAPI(
     return result
 
 
-@router.patch("/users/{user_id}/features/", summary="启用记录玩家近期数据的功能")
+@router.patch("/user/{user_id}/features/", summary="启用记录玩家近期数据的功能")
 async def enable_features(
     user_id: int = Path(..., description="用户ID"),
     level: RecentLevel = Query(RecentLevel.standard, description="功能等级")
@@ -175,13 +182,16 @@ async def enable_features(
     if EnvConfig.DEV_MODE:
         return JSONResponse.API_NodeNotAvailable
     
+    if BlacklistManager.is_user_blocked(user_id):
+        return JSONResponse.API_UseInBlacklist
+    
     if not GameUtils.check_uid(user_id):
         raise HTTPException(status_code=422, detail="Invalid UID")
     
     return await TestAPI.set_recent(user_id, level.value)
 
 
-@router.delete("/users/{user_id}/features/", summary="关闭用户记录近期数据的功能")
+@router.delete("/user/{user_id}/features/", summary="关闭用户记录近期数据的功能")
 async def disable_features(
     user_id: int = Path(..., description="用户ID"),
     level: RecentLevel = Query(RecentLevel.off, description="目标等级")
@@ -193,6 +203,9 @@ async def disable_features(
     """
     if EnvConfig.DEV_MODE:
         return JSONResponse.API_NodeNotAvailable
+    
+    if BlacklistManager.is_user_blocked(user_id):
+        return JSONResponse.API_UseInBlacklist
     
     if not GameUtils.check_uid(user_id):
         raise HTTPException(status_code=422, detail="Invalid UID")

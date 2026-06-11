@@ -1,9 +1,14 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Path
 from fastapi.responses import FileResponse
 
-from app.core import EnvConfig
+from app.core import EnvConfig, AppState
 from app.response import JSONResponse
-from app.apis.maintenance import StateAPI, MaintenanceAPI
+from app.utils import GameUtils
+from app.apis.manager import (
+    StateAPI, 
+    MaintenanceAPI, 
+    UserManagerAPI
+)
 
 
 router = APIRouter(prefix="/maintenance")
@@ -24,6 +29,19 @@ async def set_app_state(available: bool = Query(..., description="设置应用�
         return JSONResponse.API_NodeNotAvailable
     
     return await StateAPI.set_node_state(available)
+
+@router.post("/user/{user_id}/", summary="平台拉黑用户并清除排行榜数据")
+async def getPvEOverall(
+    user_id: int = Path(..., description="用户ID")
+):
+    # 检查应用状态
+    if not AppState.is_available():
+        return JSONResponse.API_NodeNotAvailable
+    
+    if GameUtils.check_uid(user_id) == False:
+        raise HTTPException(status_code=422, detail="Invalid UID")
+
+    return await UserManagerAPI.block_user(user_id)
 
 @router.get("/database/meta/", summary="数据库统计指标")
 async def getDatabaseMeta():

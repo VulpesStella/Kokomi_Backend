@@ -4,6 +4,7 @@ from typing import Optional
 from app.core import AppState, EnvConfig
 from app.response import JSONResponse
 from app.utils import GameUtils
+from app.middlewares import BlacklistManager
 from app.schemas import ShipTier, ShipType, ShipNation, PVPField
 from app.apis.statistics import PVEAPI, RandomAPI, RankedAPI
 
@@ -18,6 +19,9 @@ async def getPvEOverall(
     # 检查应用状态
     if not AppState.is_available():
         return JSONResponse.API_NodeNotAvailable
+    
+    if BlacklistManager.is_user_blocked(user_id):
+        return JSONResponse.API_UseInBlacklist
     
     if GameUtils.check_uid(user_id) == False:
         raise HTTPException(status_code=422, detail="Invalid UID")
@@ -39,6 +43,9 @@ async def getPvPOverall(
     # 检查应用状态
     if not AppState.is_available():
         return JSONResponse.API_NodeNotAvailable
+    
+    if BlacklistManager.is_user_blocked(user_id):
+        return JSONResponse.API_UseInBlacklist
     
     if GameUtils.check_uid(user_id) == False:
         raise HTTPException(status_code=422, detail="Invalid UID")
@@ -96,6 +103,9 @@ async def getRankedOverall(
     # 检查应用状态
     if not AppState.is_available():
         return JSONResponse.API_NodeNotAvailable
+    
+    if BlacklistManager.is_user_blocked(user_id):
+        return JSONResponse.API_UseInBlacklist
     
     if GameUtils.check_uid(user_id) == False:
         raise HTTPException(status_code=422, detail="Invalid UID")

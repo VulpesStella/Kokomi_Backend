@@ -28,9 +28,11 @@ class JSONResponse:
     API_ClanNotExist = {'status': 'ok', 'code': 1004, 'message': 'ClanNotExist'}
     API_UserDataIsNone = {'status': 'ok', 'code': 1005, 'message': 'UserDataIsNone'}
     API_ClanDataIsNone = {'status': 'ok', 'code': 1006, 'message': 'ClanDataIsNone'}
-    API_UserHiddenProfile = {'status': 'ok', 'code': 1007, 'message': 'UserHiddenProfile'}
-    API_AcqurieLockFailed = {'status': 'ok', 'code': 1008, 'message': 'AcqurieLockFailed'}
-    API_NoStatisticsData = {'status': 'ok', 'code': 1009, 'message': 'NoStatisticsData'}
+    API_UseInBlacklist = {'status': 'ok', 'code': 1007, 'message': 'UserInBlacklist'}
+    API_ClanInBlacklist = {'status': 'ok', 'code': 1008, 'message': 'ClanInBlacklist'}
+    API_UserHiddenProfile = {'status': 'ok', 'code': 1009, 'message': 'UserHiddenProfile'}
+    API_AcqurieLockFailed = {'status': 'ok', 'code': 1010, 'message': 'AcqurieLockFailed'}
+    API_NoStatisticsData = {'status': 'ok', 'code': 1011, 'message': 'NoStatisticsData'}
 
     @staticmethod
     def success(

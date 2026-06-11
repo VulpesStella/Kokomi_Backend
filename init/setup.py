@@ -90,6 +90,17 @@ def main(region: str, location: str):
             json.dump(result, f, ensure_ascii=False)
     logging.info(log('File `clan_season.json` generated successfully', '✅'))
 
+    # 生成黑名单配置信息
+    init_file_path = ROOT_DIR / f"data/json/blacklist.json"
+    if not init_file_path.exists():
+        result = {
+            "user": [],
+            "clan": []
+        }
+        with open(init_file_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False)
+    logging.info(log('File `blacklist.json` generated successfully', '✅'))
+
     # 生成初始化文件
     init_file_path = ROOT_DIR / f"data/json/init_marker.json"
     if not init_file_path.exists():

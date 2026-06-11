@@ -4,7 +4,7 @@ from .demo_urls import router as demo_router
 from .statistics_urls import router as statistics_router
 from .recent_urls import router as recent_router
 from .ranking_urls import router as ranking_router
-from .maintenance_urls import router as miantenance_router
+from .manager_urls import router as miantenance_router
 from .external_urls import router as external_router
 
 __all__ = [

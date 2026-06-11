@@ -3,6 +3,7 @@ from fastapi import HTTPException, APIRouter, Query, Path
 from app.core import EnvConfig, AppState
 from app.response import JSONResponse
 from app.apis.recent import RecentAPI
+from app.middlewares import BlacklistManager
 from app.utils import GameUtils
 
 router = APIRouter(prefix='/recent')
@@ -13,6 +14,9 @@ async def getRecentSummary(
 ):
     if EnvConfig.DEV_MODE:
         return JSONResponse.API_NodeNotAvailable
+    
+    if BlacklistManager.is_user_blocked(user_id):
+        return JSONResponse.API_UseInBlacklist
     
     # 检查应用状态
     if not AppState.is_available():
