@@ -107,7 +107,7 @@ interface ErrorResponse extends BaseResponse {
 }
 ```
 
-> code=1000 并不一定代码 data 会携带业务数据，部分接口 code=1000 表示操作或者刷洗成功，data中不携带任何数据
+> code=1000 并不一定代表 data 会携带业务数据，部分接口 code=1000 表示操作或者刷洗成功，data中不携带任何数据
 
 #### 2. ⚠️ 服务器维护响应
 
@@ -190,20 +190,6 @@ async function callAPI<T>(
     const response = await fetch(url, options);
     
     // 处理非 200 HTTP 状态码
-    if (response.status === 403) {
-        throw new Error('Token 无效或已过期，请重新登录');
-    }
-    
-    if (response.status === 422) {
-        const errorData = await response.json();
-        const errors = errorData.detail || [];
-        throw new Error(`参数校验失败: ${JSON.stringify(errors)}`);
-    }
-    
-    if (response.status === 500) {
-        throw new Error('服务器内部异常，请稍后重试');
-    }
-    
     if (!response.ok) {
         throw new Error(`请求失败: HTTP ${response.status}`);
     }
