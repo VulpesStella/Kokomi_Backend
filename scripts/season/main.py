@@ -203,6 +203,7 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
     payload = {
         'time': get_current_timestamp(),
         'season': season_id,
+        'clans': 0,
         'data': []
     }
     try:
@@ -211,8 +212,10 @@ def worker(mysql_connection: Connection, redis_client: Redis, session: Session) 
             total_clans = redis_client.zcard(clan_ranking_key)
             if total_clans == 0:
                 return
+            
+            payload['clans'] = total_clans
 
-            clans = redis_client.zrevrange(clan_ranking_key, 0, total_clans - 1)
+            clans = redis_client.zrevrange(clan_ranking_key, 0, 49)
             if len(clans) == 0:
                 return
 
