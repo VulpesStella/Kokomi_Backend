@@ -182,13 +182,13 @@ def get_ship_leaderboard(cursor: Cursor, ship_id: int, account_ids: list[str]):
             u.username,
             s.battles,
             s.rating,
-            ROUND(s.win_rate, 2) AS win_rate,
+            s.win_rate,
             s.avg_damage,
-            s.avg_damage_level AS avg_damage_level,
+            s.avg_damage_level,
             s.avg_frags,
-            s.avg_frags_level AS avg_frags_level,
+            s.avg_frags_level,
             s.avg_exp,
-            ROUND(s.hit_ratio, 2) AS hit_ratio,
+            s.hit_ratio,
             s.max_exp,
             s.max_damage
         FROM T_ship_pvp_leaderboard s
@@ -205,8 +205,8 @@ def get_ship_leaderboard(cursor: Cursor, ship_id: int, account_ids: list[str]):
         account_id = str(row[0])
         result[account_id] = [
             row[1], row[2], row[3], row[4],
-            int(row[5]), get_metric_level(1, row[5]),
-            row[6], get_metric_level(0, row[6]),
+            row[5], get_metric_level(1, row[5]),
+            round(row[6], 2), get_metric_level(0, row[6]),
             row[7], row[8], row[9], row[10],
             row[11], row[12], row[13], row[14]
         ]
