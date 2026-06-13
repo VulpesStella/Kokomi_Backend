@@ -1,6 +1,6 @@
-from typing import Optional
 import asyncio
 import aiomysql
+from typing import Optional
 from aiomysql.pool import Pool
 from aiomysql.cursors import Cursor
 from aiomysql.connection import Connection

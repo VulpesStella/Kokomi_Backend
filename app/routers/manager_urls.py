@@ -1,3 +1,5 @@
+import sys
+import psutil
 from fastapi import APIRouter, HTTPException, Query, Path
 from fastapi.responses import FileResponse
 
@@ -30,6 +32,15 @@ async def set_app_state(available: bool = Query(..., description="设置应用�
         return JSONResponse.API_NodeNotAvailable
     
     return await StateAPI.set_node_state(available)
+
+@router.get("/system/", summary="系统的基本信息")
+def system_stats():
+    is_linux = sys.platform.startswith('linux')
+    return {
+        "cpu": psutil.cpu_percent(interval=0.2),
+        "mem": psutil.virtual_memory().percent,
+        "disk": psutil.disk_usage('/').percent if is_linux else None
+    }
 
 @router.post("/user/{user_id}/", summary="平台拉黑用户并清除排行榜数据")
 async def getPvEOverall(
