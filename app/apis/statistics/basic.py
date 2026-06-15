@@ -15,15 +15,13 @@ class BasicResponse:
     type: str = ''
     basic: Dict[str, Any] = field(default_factory=dict)
     statistics: Dict[str, Any] = field(default_factory=dict)
-    credits: int = 0
     
     def to_dict(self) -> Dict[str, Any]:
         return {
             'mode': self.mode,
             'type': self.type,
             'basic': self.basic,
-            'statistics': self.statistics,
-            'credits': self.credits
+            'statistics': self.statistics
         }
 
 class BasicAPI:

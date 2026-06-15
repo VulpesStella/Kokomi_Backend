@@ -27,10 +27,8 @@ def format_overall(processed_data: ShipProcessedData, show_eggshell: bool = Fals
         'avg_damage': '-',
         'avg_frags': '-',
         'avg_exp': '-',
-        'rating': '-1',
-        'next': '1',
+        'rating': -1,
         'level': {
-            'rating': 0,
             'win_rate': 0,
             'avg_damage': 0,
             'avg_frags': 0
@@ -50,17 +48,7 @@ def format_overall(processed_data: ShipProcessedData, show_eggshell: bool = Fals
     if processed_data['v_battles'] == 0:
         return result
     
-    if show_eggshell:
-        result['rating'] = '{:,}'.format(int(processed_data['p_rating']/processed_data['v_battles']))
-    else:
-        result['rating'] = str(int(processed_data['p_rating']/processed_data['v_battles']))
-
-    rating_level, rating_next = RatingUtils.get_rating_level(
-        rating = int(processed_data['p_rating']/processed_data['v_battles']), 
-        show_eggshell = show_eggshell
-    )
-    result['next'] = str(rating_next)
-    result['level']['rating'] = rating_level
+    result['rating'] = int(processed_data['p_rating']/processed_data['v_battles'])
     result['level']['avg_damage'] = RatingUtils.get_metric_level(1, processed_data['d_rating']/processed_data['v_battles'])
     result['level']['avg_frags'] = RatingUtils.get_metric_level(2, processed_data['f_rating']/processed_data['v_battles'])
 

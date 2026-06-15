@@ -54,29 +54,29 @@ class RatingUtils:
         show_eggshell: bool = False
     ):
         if rating == -1:
-            return 0, 1
+            return 0
         
         if show_eggshell:
             data = [750, 1100, 1350, 1550, 1750, 2100, 2450, 3250]
             for i in range(len(data)):
                 if rating < data[i]:
                     return i + 1, int(data[i]-rating)
-            return 9, int(rating - 3250)
+            return 9
         else:
             data = [750, 1100, 1350, 1550, 1750, 2100, 2450]
             for i in range(len(data)):
                 if rating < data[i]:
                     return i + 1, int(data[i]-rating)
-            return 8, int(rating - 2450)
+            return 8
     
     def get_wr_rating_class(rating: int | float):
         if rating == -1:
-            return 0, 0
+            return 0
         data = [40, 45, 50, 52.5, 55, 60, 67]
         for i in range(len(data)):
             if rating < data[i]:
-                return i + 1, round(data[i]-rating, 2)
-        return 8, round(rating - 67, 2)
+                return i + 1
+        return 8
     
     def get_metric_level(metric_id: int, value: float) -> int:
         thresholds_map = {

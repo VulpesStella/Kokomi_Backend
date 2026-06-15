@@ -11,16 +11,12 @@ from app.models import ShipModel, RankingModel
 class ShipLeaderboardResponse:
     """排行榜响应数据结构"""
     meta: Dict[str, Any] = field(default_factory=dict)
-    ship: Dict[str, Any] = field(default_factory=dict)
     rows: List[Dict[str, Any]] = field(default_factory=list)
-    credits: int = 0
     
     def to_dict(self) -> Dict[str, Any]:
         return {
             'meta': self.meta,
-            'ship': self.ship,
-            'rows': self.rows,
-            'credits': self.credits
+            'rows': self.rows
         }
 
 class ShipRankingAPI:
@@ -61,7 +57,6 @@ class ShipRankingAPI:
                 'avg_exp': user_detail.get('avg_exp', 0),
                 'hit_ratio': user_detail.get('hit_ratio', 0.0),
                 'level': {
-                    'rating': user_detail.get('rating_level', 1),
                     'win_rate': user_detail.get('win_rate_level', 1),
                     'avg_damage': user_detail.get('avg_damage_level', 1),
                     'avg_frags': user_detail.get('avg_frags_level', 1)
@@ -79,7 +74,6 @@ class ShipRankingAPI:
     async def get_ship_ranking(
         cls, 
         ship_id: int, 
-        language: str, 
         page_index: int = 1, 
         page_size: int = 50
     ) -> ResponseDict:
@@ -104,13 +98,6 @@ class ShipRankingAPI:
         # 船只不存在排行榜中，返回空数据
         if ship_id not in ship_ids:
             return JSONResponse.API_1000_Success
-
-        # 获取船只详细信息
-        error, ship_info = JSONResponse.extract_data(
-            response=await ShipModel.get_ship_info_by_id(ship_id, language)
-        )
-        if error:
-            return ship_info
 
         # 计算分页起始和结束索引
         ship_ranking_key = f"leaderboard:ship:{ship_id}"
@@ -151,9 +138,7 @@ class ShipRankingAPI:
                 'limit': ship_ids.get(ship_id, 40),
                 'users': total_users
             },
-            ship=ship_info,
-            rows=cls._build_leaderboard(start + 1, page_user_ids, users_data),
-            credits=6 if page_size >= 100 else 3
+            rows=cls._build_leaderboard(start + 1, page_user_ids, users_data)
         )
 
         return JSONResponse.success(data.to_dict())

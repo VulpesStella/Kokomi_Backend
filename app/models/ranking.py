@@ -47,7 +47,6 @@ class RankingModel:
                     'dogtag': None,
                     'battles': row[6],
                     'rating': row[7],
-                    'rating_level': RatingUtils.get_metric_level(3, row[7]),
                     'win_rate': row[8],
                     'win_rate_level': RatingUtils.get_metric_level(0, row[8]),
                     'avg_damage': row[9],

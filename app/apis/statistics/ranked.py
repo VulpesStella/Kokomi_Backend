@@ -38,9 +38,6 @@ class RankedAPI:
         account_id: int, 
         include_old: bool = False
     ):
-        # Credits 消耗
-        credits_spent = 1
-
         if EnvConfig.DEV_MODE:
             # 跳过读取数据库步骤，后续直接请求 API 获取数据
             access_token = None
@@ -77,8 +74,6 @@ class RankedAPI:
             )
             if error:
                 return user_basic
-            
-            credits_spent += 1
         else:
             user_basic = user['basic']
         
@@ -88,8 +83,6 @@ class RankedAPI:
         )
         if error:
             return response
-        
-        credits_spent += 1
         
         # 处理可能的隐藏战绩情况
         # 用户在缓存中的数据表示该用户是公开战绩导致了跳过更新流程
@@ -233,8 +226,7 @@ class RankedAPI:
             mode='Ranked',
             type='Overall',
             basic=user_basic,
-            statistics=statistics.to_dict(),
-            credits=credits_spent
+            statistics=statistics.to_dict()
         )
 
         return JSONResponse.success(data.to_dict())

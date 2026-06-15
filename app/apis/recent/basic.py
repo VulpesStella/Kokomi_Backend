@@ -14,9 +14,6 @@ from .calculate import CalculateRecent
 class RecentAPI:
     @ExceptionLogger.handle_program_exception_async
     async def summary(account_id: int):
-        # Credits 消耗
-        credits_spent = 2
-
         user_basic = {
             'region': EnvConfig.REGION,
             'user_id': account_id
@@ -98,8 +95,7 @@ class RecentAPI:
             'type': 'Recent',
             'mode': 'Summary',
             'basic': user_basic,
-            'statistics': statistics,
-            'credits_spent': credits_spent
+            'statistics': statistics
         }
 
         return JSONResponse.success(result)

@@ -12,13 +12,17 @@ from app.models import UserStatsSyncer, UserClanSyncer, PlayerModel
 @dataclass
 class UserRefreshResponse:
     """排行榜响应数据结构"""
-    basic: Dict[str, Any] = field(default_factory=dict)
-    credits: int = 0
+    region: str
+    user_id: int
+    username: str
+    register_time: int
     
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'basic': self.basic,
-            'credits': self.credits
+            'region': self.region,
+            'user_id': self.user_id,
+            'username': self.username,
+            'register_time': self.register_time
         }
 
 class RefreshAPI:
@@ -79,13 +83,10 @@ class RefreshAPI:
         register_time = int(user_info.get('created_at', 0))
 
         data = UserRefreshResponse(
-            basic={
-                'region': EnvConfig.REGION,
-                'user_id': account_id,
-                'username': user_info['name'],
-                'created_at': register_time if register_time not in (0, None) else None
-            },
-            credits=3
+            region=EnvConfig.REGION,
+            user_id=account_id,
+            username=user_info['name'],
+            register_time=register_time if register_time not in (0, None) else None
         )
         
         return JSONResponse.success(data.to_dict())

@@ -76,13 +76,8 @@ def calc_ship_rating(ship_data: list, server_data: list | None):
     
     return personal_rating, damage_rating, frags_rating
     
-def get_metric_level(metric_id: int, value: float) -> int:
-    thresholds_map = {
-        0: [40, 45, 50, 52.5, 55, 60, 67],           # win_rate 等级阈值
-        1: [750, 1100, 1350, 1550, 1750, 2100, 2450] # rating 等级阈值
-    }
-
-    thresholds = thresholds_map.get(metric_id)
+def get_wr_level(value: float) -> int:
+    thresholds = [40, 45, 50, 52.5, 55, 60, 67]
     if thresholds is None:
         return 0
 

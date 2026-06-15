@@ -36,9 +36,6 @@ class PVEAPI:
         account_id: int, 
         include_old: bool = False
     ):
-        # Credits 消耗
-        credits_spent = 1
-
         if EnvConfig.DEV_MODE:
             # 跳过读取数据库步骤，后续直接请求 API 获取数据
             access_token = None
@@ -76,8 +73,6 @@ class PVEAPI:
             )
             if error:
                 return user_basic
-            
-            credits_spent += 1
         else:
             user_basic = user['basic']
     
@@ -86,8 +81,6 @@ class PVEAPI:
         )
         if error:
             return response
-        
-        credits_spent += 1
         
         if 'hidden_profile' in response.get(str(account_id)):
             if not EnvConfig.DEV_MODE:
@@ -197,8 +190,7 @@ class PVEAPI:
             mode='PvE',
             type='Overall',
             basic=user_basic,
-            statistics=statistics.to_dict(),
-            credits=credits_spent
+            statistics=statistics.to_dict()
         )
 
         return JSONResponse.success(data.to_dict())

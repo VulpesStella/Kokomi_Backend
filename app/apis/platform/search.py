@@ -12,13 +12,11 @@ class SearchResponse:
     """排行榜响应数据结构"""
     meta: Dict[str, Any] = field(default_factory=dict)
     rows: List[Dict[str, Any]] = field(default_factory=list)
-    credits: int = 0
     
     def to_dict(self) -> Dict[str, Any]:
         return {
             'meta': self.meta,
-            'rows': self.rows,
-            'credits': self.credits
+            'rows': self.rows
         }
 
 class SearchAPI:
@@ -43,8 +41,7 @@ class SearchAPI:
                 'region': EnvConfig.REGION,
                 'count': search_count
             },
-            rows=search_data,
-            credits=1
+            rows=search_data
         )
         return JSONResponse.success(data.to_dict())
     
@@ -69,7 +66,6 @@ class SearchAPI:
                 'region': EnvConfig.REGION,
                 'count': search_count
             },
-            rows=search_data,
-            credits=1
+            rows=search_data
         )
         return JSONResponse.success(data.to_dict())
