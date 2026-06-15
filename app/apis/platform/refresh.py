@@ -49,9 +49,21 @@ class RefreshAPI:
         user_info = user_data.get(str(account_id))
 
         if user_info is None:
+            error, refresh = JSONResponse.extract_data(
+                response=await UserStatsSyncer.refresh(account_id, user_data)
+            )
+            if error:
+                return refresh
+            
             return JSONResponse.API_UserNotExist
         
         if 'hidden_profile' in user_info:
+            error, refresh = JSONResponse.extract_data(
+                response=await UserStatsSyncer.refresh(account_id, user_data)
+            )
+            if error:
+                return refresh
+            
             return JSONResponse.API_UserHiddenProfile
         
         if (
@@ -59,6 +71,12 @@ class RefreshAPI:
             'statistics' not in user_info or 
             'basic' not in user_info['statistics']
         ):
+            error, refresh = JSONResponse.extract_data(
+                response=await UserStatsSyncer.refresh(account_id, user_data)
+            )
+            if error:
+                return refresh
+            
             return JSONResponse.API_UserDataIsNone
         
         error, refresh = JSONResponse.extract_data(

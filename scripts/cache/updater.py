@@ -398,6 +398,25 @@ class UserCacheUpdater:
         # 获取用户PVP数据
         try:
             response = fetch_user_pvp_data(session, redis_client, account_id)
+            if response == {}:
+                try:
+                    with mysql_connection.cursor() as cursor:
+                        self._update_user_cache(cursor, account_id, None)
+                    
+                    mysql_connection.commit()
+                except Exception as e:
+                    mysql_connection.rollback()
+                    error_name = type(e).__name__
+                    logger.error(f'{account_id} | Update database failed: {error_name}')
+                    write_exception(
+                        error_type="DatabaseError",
+                        error_name=error_name,
+                        error_info=traceback.format_exc()
+                    )
+
+                logger.info(f'{account_id} | User not exist')
+                return
+
             if not response:
                 logger.info(f'{account_id} | Failed to obtain data')
                 return

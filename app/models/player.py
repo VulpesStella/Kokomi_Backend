@@ -94,6 +94,13 @@ class DemoPlayerModel:
                 WHERE account_id = %s;
             """
             await cur.execute(sql, [status, account_id])
+            if status == 0:
+                sql = """
+                    UPDATE T_user_cache 
+                    SET is_due = FALSE 
+                    WHERE account_id = %s;
+                """
+                await cur.execute(sql, [account_id])
             data = cur.rowcount
             return JSONResponse.success(data)
 
