@@ -75,9 +75,6 @@ async def download_ranking_msgpack(
     file_type: RankingFileType = Query(RankingFileType.SHIP_RANKING,description="文件类型")
 ):
     """下载 ranking.msgpack 文件"""
-    if EnvConfig.DEV_MODE:
-        return JSONResponse.API_NodeNotAvailable
-    
     file_path = EnvConfig.DATA_DIR / f'trash/{file_type.value}.msgpack'
     
     # 检查文件是否存在

@@ -8,8 +8,7 @@ from app.response import JSONResponse
 from app.apis.ranking import (
     UserRankingAPI,
     ClanRankingAPI, 
-    ShipRankingAPI,
-    ShipRankingExternalAPI
+    ShipRankingAPI
 )
 
 router = APIRouter(prefix="/ranking")
@@ -31,24 +30,6 @@ async def getShipRanking(
         raise HTTPException(status_code=422, detail="Page size must be 50 or 100")
     return await ShipRankingAPI.get_ship_ranking(ship_id, page, size)
 
-@router.get("/ship/{ship_id}/external/", summary="获取船只排行榜分页数据")
-async def getShipRankingYYK(
-    ship_id: int = Path(..., description="船只ID"),
-    page: int = Query(1, ge=1, description="页码，从 1 开始"),
-    size: int = Query(50, ge=50, le=100, description="每页条数，只能选 50 或 100"),
-    dogtag: int = Query(1, ge=0, le=1, description="是否在返回数据中展示用户的dogtag数据")
-):
-    # DEPRECATED: 该接口后续将弃用
-    if EnvConfig.DEV_MODE:
-        return JSONResponse.API_NodeNotAvailable
-    
-    # 检查应用状态
-    if not AppState.is_available():
-        return JSONResponse.API_NodeNotAvailable
-    
-    if size not in (50, 100):
-        raise HTTPException(status_code=422, detail="Page size must be 50 or 100")
-    return await ShipRankingExternalAPI.get_ship_ranking(ship_id, page, size, dogtag)
 
 @router.get("/ship/{ship_id}/user/{user_id}/", summary="获取用户在船只排行榜中的排名")
 async def getShipUserRanking(

@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 from fastapi import APIRouter, Path, Query
+from fastapi.responses import FileResponse
 
 from app.core import EnvConfig, AppState
 from app.utils import GameUtils
@@ -102,3 +103,25 @@ async def getShipStats():
         return JSONResponse.API_NodeNotAvailable
     
     return await ShipStatsExternalAPI.get_ship_stats()
+
+@router.get("/ship/download/top50-cache/", summary="下载排行榜数据文件")
+async def download_ranking_msgpack():
+    """获取船只排行榜中所有船只的 TOP50 缓存数据文件"""
+    file_path = EnvConfig.DATA_DIR / f'trash/ship_ranking.msgpack'
+    
+    # 检查文件是否存在
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="File ship_ranking.msgpack does not exist"
+        )
+    
+    # 返回文件作为下载响应
+    return FileResponse(
+        path=file_path,
+        filename="ship_ranking.msgpack",
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": "attachment; filename=ship_ranking.msgpack"
+        }
+    )
