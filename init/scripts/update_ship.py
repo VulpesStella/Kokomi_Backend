@@ -98,15 +98,7 @@ def parse_ship_row(row: dict) -> dict:
         'rarity_id': RARITY_MAP.get(row.get('rarity', '')),
         'premium': bool(int(row.get('premium', 0))),
         'special': bool(int(row.get('special', 0))),
-        'index_code': row.get('index', ''),
-        'zh_cn': row.get('zh_cn', ''),
-        'zh_sg': row.get('zh_sg', ''),
-        'zh_tw': row.get('zh_tw', ''),
-        'en_short': row.get('en_short', ''),
-        'en_full': row.get('en_full', ''),
-        'ja': row.get('ja', ''),
-        'ru': row.get('ru', ''),
-        'verify': bool(int(row.get('verify', 0))),
+        'index_code': row.get('index', '')
     }
 
 
@@ -166,20 +158,6 @@ def main(filepath: Path):
                 """
                 cursor.executemany(sql_base, base_data)
 
-                name_data = []
-                for sid in new_ship_ids:
-                    s = csv_ship_map[sid]
-                    name_data.append((
-                        s['ship_id'], s['zh_cn'], s['zh_sg'], s['zh_tw'],
-                        s['en_short'], s['en_full'], s['ja'], s['ru'], s['verify']
-                    ))
-                sql_name = """
-                    INSERT INTO T_ship_name (
-                        ship_id, zh_cn, zh_sg, zh_tw, en_short, en_full, ja, ru, verify
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """
-                cursor.executemany(sql_name, name_data)
-
                 for table_name in SHIP_INIT_TABLE_LIST:
                     sql_init = f"INSERT INTO {table_name} (ship_id) VALUES (%s)"
                     cursor.executemany(sql_init, [(sid,) for sid in new_ship_ids])
@@ -211,22 +189,6 @@ def main(filepath: Path):
                     WHERE ship_id = %s
                 """
                 cursor.executemany(sql_base_update, base_update_data)
-
-                name_update_data = []
-                for sid in update_ship_ids:
-                    s = csv_ship_map[sid]
-                    name_update_data.append((
-                        s['zh_cn'], s['zh_sg'], s['zh_tw'], s['en_short'],
-                        s['en_full'], s['ja'], s['ru'], s['verify'],
-                        s['ship_id']
-                    ))
-                sql_name_update = """
-                    UPDATE T_ship_name
-                    SET zh_cn = %s, zh_sg = %s, zh_tw = %s,
-                        en_short = %s, en_full = %s, ja = %s, ru = %s, verify = %s
-                    WHERE ship_id = %s
-                """
-                cursor.executemany(sql_name_update, name_update_data)
 
         conn.commit()
 

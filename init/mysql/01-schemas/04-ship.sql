@@ -63,29 +63,6 @@ CREATE TABLE IF NOT EXISTS T_ship_base (
     UNIQUE INDEX idx_rank_sid (is_enabled, is_old, tier, ship_id)
 );
 
--- 船只名称表
--- 存储船只的多语言名称
-CREATE TABLE IF NOT EXISTS T_ship_name (
-    id               INT          AUTO_INCREMENT,
-
-    ship_id          BIGINT       NOT NULL,         -- 1-11位的非连续数字
-    zh_cn            VARCHAR(50)  DEFAULT NULL,     -- 简体中文名
-    zh_sg            VARCHAR(50)  DEFAULT NULL,     -- 中文新加坡名
-    zh_tw            VARCHAR(50)  DEFAULT NULL,     -- 繁体中文名
-    en_short         VARCHAR(50)  DEFAULT NULL,     -- 英文简称
-    en_full          VARCHAR(50)  DEFAULT NULL,     -- 英文全称
-    ja               VARCHAR(50)  DEFAULT NULL,     -- 日文名
-    ru               VARCHAR(50)  DEFAULT NULL,     -- 俄文名
-    verify           BOOLEAN      DEFAULT FALSE,    -- 是否已验证
-
-    created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id),
-
-    UNIQUE INDEX idx_sid (ship_id)
-);
-
 -- 船只 PvP 统计表
 -- 存储基于所有用户 PvP 缓存数据汇总的全局总量与单船统计
 CREATE TABLE IF NOT EXISTS T_ship_pvp_stats (

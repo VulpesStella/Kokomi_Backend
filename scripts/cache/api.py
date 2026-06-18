@@ -1,5 +1,4 @@
 import random
-import requests
 import traceback
 from redis import Redis
 from requests import Session
@@ -8,7 +7,7 @@ from typing import Optional, Union
 from logger import logger
 from utils import get_current_iso_time
 from exception import write_exception
-from settings import VORTEX_API, MAIN_NODE_URL, MAIN_NODE_TOKEN
+from settings import VORTEX_API
 
 
 def fetch_data(session: Session, url: str) -> Union[dict, str]:

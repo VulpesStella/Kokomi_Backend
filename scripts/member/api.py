@@ -1,4 +1,3 @@
-import requests
 import traceback
 from redis import Redis
 from requests import Session

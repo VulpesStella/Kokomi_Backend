@@ -98,15 +98,7 @@ def parse_ship_row(row: dict) -> dict:
         'rarity_id': RARITY_MAP.get(row.get('rarity', '')),
         'premium': bool(int(row.get('premium', 0))),
         'special': bool(int(row.get('special', 0))),
-        'index_code': row.get('index', ''),
-        'zh_cn': row.get('zh_cn', ''),
-        'zh_sg': row.get('zh_sg', ''),
-        'zh_tw': row.get('zh_tw', ''),
-        'en_short': row.get('en_short', ''),
-        'en_full': row.get('en_full', ''),
-        'ja': row.get('ja', ''),
-        'ru': row.get('ru', ''),
-        'verify': bool(int(row.get('verify', 0))),
+        'index_code': row.get('index', '')
     }
 
 
@@ -151,21 +143,6 @@ def main(filepath: Path):
             name                # ship_name
         ))
 
-    # T_ship_name 数据
-    name_data = []
-    for s in ships:
-        name_data.append((
-            s['ship_id'],
-            s['zh_cn'],
-            s['zh_sg'],
-            s['zh_tw'],
-            s['en_short'],
-            s['en_full'],
-            s['ja'],
-            s['ru'],
-            s['verify']
-        ))
-
     # 关联统计表数据
     init_table_data = [[(s['ship_id'],) for s in ships] for _ in SHIP_INIT_TABLE_LIST]
 
@@ -188,17 +165,6 @@ def main(filepath: Path):
             cursor.executemany(sql_base, base_data)
         conn.commit()
         logger.info(f"Inserted {len(ships)} rows into T_ship_base")
-
-        # 插入名称表 T_ship_name
-        sql_name = """
-            INSERT INTO T_ship_name (
-                ship_id, zh_cn, zh_sg, zh_tw, en_short, en_full, ja, ru, verify
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        with conn.cursor() as cursor:
-            cursor.executemany(sql_name, name_data)
-        conn.commit()
-        logger.info(f"Inserted {len(ships)} rows into T_ship_name")
 
         # 依次插入各关联统计表
         for table_name, data_batch in zip(SHIP_INIT_TABLE_LIST, init_table_data):
