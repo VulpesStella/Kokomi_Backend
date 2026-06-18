@@ -1,0 +1,964 @@
+﻿ship_id,is_old,tier,type_id,nation_id,rarity_id,premium,special,index,default,zh_cn,zh_sg,zh_tw,en_short,en_full,ja,ru
+3765319664,0,5,4,1,2,1,0,PASD505,Hill,希尔,希尔,Hill,Hill,Hill,Hill,Hill
+3760142032,0,10,2,2,3,0,1,PJSB510,Shikishima,鲙,敷岛,Shikishima,Shikishima,Shikishima,敷島,Shikishima
+3553572848,0,7,2,1,2,1,0,PASB707,California,加利福尼亚,加利福尼亚,California,California,California,California,California
+3354310384,0,7,3,7,3,1,0,PISC897,Azur_Gorizia,AL 戈里齐亚,AL 戈里齐亚,AL Gorizia,AL Gorizia,AL Gorizia,AL Gorizia,AL Gorizia
+3756963280,0,3,3,5,2,1,0,PRSC513,Varyag,瓦良格,瓦良格,Varyag,Varyag,Varyag,Varyag,Варяг
+3341694416,0,9,4,5,,1,0,PRSD909,Black_Neustrashimy,不惧 (黑),不惧 B,Neustrashimy B,Neustrashimy B,Neustrashimy B,Neustrashimy B,Неустрашимый B
+3655251408,0,10,3,5,3,0,1,PRSC610,Smolensk,斯摩棱斯克,斯摩棱斯克,Smolensk,Smolensk,Smolensk,Smolensk,Смоленск
+4186912208,0,3,2,5,1,0,0,PRSB103,Knyaz_Suvorov,苏沃洛夫公爵,苏沃洛夫公爵,Knyaz Suvorov,Knyaz Suvorov,Knyaz Suvorov,Knyaz Suvorov,Князь Суворов
+4181669616,0,8,2,7,1,0,0,PISB108,Vittorio_Veneto,维托里奥·维内托,维托里奥·维内托,V. Veneto,V. Veneto,Vittorio Veneto,V. Veneto,V. Veneto
+3550394096,0,10,3,7,1,0,0,PISC710,Varese,瓦雷泽,瓦雷泽,Varese,Varese,Varese,Varese,Varese
+4259264496,0,6,2,1,1,0,0,PASB034,New_Mexico_1941,新墨西哥,新墨西哥,New Mexico,New Mexico,New Mexico,New Mexico,New Mexico
+3542005712,0,8,3,4,,1,0,PBSC718,STPatric_Tiger_1959,厄恩,厄恩,Érne,Érne,Érne,Érne,Érne
+4078876624,0,6,3,4,1,0,0,PBSC206,Devonshire,德文郡,德文郡,Devonshire,Devonshire,Devonshire,Devonshire,Devonshire
+4184815408,0,5,2,3,1,0,0,PGSB105,Koenig,国王,国王,König,König,König,König,König
+4179605296,0,10,1,3,1,0,0,PGSA110,Manfred_Richthofen,M·里希特霍芬,M.里希特霍芬,M. Richthofen,M. Richthofen,Manfred von Richthofen,M. Richthofen,M. Richthofen
+3753850320,0,6,2,5,2,1,0,PRSB516,Novorossiysk,新罗西斯克,新罗西斯克,Novorossiysk,Novorossiysk,Novorossiysk,Novorossiysk,Новороссийск
+3550426576,0,10,2,5,2,0,1,PRSB710,Sibir,西伯利亚,西伯利亚,Sibir,Sibir,Sibir,Sibir,Сибирь
+4074648880,0,10,4,9,1,0,0,PWSD210,Gdansk,格但斯克,格但斯克,Gdańsk,Gdańsk,Gdańsk,Gdańsk,Gdańsk
+3550426832,0,10,2,2,,0,1,PJSB710,FBO_Yamato,鲸落,大和·魁,Yamato Kai,Yamato Kai,Yamato Kai,大和・魁,Yamato Kai
+4180588304,0,9,3,10,1,0,0,PHSC109,Johan_de_Witt,约翰·德·威特,约翰·德·维特,Johan de Witt,Johan de Witt,Johan de Witt,Johan de Witt,Johan de Witt
+3550394352,0,10,3,1,2,0,1,PASC710,Salem,塞勒姆,塞勒姆,Salem,Salem,Salem,Salem,Salem
+3499013840,0,9,3,2,,1,0,PJSC759,VL_Suzuya,猿 VL,铃谷 VL,Suzuya VL,Suzuya VL,Suzuya VL,鈴谷 VL,Suzuya VL
+3560912592,0,10,2,2,3,0,1,PJSB700,ARP_Yamato,ARP 鲸,ARP 大和,ARP Yamato,ARP Yamato,ARP Yamato,ARP 大和,ARP Yamato
+3750639568,0,9,4,4,3,1,0,PBSD519,Somme,索姆河,索姆河,Somme,Somme,Somme,Somme,Somme
+4288657392,1,6,1,1,1,0,1,PASA006,Independence_1945,独立,独立（旧）,Independence (old),Independence (old),Independence (< 23.01.2019),Independence (old),Independence (old)
+4074682192,0,10,3,6,1,0,0,PFSC210,Marseille,马赛,马赛,Marseille,Marseille,Marseille,Marseille,Marseille
+3666818896,0,9,2,6,3,1,0,PFSB599,Black_Jean_Bart,让·巴尔 (黑),让·巴尔 B,Jean Bart B,Jean Bart B,Jean Bart B,Jean Bart B,Jean Bart B
+3352213296,0,9,3,3,3,1,0,PGSC899,AZUR_Aegir,AL 埃吉尔,AL 埃吉尔,AL Ägir,AL Ägir,AL Ägir,AL Ägir,AL Ägir
+3540924112,0,9,4,2,2,1,0,PJSD719,Minegumo,荷,峰云,Minegumo,Minegumo,Minegumo,峯雲,Minegumo
+3445536208,0,10,3,5,3,0,1,PRSC810,Komissar,科米萨尔,科米萨尔,Komissar,Komissar,Komissar,Komissar,Комиссар
+4183733456,0,6,3,8,1,0,0,PZSC106,Rahmat,拉马特,拉赫马特,Rahmat,Rahmat,Rahmat,Rahmat,Rahmat
+4182685104,0,7,3,13,1,0,0,PSSC107,Asturias,阿斯图里亚斯,阿斯图里亚斯,Asturias,Asturias,Asturias,Asturias,Asturias
+3730782192,0,8,2,1,2,1,0,PASB538,Constellation,星座,星座,Constellation,Constellation,Constellation,Constellation,Constellation
+4287543280,1,6,3,1,1,0,1,PASC007,Cleveland_1945,克利夫兰,克利夫兰（旧）,Cleveland (old),Cleveland (old),Cleveland (< 31.05.2018),Cleveland (old),Cleveland (old)
+4183799248,0,6,1,5,1,0,0,PRSA106,Serov,谢罗夫,谢罗夫,Serov,Serov,Serov,Serov,Серов
+4074157872,0,10,5,3,1,0,0,PGSS210,U_2501,U-2501,U-2501,U-2501,U-2501,U-2501,U-2501,U-2501
+4277024464,0,5,4,2,4,1,0,PJSD017,Kamikaze_1930,杨,风神,Fūjin,Fūjin,Fūjin,風神,Fūjin
+3667834576,0,8,3,2,2,1,0,PJSC598,Black_Atago,犬 (黑),爱宕 B,Atago B,Atago B,Atago B,愛宕 B,Atago B
+3729733328,0,9,2,2,4,1,0,PJSB539,Daisen,鳇,大山,Daisen,Daisen,Daisen,大山,Daisen
+3743332304,0,6,3,4,2,1,0,PBSC526,Dido,黛朵,黛朵,Dido,Dido,Dido,Dido,Dido
+4181604176,0,8,4,6,1,0,0,PFSD108,Le_Fantasque,空想,空想,Le Fantasque,Le Fantasque,Le Fantasque,Le Fantasque,Le Fantasque
+3539875824,0,10,4,1,3,0,1,PASD720,Hull,赫尔,赫尔,Hull,Hull,Hull,Hull,Hull
+3544102864,0,6,3,4,3,1,0,PBSC716,Orion_1944,俄里翁 '44,俄里翁 44,Orion '44,Orion '44,Orion '44,Orion '44,Orion '44
+4075763664,0,9,2,4,1,0,0,PBSB209,Duncan,邓肯,邓肯,Duncan,Duncan,Duncan,Duncan,Duncan
+3552457936,0,8,4,8,3,1,0,PZSD708,Zhu_Que,凤雏,朱雀,朱雀,Zhu Que,Zhu Que,Zhu Que,Zhu Que
+3542038256,0,8,2,7,2,1,0,PISB718,Marcantonio_Colonna,马尔康托尼奥·科隆纳,马坎托尼奥·科隆纳,M. Colonna,M. Colonna,Marcantonio Colonna,M. Colonna,M. Colonna
+4287575760,0,5,2,2,1,0,0,PJSB007,Kongo_1942,鲤,金刚,Kongō,Kongō,Kongō,金剛,Kongō
+3539384016,0,10,5,2,2,0,1,PJSS720,I56_1944,I-56 '44,I-56 '44,I-56 '44,I-56 '44,I-56 '44,伊 56 '44,I-56 '44
+3764336336,0,6,2,2,2,1,0,PJSB506,Mutsu,鲭,陆奥,Mutsu,Mutsu,Mutsu,陸奥,Mutsu
+4077860816,0,7,2,4,1,0,0,PBSB207,Rooke,鲁克,鲁克,Rooke,Rooke,Rooke,Rooke,Rooke
+4290754544,1,4,1,1,1,0,1,PASA004,Langley_1929,兰利,兰利（旧）,Langley (old),Langley (old),Langley (< 23.01.2019),Langley (old),Langley (old)
+4076779344,0,8,3,6,1,0,0,PFSC208,Cherbourg,瑟堡,瑟堡,Cherbourg,Cherbourg,Cherbourg,Cherbourg,Cherbourg
+4187895760,0,2,4,4,1,0,0,PBSD102,Medea,美狄亚,美狄亚,Medea,Medea,Medea,Medea,Medea
+3759585072,0,10,5,3,2,0,1,PGSS510,U4501,U-4501,U-4501,U-4501,U-4501,U-4501,U-4501,U-4501
+3762173744,0,7,4,3,3,1,0,PGSD508,Z_39,Z-39,Z-39,Z-39,Z-39,Z-39,Z-39,Z-39
+4293834544,0,1,3,3,1,0,0,PGSC001,Hermelin_1940,鼬,鼬,Hermelin,Hermelin,Hermelin,Hermelin,Hermelin
+3436066800,0,9,4,1,4,1,0,PASD819,FBO_Johnston,战斗约翰尼,战斗约翰尼,GQ Johnny,GQ Johnny,GQ Johnny,GQ Johnny,GQ Johnny
+4279154032,0,5,3,11,1,0,0,PUSC015,Delhi,德里,德里,Delhi,Delhi,Delhi,Delhi,Delhi
+3865982416,0,9,4,5,1,0,0,PRSD409,Pr_20i_Tashkent,塔什干,塔什干,Tashkent,Tashkent,Tashkent,Tashkent,Ташкент
+4185896400,0,4,1,5,1,0,0,PRSA104,Komsomolets,科莫索莫勒斯,共青团员,Komsomolets,Komsomolets,Komsomolets,Komsomolets,Комсомолец
+4076255024,0,8,5,3,1,0,0,PGSS208,U190,U-190,U-190,U-190,U-190,U-190,U-190,U-190
+4077795024,0,7,4,2,1,0,0,PJSD207,Shiratsuyu,梿,白露,Shiratsuyu,Shiratsuyu,Shiratsuyu,白露,Shiratsuyu
+4278105456,0,6,3,11,1,0,0,PUSC016,Hobart,霍巴特,霍巴特,Hobart,Hobart,Hobart,Hobart,Hobart
+3542071248,0,8,1,4,3,1,0,PBSA718,Theseus,忒修斯,忒修斯,Theseus,Theseus,Theseus,Theseus,Theseus
+4183701328,0,6,4,6,1,0,0,PFSD106,Guepard,猎豹,猎豹,Guépard,Guépard,Guépard,Guépard,Guépard
+3552524272,0,8,2,1,5,1,0,PASB708,Alabama,阿拉巴马,阿拉巴马 ST,Alabama ST,Alabama ST,Alabama ST,Alabama ST,Alabama ST
+3752736720,0,8,4,4,2,1,0,PBSD517,Cossack,哥萨克,哥萨克人,Cossack,Cossack,Cossack,Cossack,Cossack
+3742316496,0,7,2,4,2,1,0,PBSB527,Duke_of_York,约克公爵,约克公爵,Duke of York,Duke of York,Duke of York,Duke of York,Duke of York
+4183799600,0,6,1,3,1,0,0,PGSA106,Weser,威悉河,威悉河,Weser,Weser,Weser,Weser,Weser
+3549870032,0,10,5,4,2,0,1,PBSS710,Seal,海豹,海豹,Seal,Seal,Seal,Seal,Seal
+3543054032,0,7,3,2,3,1,0,PJSC717,Yellow_Dragon,凤凰,南方神龙,S. Dragon,S. Dragon,Southern Dragon,S. Dragon,S. Dragon
+3761157584,0,9,3,5,4,1,0,PRSC509,Kronshtadt,喀朗施塔得,喀琅施塔得,Kronshtadt,Kronshtadt,Kronshtadt,Kronshtadt,Кронштадт
+3750704880,0,9,2,7,2,1,0,PISB519,Giuseppe_Verdi,朱塞佩·威尔第,朱塞佩·威尔第,Giuseppe Verdi,Giuseppe Verdi,Giuseppe Verdi,Giuseppe Verdi,Giuseppe Verdi
+4179539376,0,10,3,13,1,0,0,PSSC110,Castilla,卡斯蒂利亚,卡斯蒂利亚,Castilla,Castilla,Castilla,Castilla,Castilla
+3436099280,0,9,3,2,3,1,0,PJSC819,BA_Takahashi,BA 狒,BA 高梁,BA Takahashi,BA Takahashi,BA Takahashi,BA 高梁,BA Takahashi
+3363780304,0,8,2,2,3,1,0,PJSB888,Ragnarok,诸神黄昏,Ragnarok,Ragnarok,Ragnarok,Ragnarok,Ragnarok,Ragnarok
+3353327600,0,8,1,1,3,1,0,PASA898,AZUR_Hornet,AL 大黄蜂,AL 大黄蜂,AL Hornet,AL Hornet,AL Hornet,AL Hornet,AL Hornet
+3765352176,0,5,3,7,2,1,0,PISC505,Genova,热那亚,热那亚,Genova,Genova,Genova,Genova,Genova
+3550361392,0,10,4,3,3,0,1,PGSD710,Georg_Hoffmann,格奥尔格·霍夫曼,格奥尔格·霍夫曼,G. Hoffmann,G. Hoffmann,Georg Hoffmann,G. Hoffmann,G. Hoffmann
+4184782800,0,5,3,4,1,0,0,PBSC105,Emerald,翡翠,翡翠,Emerald,Emerald,Emerald,Emerald,Emerald
+4179572688,0,10,2,4,1,0,0,PBSB110,Conqueror,征服者,征服者,Conqueror,Conqueror,Conqueror,Conqueror,Conqueror
+3764270896,0,6,4,3,3,1,0,PGSD506,T_61,T-61,T-61,T-61,T-61,T-61,T-61,T-61
+4286494416,0,7,3,2,1,0,0,PJSC008,Myoko_1945,鬣,妙高,Myōkō,Myōkō,Myōkō,妙高,Myōkō
+4078352176,0,6,5,3,1,0,0,PGSS206,U_69,U-69,U-69,U-69,U-69,U-69,U-69,U-69
+3550361328,0,10,4,7,3,0,1,PISD710,Alberico_da_Barbiano,阿尔贝科·达·巴比亚诺,阿尔贝里科·达·巴尔比亚诺,A. da Barbiano,A. da Barbiano,Alberico da Barbiano,A. da Barbiano,A. da Barbiano
+4074682064,0,10,3,2,1,0,0,PJSC210,Yodo,狍,淀,Yodo,Yodo,Yodo,淀,Yodo
+3767449296,0,3,3,2,2,1,0,PJSC503,Katori,鹿,香取,Katori,Katori,Katori,香取,Katori
+4291770064,0,4,2,2,1,0,0,PJSB003,Myogi_1912,鲛,妙义,Myōgi,Myōgi,Myōgi,妙義,Myōgi
+4185798480,0,4,4,6,1,0,0,PFSD104,Bourrasque,狂风,狂风,Bourrasque,Bourrasque,Bourrasque,Bourrasque,Bourrasque
+4180588368,0,9,3,6,1,0,0,PFSC109,Saint_Louis,路易九世,路易九世,Saint-Louis,Saint-Louis,Saint-Louis,Saint-Louis,Saint-Louis
+4180555600,0,9,4,6,1,0,0,PFSD109,Mogador,莫加多尔,莫加多尔,Mogador,Mogador,Mogador,Mogador,Mogador
+3543087056,0,7,2,4,3,1,0,PBSB717,Rodney,罗德尼,罗德尼,Rodney,Rodney,Rodney,Rodney,Rodney
+4074747856,0,10,1,4,1,0,0,PBSA210,Audacious,大胆,大胆,Audacious,Audacious,Audacious,Audacious,Audacious
+4185896752,0,4,1,3,1,0,0,PGSA104,Rhein,莱茵河,莱茵河,Rhein,Rhein,Rhein,Rhein,Rhein
+4186846960,0,3,4,7,1,0,0,PISD103,Sauro,纳萨里奥·萨乌罗,纳扎里奥·萨乌罗,N. Sauro,N. Sauro,Nazario Sauro,N. Sauro,N. Sauro
+3551475440,0,9,2,7,,1,0,PISB709,Olympian_Marco_Polo,前百夫长,百夫长,Pilus Prior,Pilus Prior,Pilus Prior,Pilus Prior,Pilus Prior
+4187927888,0,2,3,12,1,0,0,PVSC102,Almirante_Barroso,巴罗索海军上将,巴罗索海军上将,Alm. Barroso,Alm. Barroso,Almirante Barroso,Alm. Barroso,Alm. Barroso
+4186879728,0,3,3,7,1,0,0,PISC103,Taranto,塔兰托,塔兰托,Taranto,Taranto,Taranto,Taranto,Taranto
+3763288048,0,6,2,1,2,1,0,PASB507,West_Virginia,西弗吉尼亚 '41,西弗吉尼亚 41,W. Virginia '41,W. Virginia '41,W. Virginia '41,W. Virginia '41,W. Virginia '41
+3544102736,0,6,3,6,3,1,0,PFSC716,Montcalm,蒙卡尔姆,蒙卡尔姆,Montcalm,Montcalm,Montcalm,Montcalm,Montcalm
+4186879952,0,3,3,4,1,0,0,PBSC103,Caledon,卡利登,卡利登,Caledon,Caledon,Caledon,Caledon,Caledon
+3761157936,0,9,3,3,3,1,0,PGSC509,Siegfried,齐格飞,齐格菲,Siegfried,Siegfried,Siegfried,Siegfried,Siegfried
+3353294640,0,8,2,3,3,1,0,PGSB898,Azur_Bismarck,AL 俾斯麦,AL 俾斯麦,AL Bismarck,AL Bismarck,AL Bismarck,AL Bismarck,AL Bismarck
+4280202608,0,4,3,11,1,0,0,PUSC014,Dunedin,达尼丁,达尼丁,Dunedin,Dunedin,Dunedin,Dunedin,Dunedin
+3764270416,0,6,4,12,2,1,0,PVSD506,Jurua,茹鲁阿,茹鲁阿,Juruá,Juruá,Juruá,Juruá,Juruá
+4179539728,0,10,3,10,1,0,0,PHSC110,Gouden_Leeuw,金狮,金狮,Gouden Leeuw,Gouden Leeuw,Gouden Leeuw,Gouden Leeuw,Gouden Leeuw
+3555670000,0,5,2,1,2,1,0,PASB705,Texas_1944,德克萨斯,德克萨斯,Texas,Texas,Texas,Texas,Texas
+3730748880,0,8,3,5,2,1,0,PRSC538,Petr_Bagration,彼得罗·巴格拉季昂,彼得罗·巴格拉季昂,P. Bagration,P. Bagration,Pyotr Bagration,P. Bagration,П. Багратион
+3658397424,0,7,3,7,3,1,0,PISC607,Gorizia,戈里齐亚,戈里齐亚,Gorizia,Gorizia,Gorizia,Gorizia,Gorizia
+4182652208,0,7,4,9,1,0,0,PWSD107,Skane,斯科讷,斯科讷,Skåne,Skåne,Skåne,Skåne,Skåne
+3541972176,0,8,4,8,3,1,0,PZSD718,Warhammer_Ork,冲撞跳跳,Ship Smasha,Ship Smasha,Ship Smasha,Ship Smasha,Ship Smasha,Ship Smasha
+4274992464,0,9,2,12,1,0,0,PVSB019,Los_Andes,洛斯安第斯,安第斯,Los Andes,Los Andes,Los Andes,Los Andes,Los Andes
+3552524016,0,8,2,7,3,1,0,PISB708,AZUR_Littorio,AL 利托里奥,AL 利托里奥,AL Littorio,AL Littorio,AL Littorio,AL Littorio,AL Littorio
+3540957008,0,9,3,6,2,1,0,PFSC719,Le_Havre,勒阿弗尔,勒阿弗尔,Le Havre,Le Havre,Le Havre,Le Havre,Le Havre
+4272895696,0,9,2,2,1,0,0,PJSB021,Izumo_1938,鲟,出云,Izumo,Izumo,Izumo,出雲,Izumo
+3529455600,0,10,2,1,4,0,1,PASB730,Wisconsin,威斯康星,威斯康星,Wisconsin,Wisconsin,Wisconsin,Wisconsin,Wisconsin
+4187895632,0,2,4,6,1,0,0,PFSD102,Enseigne_Gabolde,加博尔德海军少尉,加博尔德海军少尉,En. Gabolde,En. Gabolde,Enseigne Gabolde,En. Gabolde,En. Gabolde
+3751753712,0,8,2,1,3,1,0,PASB518,Massachusetts,马萨诸塞,马萨诸塞,Massachusetts,Massachusetts,Massachusetts,Massachusetts,Massachusetts
+4183209968,1,6,5,1,1,0,1,PASS106,Cachalot,抹香鲸 (旧),抹香鲸 (old),Cachalot (old),Cachalot (old),Cachalot (< 04.10.2022),Cachalot (old),Cachalot (old)
+3751720912,0,8,3,4,2,1,0,PBSC518,Tiger_1959,虎 '59,虎 59,Tiger '59,Tiger '59,Tiger '59,Tiger '59,Tiger '59
+4082055120,0,3,2,4,1,0,0,PBSB203,Indefatigable,不倦,不倦,Indefatigable,Indefatigable,Indefatigable,Indefatigable,Indefatigable
+4179507024,0,10,4,6,1,0,0,PFSD110,Kleber,克莱贝尔,克莱贝尔,Kléber,Kléber,Kléber,Kléber,Kléber
+3760075984,0,10,4,8,4,0,1,PZSD510,Lushun,旅安,旅顺,Lüshun,Lüshun,Lüshun,Lüshun,Lüshun
+3971888592,0,8,4,5,1,0,0,PRSD308,Pr_48,基辅,基辅,Kiev,Kiev,Kiev,Kiev,Киев
+3765351888,0,5,3,5,2,1,0,PRSC505,KrasniKrym,红色克里米亚,红色克里米亚,Krasny Krym,Krasny Krym,Krasny Krym,Krasny Krym,Красный Крым
+3760141776,0,10,2,5,3,0,1,PRSB510,Slava,光荣,光荣,Slava,Slava,Slava,Slava,Слава
+3550459216,0,10,1,12,,0,1,PVSA710,Independencia,独立,自主,Independencia,Independencia,Independencia,Independencia,Independencia
+4183701200,0,6,4,2,1,0,0,PJSD106,Fubuki,桐,吹雪,Fubuki,Fubuki,Fubuki,吹雪,Fubuki
+4178458608,0,11,4,1,2,0,0,PASD111,Joshua_Humphreys,约书亚·汉弗莱斯,约书亚·汉弗莱斯,J. Humphreys,J. Humphreys,Joshua Humphreys,J. Humphreys,J. Humphreys
+3362732016,0,9,2,1,3,1,0,PASB889,Azur_Kearsarge,AL 基尔萨奇,AL 奇尔沙治,AL Kearsarge,AL Kearsarge,AL Kearsarge,AL Kearsarge,AL Kearsarge
+3760175088,0,10,1,1,3,0,1,PASA510,Roosevelt,富兰克林,富兰克林·罗斯福,F.D. Roosevelt,F. D. Roosevelt,Franklin D. Roosevelt,F. D. Roosevelt,F. D. Roosevelt
+4188977104,0,1,3,4,1,0,0,PBSC101,Black_Swan,黑天鹅,黑天鹅,Black Swan,Black Swan,Black Swan,Black Swan,Black Swan
+3763255088,0,7,3,3,2,1,0,PGSC507,Munchen,慕尼黑,慕尼黑,München,München,München,München,München
+4185830832,0,4,3,13,1,0,0,PSSC104,Almirante_Cervera,塞韦拉海军上将,塞韦拉海军上将,Almte. Cervera,Almte. Cervera,Almirante Cervera,Almte. Cervera,Almte. Cervera
+4178491216,0,11,3,6,2,0,0,PFSC111,Conde,孔代,孔代,Condé,Condé,Condé,Condé,Condé
+3550393648,0,10,3,9,3,0,1,PWSC710,Svea,斯维亚,斯维亚,Svea,Svea,Svea,Svea,Svea
+4181636880,0,8,3,10,1,0,0,PHSC108,Haarlem,哈勒姆,哈勒姆,Haarlem,Haarlem,Haarlem,Haarlem,Haarlem
+3539875632,0,10,4,3,4,0,1,PGSD720,Gold_Georg_Hoffmann,格奥尔格·霍夫曼 (金),金色格奥尔格·霍夫曼,G. Hoffmann G,G. Hoffmann G,Georg Hoffmann Golden,G. Hoffmann G,G. Hoffmann G
+3330192848,0,10,3,5,,0,1,PRSC920,PostApoc_Petropavlovsk,歪比巴卜,PTRPVLSK,PTRPVLSK,PTRPVLSK,PTRPVLSK,PTRPVLSK,PTRPVLSK
+3540989936,0,9,2,1,,1,0,PASB719,Indiana,印第安纳,印第安纳,Indiana,Indiana,Indiana,Indiana,Indiana
+4184749360,0,5,4,9,1,0,0,PWSD105,Visby,维斯比,维斯比,Visby,Visby,Visby,Visby,Visby
+3969857328,0,10,2,3,1,0,0,PGSB310,Preussen,普鲁士,普鲁士,Preussen,Preussen,Preussen,Preussen,Preussen
+3676223184,0,10,3,2,2,0,1,PJSC590,Black_Yoshino,狤 (黑),吉野 B,Yoshino B,Yoshino B,Yoshino B,吉野 B,Yoshino B
+4184782672,0,5,3,6,1,0,0,PFSC105,Emile_Bertin,白劳易,白劳易,Émile Bertin,Émile Bertin,Émile Bertin,Émile Bertin,Émile Bertin
+4179572560,0,10,2,6,1,0,0,PFSB110,France,共和,共和国,République,République,République,République,République
+3552491472,0,8,3,4,,1,0,PBSC708,STPatric_Belfast_1943,思南,辛安,Sinann,Sinann,Sinann,Sinann,Sinann
+4185864016,0,4,2,6,1,0,0,PFSB104,Courbet,孤拔,孤拔,Courbet,Courbet,Courbet,Courbet,Courbet
+3762173136,0,8,4,8,2,1,0,PZSD508,LoYang,雒安,洛阳,洛陽,Loyang,Loyang,Loyang,Loyang
+4077827792,0,7,3,2,1,0,0,PJSC207,Omono,獭,雄物,Omono,Omono,Omono,雄物,Omono
+3767449040,0,3,3,5,2,1,0,PRSC503,Oleg,奥列格,奥列格,Oleg,Oleg,Oleg,Oleg,Олег
+3762238928,0,7,2,5,3,1,0,PRSB508,Poltava,波尔塔瓦,波尔塔瓦,Poltava,Poltava,Poltava,Poltava,Полтава
+4276041008,0,8,2,9,,0,0,PWSB018,Enigheten,众志,众志,Enigheten,Enigheten,Enigheten,Enigheten,Enigheten
+3509499600,0,9,3,2,4,1,0,PJSC749,GM_Suzuya,猿 (金),金色铃谷,Suzuya G,Suzuya G,Suzuya Golden,鈴谷 G,Suzuya G
+3552491504,0,8,3,1,,1,0,PASC708,Bridgeport,布里奇波特,布里奇波特,Bridgeport,Bridgeport,Bridgeport,Bridgeport,Bridgeport
+3762272240,1,8,1,1,1,0,1,PASA508,Enterprise,企业,企业（旧）,Enterprise (old),Enterprise (old),Enterprise (< 23.01.2019),Enterprise (old),Enterprise (old)
+3753818064,0,6,3,4,2,1,0,PBSC516,London,伦敦,伦敦,London,London,London,London,London
+3761190704,0,9,2,3,2,1,0,PGSB509,Pommern,波美拉尼亚,波美拉尼亚,Pommern,Pommern,Pommern,Pommern,Pommern
+4185864144,0,4,2,4,1,0,0,PBSB104,Orion,俄里翁,俄里翁,Orion,Orion,Orion,Orion,Orion
+3752736112,0,7,4,11,3,1,0,PUSD517,Huron,休伦,休伦,Huron,Huron,Huron,Huron,Huron
+4284396912,0,10,3,11,1,0,0,PUSC010,Cerberus,刻耳柏洛斯,刻耳柏洛斯,Cerberus,Cerberus,Cerberus,Cerberus,Cerberus
+3763254608,0,7,3,12,2,1,0,PVSC507,Nueve_de_Julio_1951,七月九日城,七月九日,Nueve de Julio,Nueve de Julio,Nueve de Julio,Nueve de Julio,Nueve de Julio
+3679369200,0,7,3,1,2,1,0,PASC587,Black_Atlanta,亚特兰大 (黑),亚特兰大 B,Atlanta B,Atlanta B,Atlanta B,Atlanta B,Atlanta B
+3761125104,0,9,4,7,3,1,0,PISD509,Paolo_Emilio,保罗·埃米利奥,保罗·埃米利奥,Paolo Emilio,Paolo Emilio,Paolo Emilio,Paolo Emilio,Paolo Emilio
+4274960144,0,9,3,10,1,0,0,PHSC019,Menno_Van_Coehoorn,门诺·范·库霍恩,门诺·范库霍恩,M. van Coehoorn,M. van Coehoorn,Menno van Coehoorn,M. van Coehoorn,M. van Coehoorn
+4287510224,1,8,4,2,1,0,1,PJSD007,Fubuki_1944,桐(旧),吹雪 (old),Fubuki (old),Fubuki (old),Fubuki (< 01.12.2016),吹雪 (old),Fubuki (old)
+4282300112,0,9,3,2,1,0,0,PJSC012,Ibuki_1944,虎,伊吹,Ibuki,Ibuki,Ibuki,伊吹,Ibuki
+3445569264,0,10,2,7,4,0,1,PISB810,Cyber_Ruggiero_di_Lauria,黑色风暴,黑色风暴,Tempesta Nera,Tempesta Nera,Tempesta Nera,Tempesta Nera,Tempesta Nera
+3667900112,0,8,1,2,2,1,0,PJSA598,Black_Kaga,鸾 (黑),加贺 B,Kaga B,Kaga B,Kaga B,加賀 B,Kaga B
+4186879824,0,3,3,6,1,0,0,PFSC103,Friant,弗利昂,弗利昂,Friant,Friant,Friant,Friant,Friant
+4181669712,0,8,2,6,1,0,0,PFSB108,Richelieu,黎塞留,黎塞留,Richelieu,Richelieu,Richelieu,Richelieu,Richelieu
+3741234640,0,8,3,5,2,1,0,PRSC528,Ochakov,奥恰科夫,奥恰科夫,Ochakov,Ochakov,Ochakov,Ochakov,Очаков
+4081039312,0,4,1,4,1,0,0,PBSA204,Hermes,竞技神,竞技神,Hermes,Hermes,Hermes,Hermes,Hermes
+3330193200,0,10,3,3,,0,1,PGSC920,Gold_Bremen,不来梅 (金),金色不来梅,Bremen G,Bremen G,Bremen Golden,Bremen G,Bremen G
+3655317296,0,10,1,3,2,0,1,PGSA610,Max_Immelmann,马克斯·殷麦曼,马克斯·殷麦曼,M. Immelmann,M. Immelmann,Max Immelmann,M. Immelmann,M. Immelmann
+3764270288,0,6,4,8,2,1,0,PZSD506,Anshan,襄安,鞍山,Anshan,Anshan,Anshan,Anshan,Anshan
+3741267952,0,8,2,1,5,1,0,PASB528,Alabama_VL,阿拉巴马 VL,阿拉巴马 VL,Alabama VL,Alabama VL,Alabama VL,Alabama VL,Alabama VL
+4183700784,0,6,4,9,1,0,0,PWSD106,Vasteras,韦斯特罗斯,韦斯特罗斯,Västerås,Västerås,Västerås,Västerås,Västerås
+3764303600,0,6,3,7,2,1,0,PISC506,DucadAosta,奥斯塔公爵,奥斯塔公爵,Duca d'Aosta,Duca d'Aosta,Duca d'Aosta,Duca d'Aosta,Duca d'Aosta
+3550360880,0,10,4,9,3,0,1,PWSD710,Ragnar,朗纳尔,朗纳尔,Ragnar,Ragnar,Ragnar,Ragnar,Ragnar
+3764336432,0,6,2,3,2,1,0,PGSB506,Prinz_Eithel_Friedrich,艾特尔·弗里德里希王子,艾特尔·弗里德里希亲王,P. E. Friedrich,P. E. Friedrich,Prinz Eitel Friedrich,P. E. Friedrich,P. E. Friedrich
+4278138160,0,6,2,9,,0,0,PWSB016,Laudon,劳东,劳东,Laudon,Laudon,Laudon,Laudon,Laudon
+4187927984,0,2,3,13,1,0,0,PSSC102,Mendez_Nunez,门德斯·努涅斯,门德斯·努涅斯,Méndez Núñez,Méndez Núñez,Méndez Núñez,Méndez Núñez,Méndez Núñez
+4076745936,0,8,4,8,2,1,0,PZSD208,Siliwangi_1959,西利旺义,西利旺义,Siliwangi,Siliwangi,Siliwangi,Siliwangi,Siliwangi
+3447666672,0,8,2,1,2,1,0,PASB808,Colorful_North_Carolina,北卡罗来纳 炫彩,北卡罗来纳 CLR,N. Carolina CLR,N. Carolina CLR,North Carolina CLR,N. Carolina CLR,N. Carolina CLR
+3550394192,0,10,3,6,3,0,1,PFSC710,Brennus,布伦努斯,布伦努斯,Brennus,Brennus,Brennus,Brennus,Brennus
+3751687376,0,8,4,8,2,1,0,PZSD518,Fen_Yang,汾安,汾阳,汾陽,Fenyang,Fenyang,Fenyang,Fenyang
+3676223216,0,10,3,7,2,0,1,PISC590,Black_Napoli,那不勒斯 （黑）,那不勒斯 B,Napoli B,Napoli B,Napoli B,Napoli B,Napoli B
+4185831184,0,4,3,10,1,0,0,PHSC104,De_Ruyter,德·鲁伊特,德·鲁伊特,De Ruyter,De Ruyter,De Ruyter,De Ruyter,De Ruyter
+3341727696,0,9,3,4,,1,0,PBSC909,Pirate_Neptune,诅咒之牙,诅咒之牙,Cursed Fang,Cursed Fang,Cursed Fang,Cursed Fang,Cursed Fang
+4185863920,0,4,2,7,1,0,0,PISB104,Dante_Alighieri,阿利吉耶里,但丁·阿利格伊切里,D. Alighieri,D. Alighieri,Dante Alighieri,D. Alighieri,D. Alighieri
+4289607376,1,6,4,2,1,0,1,PJSD005,Mutsuki_1926,松(旧),睦月 (旧),Mutsuki (old),Mutsuki (old),Mutsuki (< 01.12.2016),睦月 (old),Mutsuki (old)
+4077828080,0,7,3,1,1,0,0,PASC207,Helena,海伦娜,海伦娜,Helena,Helena,Helena,Helena,Helena
+4188976976,0,1,3,6,1,0,0,PFSC101,Bougainville,布甘维尔,布甘维尔,Bougainville,Bougainville,Bougainville,Bougainville,Bougainville
+4183766864,0,6,2,6,1,0,0,PFSB106,Normandie,诺曼底,诺曼底,Normandie,Normandie,Normandie,Normandie,Normandie
+3540956592,0,9,3,13,4,1,0,PSSC719,Almirante_Oquendo,奥肯多海军上将,奥肯多海军上将,Almte. Oquendo,Almte. Oquendo,Almirante Oquendo,Almte. Oquendo,Almte. Oquendo
+3752802256,0,7,2,4,3,1,0,PBSB517,Nelson,纳尔逊,纳尔逊,Nelson,Nelson,Nelson,Nelson,Nelson
+4075697968,0,9,4,3,1,0,0,PGSD209,Felix_Schultz,F. 舒尔茨,菲利克斯·舒尔茨,F. Schultz,F. Schultz,Felix Schultz,F. Schultz,F. Schultz
+3667834672,0,8,3,3,2,1,0,PGSC598,Black_Mainz,美因茨 （黑）,美因茨 B,Mainz B,Mainz B,Mainz B,Mainz B,Mainz B
+3761157328,0,9,3,8,2,1,0,PZSC509,Dalian,连海,大连,Dalian,Dalian,Dalian,Dalian,Dalian
+3655219184,0,10,4,1,2,0,1,PASD610,Forrest_Sherman,福里斯特·舍曼,福雷斯特·谢尔曼,F. Sherman,F. Sherman,Forrest Sherman,F. Sherman,F. Sherman
+3539941072,0,10,2,2,,0,1,PJSB720,Aki,鲼,安艺,Aki,Aki,Aki,安芸,Aki
+4179506640,0,10,4,5,2,0,1,PRSD110,Pr_24_Khabarovsk,哈巴罗夫斯克,哈巴罗夫斯克,Khabarovsk,Khabarovsk,Khabarovsk,Khabarovsk,Хабаровск
+3552458032,0,8,4,9,3,1,0,PWSD708,Blyskawica_1944,闪电 '44,闪电 44,Blyskawica '44,Błyskawica '44,Błyskawica '44,Blyskawica '44,Błyskawica '44
+4280235312,0,4,2,9,,0,0,PWSB014,Yavuz_Sultan_Selim,严君,亚沃士,Yavuz,Yavuz,Yavuz Sultan Selim,Yavuz,Yavuz
+4181702352,0,8,1,2,1,0,0,PJSA108,Shokaku,鹬,翔鹤,Shōkaku,Shōkaku,Shōkaku,翔鶴,Shōkaku
+3552491344,0,8,3,6,1,0,0,PFSC708,Metz,梅斯,梅茨,Metz,Metz,Metz,Metz,Metz
+4186846416,0,3,4,8,1,0,0,PZSD103,Phra_Ruang,帕襄,帕禳,Phra Ruang,Phra Ruang,Phra Ruang,Phra Ruang,Phra Ruang
+3550393712,0,10,3,11,,0,1,PUSC710,Pioneer,先锋,先驱,Pioneer,Pioneer,Pioneer,Pioneer,Pioneer
+4187928336,0,2,3,10,1,0,0,PHSC102,Gelderland,海尔德兰,海尔德兰,Gelderland,Gelderland,Gelderland,Gelderland,Gelderland
+3762238800,0,8,2,12,4,1,0,PVSB508,Atlantico,大西洋,大西洋,Atlântico,Atlântico,Atlântico,Atlântico,Atlântico
+4079891920,0,5,4,5,1,0,0,PRSD205,Podvoisky_pr_1929,巴铎夫斯基,巴铎夫斯基,Podvoisky,Podvoisky,Podvoisky,Podvoisky,Подвойский
+4179015632,0,10,5,4,1,0,0,PBSS110,Thrasher,连枷,连枷,Thrasher,Thrasher,Thrasher,Thrasher,Thrasher
+3655218480,0,10,4,9,3,0,1,PWSD610,Smaland,斯莫兰,斯莫兰,Småland,Småland,Småland,Småland,Småland
+4291704528,0,4,4,2,1,0,0,PJSD003,Isokaze_1917,柳,矶风,Isokaze,Isokaze,Isokaze,磯風,Isokaze
+3751196368,0,8,5,2,2,1,0,PJSS518,I56,I-56,I-56,I-56,I-56,I-56,伊 56,I-56
+3760076208,0,10,4,13,2,0,1,PSSD510,Alvaro_de_Bazan,阿尔瓦罗·德·巴赞,阿尔瓦罗·德·巴赞,Álvaro de Bazán,Álvaro de Bazán,Álvaro de Bazán,Álvaro de Bazán,Álvaro de Bazán
+4286461936,0,8,4,1,1,0,0,PASD008,Benson_1945,本森,本森,Benson,Benson,Benson,Benson,Benson
+4188976560,0,1,3,13,1,0,0,PSSC101,Jupiter,朱庇特,朱庇特,Júpiter,Júpiter,Júpiter,Júpiter,Júpiter
+4074715120,0,10,2,1,1,0,0,PASB210,Louisiana,路易斯安那,路易斯安那,Louisiana,Louisiana,Louisiana,Louisiana,Louisiana
+4293867216,0,3,2,2,1,0,0,PJSB001,Kawachi_1912,鲑,河内,Kawachi,Kawachi,Kawachi,河内,Kawachi
+3760109520,0,10,3,4,3,0,1,PBSC510,Plymouth,普利茅斯,普利茅斯,Plymouth,Plymouth,Plymouth,Plymouth,Plymouth
+3540924208,0,9,4,3,,1,0,PGSD719,ZH_1,ZH1,ZH1,ZH1,ZH1,ZH1,ZH1,ZH1
+4183734000,0,6,3,7,1,0,0,PISC106,Trento,特伦托,特伦托,Trento,Trento,Trento,Trento,Trento
+3749623504,0,10,3,2,2,0,1,PJSC520,Yoshino,狤,吉野,Yoshino,Yoshino,Yoshino,吉野,Yoshino
+4253956080,0,9,4,1,1,0,0,PASD039,Christopher,克里斯托弗,克里斯托弗,Christopher,Christopher,Christopher,Christopher,Christopher
+4181637104,0,8,3,1,1,0,0,PASC108,Baltimore_1944,巴尔的摩,巴尔的摩,Baltimore,Baltimore,Baltimore,Baltimore,Baltimore
+3425613520,0,9,3,2,2,1,0,PJSC829,Black_Azumaya,猉 (黑),吾妻 B,Azuma B,Azuma B,Azuma B,吾妻 B,Azuma B
+3522115536,0,7,2,4,3,1,0,PBSB737,Royal_Sovereign,君权,君权,Royal Sovereign,Royal Sovereign,Royal Sovereign,Royal Sovereign,Royal Sovereign
+3655284688,0,10,2,4,3,0,1,PBSB610,Incomparable,无比,无比,Incomparable,Incomparable,Incomparable,Incomparable,Incomparable
+4179506992,0,10,4,3,1,0,0,PGSD110,Z_52,Z-52,Z-52,Z-52,Z-52,Z-52,Z-52,Z-52
+4255004656,0,8,4,1,1,0,0,PASD038,Osborne,奥斯本,奥斯本,Osborne,Osborne,Osborne,Osborne,Osborne
+3553572048,0,7,2,8,2,1,0,PZSB707,Teng_She,腾蛇,腾蛇,騰蛇,Teng She,Teng She,Teng She,Teng She
+4181112784,0,8,5,4,1,0,0,PBSS108,Sturdy,坚定,强健,Sturdy,Sturdy,Sturdy,Sturdy,Sturdy
+4284429616,0,10,2,9,,0,0,PWSB010,Thor,托尔,托尔,Thor,Thor,Thor,Thor,Thor
+4075763408,0,9,2,2,1,0,0,PJSB209,Adatara,鳢,安达太良,Adatara,Adatara,Adatara,安達太良,Adatara
+3330225872,0,10,2,2,,0,1,PJSB920,Gold_Aki,鲼 (金),金色安艺,Aki G,Aki G,Aki Golden,安芸 G,Aki G
+4293801680,0,2,4,2,2,1,0,PJSD001,Tachibana_1912,枳,橘,Tachibana,Tachibana,Tachibana,橘,Tachibana
+3539908368,0,10,3,10,4,0,1,PHSC720,Gold_Prins_Van_Oranje,奥兰治亲王 (金),金色奥兰治亲王,Pr. van Oranje G,Pr. van Oranje G,Prins van Oranje Golden,Pr. van Oranje G,Pr. van Oranje G
+3539941360,0,10,2,1,3,0,1,PASB720,Rhode_Island,罗德岛,罗德岛,Rhode Island,Rhode Island,Rhode Island,Rhode Island,Rhode Island
+3767416784,0,3,4,4,2,1,0,PBSD503,Campbeltown_1941,坎贝尔敦,坎贝尔敦,Campbeltown,Campbeltown,Campbeltown,Campbeltown,Campbeltown
+3762206672,0,8,3,4,3,1,0,PBSC508,Cheshire,柴郡,柴郡,Cheshire,Cheshire,Cheshire,Cheshire,Cheshire
+3550459856,0,10,1,4,,0,1,PBSA710,Ocean,海洋,海洋,Ocean,Ocean,Ocean,Ocean,Ocean
+3666818864,0,9,2,3,2,1,0,PGSB599,Black_Pommern,波美拉尼亚 (黑),波美拉尼亚 B,Pommern B,Pommern B,Pommern B,Pommern B,Pommern B
+4184749776,0,5,4,2,1,0,0,PJSD105,Mutsuki,松,睦月,Mutsuki,Mutsuki,Mutsuki,睦月,Mutsuki
+4183700944,1,6,4,5,1,0,1,PRSD106,Pr_30_Ognevoy,火力 (OLD),火力 (OLD),Ognevoi (OLD),Ognevoi (OLD),Ognevoi (< 06.03.2017),Ognevoi (OLD),Огневой (OLD)
+4178490832,0,11,3,5,2,0,0,PRSC111,Novosibirsk,新西伯利亚,新西伯利亚,Novosibirsk,Novosibirsk,Novosibirsk,Novosibirsk,Новосибирск
+4179605200,0,10,1,2,1,0,0,PJSA110,Hakuryu,鹫,白龙,Hakuryū,Hakuryū,Hakuryū,白龍,Hakuryū
+3540989232,0,9,2,9,4,1,0,PWSB719,Niord,尼奥尔德,尼奥尔德,Niord,Niord,Niord,Niord,Niord
+4256085712,0,1,3,2,1,0,0,PJSC037,Hashidate_1940,鼠,桥立,Hashidate,Hashidate,Hashidate,橋立,Hashidate
+3445536752,0,10,3,1,3,0,1,PASC810,Austin,奥斯汀,奥斯汀,Austin,Austin,Austin,Austin,Austin
+4178556624,0,11,1,2,2,0,0,PJSA111,Sekiryu,鹮,赤龙,Sekiryu,Sekiryu,Sekiryu,赤龍,Sekiryu
+3667802064,0,8,4,4,2,1,0,PBSD598,Black_Cossack,哥萨克 (黑),哥萨克人 B,Cossack B,Cossack B,Cossack B,Cossack B,Cossack B
+3741234992,0,8,3,3,3,1,0,PGSC528,Schill,席尔,席尔,Schill,Schill,Schill,Schill,Schill
+4181604144,0,8,4,3,1,0,0,PGSD108,Z_23,Z-23,Z-23,Z-23,Z-23,Z-23,Z-23,Z-23
+3438196528,0,7,3,3,2,1,0,PGSC817,Black_Munchen,慕尼黑 (黑),慕尼黑 B,München B,München B,München B,München B,München B
+4179572176,0,10,2,5,1,0,0,PRSB110,Sovetskaya_Rossiya,克里姆林,克里姆林,Kremlin,Kremlin,Kremlin,Kremlin,Кремль
+3750639600,0,9,4,1,2,1,0,PASD519,Halford,哈尔福德,哈尔福德,Halford,Halford,Halford,Halford,Halford
+3434526416,0,10,5,2,3,0,1,PJSS820,BA_I56,BA 阿罗娜的小鲸鱼,BA Arona's Whale,BA Arona's Whale,BA Arona's Whale,BA Arona's Whale,BA Arona's Whale,BA Arona's Whale
+4178457904,0,11,4,9,2,0,0,PWSD111,Dalarna,达拉纳,达拉纳,Dalarna,Dalarna,Dalarna,Dalarna,Dalarna
+4183209936,0,6,5,4,1,0,0,PBSS106,Undine,温蒂尼,温蒂妮,Undine,Undine,Undine,Undine,Undine
+3709777872,0,8,3,4,3,1,0,PBSC558,AZUR_Cheshire,AL 柴郡,AL 柴郡,AL Cheshire,AL Cheshire,AL Cheshire,AL Cheshire,AL Cheshire
+3552491216,0,8,3,2,3,1,0,PJSC708,ARP_Takao,ARP獒,ARP 高雄,ARP Takao,ARP Takao,ARP Takao,ARP 高雄,ARP Takao
+3542038512,0,8,2,1,3,1,0,PASB718,Tennessee,田纳西,田纳西,Tennessee,Tennessee,Tennessee,Tennessee,Tennessee
+3720296272,0,8,2,6,2,1,0,PFSB548,Picardie,皮卡第,皮卡第,Picardie,Picardie,Picardie,Picardie,Picardie
+4274927440,0,9,4,6,1,0,0,PFSD019,Orage,暴风雨,暴风雨,Orage,Orage,Orage,Orage,Orage
+3761158128,0,9,3,1,3,1,0,PASC509,Vallejo,瓦列霍,瓦列霍,Vallejo,Vallejo,Vallejo,Vallejo,Vallejo
+4186912560,0,3,2,3,1,0,0,PGSB103,Nassau,拿骚,拿骚,Nassau,Nassau,Nassau,Nassau,Nassau
+3539908400,0,10,3,3,,0,1,PGSC720,Bremen,不来梅,不来梅,Bremen,Bremen,Bremen,Bremen,Bremen
+3668916016,0,7,2,3,2,1,0,PGSB597,Black_Scharnhorst,沙恩霍斯特 (黑),沙恩霍斯特 B,Scharnhorst B,Scharnhorst B,Scharnhorst B,Scharnhorst B,Scharnhorst B
+3437180912,0,8,2,1,2,1,0,PASB818,Black_Alabama,阿拉巴马 (黑),阿拉巴马 B,Alabama B,Alabama B,Alabama B,Alabama B,Alabama B
+4276008304,0,8,3,11,1,0,0,PUSC018,Auckland,奥克兰,奥克兰,Auckland,Auckland,Auckland,Auckland,Auckland
+4074714832,0,10,2,2,1,0,0,PJSB210,Bungo,鳣,丰后,Bungo,Bungo,Bungo,豊後,Bungo
+3751687888,0,8,4,2,3,1,0,PJSD518,Asashio,柊,朝潮,Asashio,Asashio,Asashio,朝潮,Asashio
+4076779216,0,8,3,2,1,0,0,PJSC208,Shimanto,犰,四万十,Shimanto,Shimanto,Shimanto,四万十,Shimanto
+4185798096,0,4,4,5,1,0,0,PRSD104,Izyaslav,伊贾斯拉夫,伊贾斯拉夫,Izyaslav,Izyaslav,Izyaslav,Izyaslav,Изяслав
+4180587984,0,9,3,5,1,0,0,PRSC109,Dmitry_Donskoy,迪米特里·顿斯科伊,迪米特里-顿斯科伊,Dm. Donskoi,Dm. Donskoi,Dmitri Donskoi,Dm. Donskoi,Дм. Донской
+3760076080,0,9,4,9,2,1,0,PWSD510,Friesland,弗里斯兰,弗里斯兰,Friesland,Friesland,Friesland,Friesland,Friesland
+3762271984,0,8,1,7,2,1,0,PISA508,Aquila,天鹰,天鹰,Aquila,Aquila,Aquila,Aquila,Aquila
+3519985360,0,9,3,2,3,1,0,PJSC739,Suzuya,猿,铃谷,Suzuya,Suzuya,Suzuya,鈴谷,Suzuya
+4180621296,0,9,2,1,1,0,0,PASB109,Minnesota,明尼苏达,明尼苏达,Minnesota,Minnesota,Minnesota,Minnesota,Minnesota
+3554621136,0,5,2,2,3,1,0,PJSB706,Kirishima,ARP 驼,ARP 雾岛,ARP Kirishima,ARP Kirishima,ARP Kirishima,ARP 霧島,ARP Kirishima
+3760109392,0,10,3,6,3,0,1,PFSC510,Colbert,科尔贝尔,科尔伯特,Colbert,Colbert,Colbert,Colbert,Colbert
+3761681872,0,8,5,5,2,1,0,PRSS508,S_189,S-189,S-189,S-189,S-189,S-189,S-189,С-189
+4181702448,0,8,1,3,1,0,0,PGSA108,Parseval,A.帕塞瓦尔,奥古斯特·冯·帕塞瓦尔,A. Parseval,A. Parseval,August von Parseval,A. Parseval,A. Parseval
+4183701296,0,6,4,3,1,0,0,PGSD106,Ernst_Gaede,恩斯特·盖德,恩斯特·盖德,Gaede,Gaede,Ernst Gaede,Gaede,Gaede
+4178491184,0,11,3,3,2,0,0,PGSC111,Clausewitz,克劳塞维茨,克劳塞维茨,Clausewitz,Clausewitz,Clausewitz,Clausewitz,Clausewitz
+4283381456,0,2,2,2,2,1,0,PJSB011,Mikasa_1905,鲐,三笠,Mikasa,Mikasa,Mikasa,三笠,Mikasa
+3539908304,0,10,3,2,4,0,1,PJSC720,Kushiro,貉,钏路,Kushiro,Kushiro,Kushiro,釧路,Kushiro
+3729732816,0,9,2,8,3,1,0,PZSB539,Louchuan,冢虎,楼船,Louchuan,Louchuan,Louchuan,Louchuan,Louchuan
+3511629776,0,7,2,4,,1,0,PBSB747,STPatric_Duke_of_York,达努,达奴,Danu,Danu,Danu,Danu,Danu
+4078843184,0,6,4,9,1,0,0,PWSD206,Stord,斯图尔,斯托德,Stord,Stord,Stord,Stord,Stord
+4076812080,0,8,2,3,1,0,0,PGSB208,Zieten,齐藤,齐滕,Zieten,Zieten,Zieten,Zieten,Zieten
+4288591856,0,7,3,1,2,1,0,PASC006,Atlanta_1942,亚特兰大,亚特兰大,Atlanta,Atlanta,Atlanta,Atlanta,Atlanta
+3550427120,1,10,2,1,1,0,0,PASB710,Oregon,俄勒冈,俄勒冈,Oregon,Oregon,Oregon,Oregon,Oregon
+3760109264,0,9,3,2,2,1,0,PJSC510,Azumaya,猉,吾妻,Azuma,Azuma,Azuma,吾妻,Azuma
+4292753392,0,2,4,1,1,0,0,PASD002,Sampson_1917,桑普森,桑普森,Sampson,Sampson,Sampson,Sampson,Sampson
+4293834192,0,3,3,5,2,1,0,PRSC001,Avrora_1917,阿芙乐尔,阿芙乐尔,Aurora,Aurora,Aurora,Aurora,Аврора
+3342809072,0,8,2,1,,1,0,PASB908,East_North_Carolina_1945,凯珀,凯珀,Kheper,Kheper,Kheper,Kheper,Kheper
+4284430032,0,7,2,2,1,0,0,PJSB010,Nagato_1944,鲨,长门,Nagato,Nagato,Nagato,長門,Nagato
+3363747792,0,8,3,4,3,1,0,PBSC888,Edinburgh_PR,星际爱丁堡,星之爱丁堡,STAR Edinburgh,STAR Edinburgh,STAR Edinburgh,STAR Edinburgh,STAR Edinburgh
+3761190864,0,9,2,4,4,1,0,PBSB509,Marlborough,马尔博罗,马尔博罗,Marlborough,Marlborough,Marlborough,Marlborough,Marlborough
+3741235152,0,8,3,4,2,1,0,PBSC528,Belfast_1943,贝尔法斯特43,贝尔法斯特 43,Belfast '43,Belfast '43,Belfast '43,Belfast '43,Belfast '43
+3769513264,0,7,4,9,2,1,0,PWSD501,Blyskawica,闪电,闪电,Blyskawica,Błyskawica,Błyskawica,Blyskawica,Błyskawica
+4187895248,0,2,4,5,1,0,0,PRSD102,SM_Storojevoy,守卫,守卫,Storozhevoi,Storozhevoi,Storozhevoi,Storozhevoi,Сторожевой
+4182685136,0,7,3,5,1,0,0,PRSC107,Schors,肖尔斯,肖尔斯,Shchors,Shchors,Shchors,Shchors,Щорс
+3762173232,0,8,4,9,2,1,0,PWSD508,Orkan,风暴,奥坎,Orkan,Orkan,Orkan,Orkan,Orkan
+3341759792,0,9,2,9,,1,0,PWSB909,Black_Karl_XIV_Johan,卡尔十四世·约翰 (黑),卡尔十四世·约翰 B,Karl XIV Johan B,Karl XIV Johan B,Karl XIV Johan B,Karl XIV Johan B,Karl XIV Johan B
+3522082512,0,7,3,2,3,1,0,PJSC737,Nachi,ARP狏,ARP 那智,ARP Nachi,ARP Nachi,ARP Nachi,ARP 那智,ARP Nachi
+3539908592,0,10,3,1,,0,1,PASC720,Hawaii,夏威夷,夏威夷,Hawaii,Hawaii,Hawaii,Hawaii,Hawaii
+3762206544,0,8,3,6,2,1,0,PFSC508,Bayard,贝亚德,贝亚德,Bayard,Bayard,Bayard,Bayard,Bayard
+3541972432,0,8,4,5,2,1,0,PRSD718,Provorny,迅捷,灵巧,Provorny,Provorny,Provorny,Provorny,Проворный
+4256053232,0,7,4,1,1,0,0,PASD037,Hughes,休斯,休斯,Hughes,Hughes,Hughes,Hughes,Hughes
+4185798448,0,4,4,3,1,0,0,PGSD104,V_170,V-170,V-170,V-170,V-170,V-170,V-170,V-170
+4180588336,0,9,3,3,1,0,0,PGSC109,Roon,罗恩,罗恩,Roon,Roon,Roon,Roon,Roon
+3437180720,0,8,2,3,3,1,0,PGSB818,BA_Tirpitz,BA 提尔皮茨,BA 提尔皮茨,BA Tirpitz,BA Tirpitz,BA Tirpitz,BA Tirpitz,BA Tirpitz
+3760108912,0,10,3,11,3,0,1,PUSC510,Brisbane,布里斯班,布里斯班,Brisbane,Brisbane,Brisbane,Brisbane,Brisbane
+4183701232,0,6,4,7,1,0,0,PISD106,Aviere,飞行员,阿维埃尔,Aviere,Aviere,Aviere,Aviere,Aviere
+3763320528,1,7,1,2,1,0,1,PJSA507,Kaga,鸾,加贺（旧）,Kaga (old),Kaga (old),Kaga (< 23.01.2019),加賀 (old),Kaga (old)
+3752736208,0,7,4,5,2,1,0,PRSD517,Tashkent_1939,塔什干 '39,塔什干 39,Tashkent '39,Tashkent '39,Tashkent '39,Tashkent '39,Ташкент '39
+4284397008,0,2,3,5,3,1,0,PRSC010,Diana_1905_Asus,狄安娜（L）,狄安娜 L,Diana L,Diana L,Diana Lima,Diana L,Диана L
+3540956912,0,9,3,7,2,1,0,PISC719,Ferrante_Gonzaga,费兰特·贡扎加,费兰特·贡扎加,F. Gonzaga,F. Gonzaga,Ferrante Gonzaga,F. Gonzaga,F. Gonzaga
+4076812272,0,8,2,1,1,0,0,PASB208,Nebraska,内布拉斯加,内布拉斯加,Nebraska,Nebraska,Nebraska,Nebraska,Nebraska
+4078843600,0,6,4,2,1,0,0,PJSD206,Hatsuharu,梅,初春,Hatsuharu,Hatsuharu,Hatsuharu,初春,Hatsuharu
+3763222224,0,7,4,2,3,1,0,PJSD507,Yudachi,椿,夕立,Yūdachi,Yūdachi,Yūdachi,夕立,Yūdachi
+3556653040,0,4,4,1,5,1,0,PASD704,DD_214,DD-214,DD-214,DD-214,DD 214,DD 214,DD-214,DD 214
+3752769328,0,7,3,3,2,1,0,PGSC517,Weimar,魏玛,魏玛,Weimar,Weimar,Weimar,Weimar,Weimar
+4279220208,1,10,1,1,1,0,1,PASA015,Midway_1945,中途岛,中途岛（旧）,Midway (old),Midway (old),Midway (< 23.01.2019),Midway (old),Midway (old)
+3762206704,0,8,3,1,2,1,0,PASC508,Wichita,威奇塔,威奇塔,Wichita,Wichita,Wichita,Wichita,Wichita
+3763288016,0,7,2,4,2,1,0,PBSB507,Hood,胡德,胡德,Hood,Hood,Hood,Hood,Hood
+3750639408,0,9,4,3,2,1,0,PGSD519,Z_44,Z-44,Z-44,Z-44,Z-44,Z-44,Z-44,Z-44
+3342776112,0,8,3,3,,1,0,PGSC908,Black_Schill,席尔 (黑),席尔 B,Schill B,Schill B,Schill B,Schill B,Schill B
+4075763504,0,9,2,3,1,0,0,PGSB209,Prinz_Rupprecht,鲁普雷希特王子,鲁普雷希特亲王,P. Rupprecht,P. Rupprecht,Prinz Rupprecht,P. Rupprecht,P. Rupprecht
+3667900208,0,8,1,3,2,1,0,PGSA598,Black_Graf_Zeppelin,齐柏林伯爵 (黑),齐柏林伯爵 B,Graf Zeppelin B,Graf Zeppelin B,Graf Zeppelin B,Graf Zeppelin B,Graf Zeppelin B
+4179506384,0,10,4,8,1,0,0,PZSD110,Hsiang_Yang,越安,岳阳,岳陽,Yueyang,Yueyang,Yueyang,Yueyang
+4288657104,1,5,1,2,1,0,1,PJSA006,Zuiho_1944,鹞,瑞凤（旧）,Zuihō (old),Zuihō (old),Zuihō (< 23.01.2019),瑞鳳 (old),Zuihō (old)
+3708761808,0,9,2,2,2,1,0,PJSB559,Black_Iwami,鲯 (黑),石见 B,Iwami B,Iwami B,Iwami B,石見 B,Iwami B
+3552458448,0,8,4,2,3,1,0,PJSD708,HSF_Harekaze,HSF菽,HSF晴风,HSF Harekaze,HSF Harekaze,HSF Harekaze,HSF 晴風,HSF Harekaze
+4184749808,0,5,4,7,1,0,0,PISD105,Maestrale,西北风,西北风,Maestrale,Maestrale,Maestrale,Maestrale,Maestrale
+4179539696,0,10,3,7,1,0,0,PISC110,Venezia,威尼斯,威尼斯,Venezia,Venezia,Venezia,Venezia,Venezia
+4267587280,0,5,4,2,4,1,0,PJSD026,Camo_Kamikaze,枫（R）,神风 R,Kamikaze R,Kamikaze R,Kamikaze R,神風 R,Kamikaze R
+3720263664,0,8,3,1,3,1,0,PASC548,San_Diego,圣地亚哥,圣地亚哥,San Diego,San Diego,San Diego,San Diego,San Diego
+4179605488,0,10,1,1,1,0,0,PASA110,Midway,中途岛,中途岛,Midway,Midway,Midway,Midway,Midway
+3764303696,0,6,3,6,2,1,0,PFSC506,De_Grasse,德·格拉斯,格拉斯,De Grasse,De Grasse,De Grasse,De Grasse,De Grasse
+3761190896,0,9,2,1,4,1,0,PASB509,Missouri,密苏里,密苏里,Missouri,Missouri,Missouri,Missouri,Missouri
+4187895600,0,2,4,3,1,0,0,PGSD102,V_25,V-25,V-25,V-25,V-25,V-25,V-25,V-25
+4182685488,0,7,3,3,1,0,0,PGSC107,Yorck,约克,约克,Yorck,Yorck,Yorck,Yorck,Yorck
+3767416176,0,3,4,11,4,1,0,PUSD503,Vampire,吸血鬼,吸血鬼,Vampire,Vampire,Vampire,Vampire,Vampire
+3549869904,0,10,5,6,,0,1,PFSS710,Surcouf,絮库夫,絮库夫,Surcouf,Surcouf,Surcouf,Surcouf,Surcouf
+3668883440,0,7,3,1,2,1,0,PASC597,Nueve_de_Julio_1951,博伊西,博伊西,Boise,Boise,Boise,Boise,Boise
+3341759952,0,9,2,5,,1,0,PRSB909,East_Navarin,玛塔加,玛塔加,Mahtaga,Mahtaga,Mahtaga,Mahtaga,Mahtaga
+4281284304,0,8,2,2,1,0,0,PJSB013,Amagi_1942,鳐,天城,Amagi,Amagi,Amagi,天城,Amagi
+4182652112,0,7,4,8,1,0,0,PZSD107,Gadjah_Mada,加札马达,加札马达,Gadjah Mada,Gadjah Mada,Gadjah Mada,Gadjah Mada,Gadjah Mada
+3362666192,0,9,4,2,3,1,0,PJSD889,Kitakaze_PR,星际蕉,星之北风,STAR Kitakaze,STAR Kitakaze,STAR Kitakaze,STAR 北風,STAR Kitakaze
+3760076784,0,10,4,1,4,0,1,PASD510,Somers,萨默斯,萨默斯,Somers,Somers,Somers,Somers,Somers
+4291737584,0,2,3,1,2,1,0,PASC003,Albany_1898,奥尔巴尼,奥尔巴尼,Albany,Albany,Albany,Albany,Albany
+4286527472,0,7,2,1,1,0,0,PASB008,Colorado_1945,科罗拉多,科罗拉多,Colorado,Colorado,Colorado,Colorado,Colorado
+4281317360,1,9,1,1,1,0,1,PASA013,Essex_1945,埃塞克斯,埃塞克斯（旧）,Essex (old),Essex (old),Essex (< 23.01.2019),Essex (old),Essex (old)
+3551409616,0,9,4,5,4,1,0,PRSD709,Pr_41_Neustrashimy,不惧,不惧,Neustrashimy,Neustrashimy,Neustrashimy,Neustrashimy,Неустрашимый
+3751786480,0,8,1,1,4,1,0,PASA518,Enterprise,企业,企业,Enterprise,Enterprise,Enterprise,Enterprise,Enterprise
+3553540080,0,7,3,1,4,1,0,PASC707,Flint,弗林特,弗林特,Flint,Flint,Flint,Flint,Flint
+3765385168,0,5,2,4,2,1,0,PBSB505,Agincourt,阿金库尔,阿金库尔,Agincourt,Agincourt,Agincourt,Agincourt,Agincourt
+3551409968,0,9,4,3,4,1,0,PGSD709,GM_ZF_6,ZF-6 (金),金色ZF-6,ZF-6 G,ZF-6 G,ZF-6 Golden,ZF-6 G,ZF-6 G
+4284397360,0,10,3,3,1,0,0,PGSC010,Prinz_Adalbert,阿达尔贝特王子,阿达尔伯特亲王,Prinz Adalbert,Prinz Adalbert,Prinz Adalbert,Prinz Adalbert,Prinz Adalbert
+4077860656,0,7,2,3,1,0,0,PGSB207,Prinz_Heinrich,海因里希亲王,海因里希亲王,P. Heinrich,P. Heinrich,Prinz Heinrich,P. Heinrich,P. Heinrich
+4181603536,0,8,4,8,1,0,0,PZSD108,Hsien_Yang,久安,咸阳,咸陽,Hsienyang,Hsienyang,Hsienyang,Hsienyang
+3659445712,0,6,3,5,3,1,0,PRSC606,Admiral_Makarov,马卡罗夫海军上将,马卡罗夫海军上将,Makarov,Makarov,Admiral Makarov,Makarov,Макаров
+4074158064,0,10,5,1,1,0,0,PASS210,Balao,白鱼,巴劳鱵,Balao,Balao,Balao,Balao,Balao
+4276041424,0,10,2,2,1,0,0,PJSB018,Yamato_1944,鲸,大和,Yamato,Yamato,Yamato,大和,Yamato
+4185831152,0,4,3,7,1,0,0,PISC104,Alberto_da_Giussano,朱桑诺,阿尔贝托·迪·朱桑诺,Giussano,Giussano,Alberto di Giussano,Giussano,Giussano
+4186879440,0,3,3,5,1,0,0,PRSC103,Bogatyr,博加特里,博加特里,Bogatyr,Bogatyr,Bogatyr,Bogatyr,Богатырь
+4181669328,0,8,2,5,1,0,0,PRSB108,Vladivostok,符拉迪沃斯托克,符拉迪沃斯托克,Vladivostok,Vladivostok,Vladivostok,Vladivostok,Владивосток
+3531519792,0,8,3,3,3,1,0,PGSC728,Wiesbaden,威斯巴登,威斯巴登,Wiesbaden,Wiesbaden,Wiesbaden,Wiesbaden,Wiesbaden
+4269684432,0,3,4,2,1,0,0,PJSD024,Wakatake_1923,菖,若竹,Wakatake,Wakatake,Wakatake,若竹,Wakatake
+4264441840,0,7,4,1,2,1,0,PASD029,Sims_1941,西姆斯,西姆斯,Sims,Sims,Sims,Sims,Sims
+3655251952,0,10,3,1,4,0,1,PASC610,Puerto_Rico,波多黎各,波多黎各,Puerto Rico,Puerto Rico,Puerto Rico,Puerto Rico,Puerto Rico
+4181702640,0,8,1,1,1,0,0,PASA108,Lexington,列克星敦,列克星敦,Lexington,Lexington,Lexington,Lexington,Lexington
+3541972944,0,8,4,4,2,1,0,PBSD718,Eskimo,爱斯基摩,爱斯基摩人,Eskimo,Eskimo,Eskimo,Eskimo,Eskimo
+3732879312,0,6,2,4,3,1,0,PBSB536,Black_Repulse,反击 (黑),反击 B,Repulse B,Repulse B,Repulse B,Repulse B,Repulse B
+4184782640,0,5,3,3,1,0,0,PGSC105,Konigsberg,柯尼斯堡,柯尼斯堡,Königsberg,Königsberg,Königsberg,Königsberg,Königsberg
+4179572528,0,10,2,3,2,0,1,PGSB110,Grossdeutschland,大选帝侯,大选帝侯,G. Kurfürst,G. Kurfürst,Grosser Kurfürst,G. Kurfürst,G. Kurfürst
+3764303216,0,6,3,11,2,1,0,PUSC506,Perth_1942,珀斯,珀斯,Perth,Perth,Perth,Perth,Perth
+3539907792,0,10,3,8,,0,1,PZSC720,Zhuge_Liang,诸葛巧思,诸葛巧思,諸葛巧思,Zhuge Liang,Zhuge Liang,Zhuge Liang,Zhuge Liang
+4182685008,0,7,3,12,1,0,0,PVSC107,Coronel_Bolognesi,博洛涅西上校,博洛涅西上校,Cnel. Bolognesi,Cnel. Bolognesi,Coronel Bolognesi,Cnel. Bolognesi,Cnel. Bolognesi
+4293801424,0,5,4,5,4,1,0,PRSD001,Gremyashchy_1942,轰鸣,轰鸣,Gremyashchy,Gremyashchy,Gremyashchy,Gremyashchy,Гремящий
+3751720400,0,7,3,5,2,1,0,PRSC518,Lazo,拉佐,拉佐,Lazo,Lazo,Lazo,Lazo,Лазо
+3762173936,0,8,4,1,2,1,0,PASD508,Kidd,基德,基德,Kidd,Kidd,Kidd,Kidd,Kidd
+4293834736,0,1,3,1,1,0,0,PASC001,Erie_1936,伊利湖,伊利,Erie,Erie,Erie,Erie,Erie
+4288624624,0,5,2,1,1,0,0,PASB006,New_York_1934,纽约,纽约,New York,New York,New York,New York,New York
+4074649424,0,10,4,6,2,0,1,PFSD210,Marceau,玛索,玛索,Marceau,Marceau,Marceau,Marceau,Marceau
+3655218960,0,10,4,10,2,0,1,PHSD610,Tromp,特隆普,特龙普,Tromp,Tromp,Tromp,Tromp,Tromp
+4180555728,0,9,4,4,1,0,0,PBSD109,Jutland,日德兰,日德兰,Jutland,Jutland,Jutland,Jutland,Jutland
+3767482320,0,3,2,4,3,1,0,PBSB503,Dreadnought,无畏,无畏,Dreadnought,Dreadnought,Dreadnought,Dreadnought,Dreadnought
+3762272208,0,8,1,4,2,1,0,PBSA508,Indomitable,不挠,不挠,Indomitable,Indomitable,Indomitable,Indomitable,Indomitable
+4079957808,0,5,2,3,1,0,0,PGSB205,Derfflinger,德芙林格,德弗林格尔,Derfflinger,Derfflinger,Derfflinger,Derfflinger,Derfflinger
+4183700688,0,6,4,8,1,0,0,PZSD106,Fu_Shun,顺安,抚顺,Fushun,Fushun,Fushun,Fushun,Fushun
+4076255216,0,8,5,1,1,0,0,PASS208,Salmon,鲑鱼,鲑鱼,Salmon,Salmon,Salmon,Salmon,Salmon
+3540989264,0,9,2,12,3,1,0,PVSB719,Valparaiso,瓦尔帕莱索,瓦尔帕莱索,Valparaíso,Valparaíso,Valparaíso,Valparaíso,Valparaíso
+4188976592,0,1,3,5,1,0,0,PRSC101,Orlan,海雕,海雕,Orlan,Orlan,Orlan,Orlan,Орлан
+4183766480,0,6,2,5,1,0,0,PRSB106,Izmail,伊兹梅尔,伊兹梅尔,Izmail,Izmail,Izmail,Izmail,Измаил
+4281219056,0,10,4,1,1,0,0,PASD013,Gearing_1945,基林,基林,Gearing,Gearing,Gearing,Gearing,Gearing
+3667801808,0,8,4,2,3,1,0,PJSD598,Black_Asashio,柊 (黑),朝潮 B,Asashio B,Asashio B,Asashio B,朝潮 B,Asashio B
+4079957968,0,5,2,4,1,0,0,PBSB205,Tiger,虎级,虎,Tiger,Tiger,Tiger,Tiger,Tiger
+3741300688,0,8,1,4,3,1,0,PBSA528,Colossus,巨像,巨像,Colossus,Colossus,Colossus,Colossus,Colossus
+4183799792,0,6,1,1,1,0,0,PASA106,Ranger,突击者,突击者,Ranger,Ranger,Ranger,Ranger,Ranger
+3761157904,0,9,3,10,3,1,0,PHSC509,Van_Speijk,范·斯佩克,范·斯佩克,Van Speijk,Van Speijk,Van Speijk,Van Speijk,Van Speijk
+3763287888,0,7,2,6,2,1,0,PFSB507,Strasbourg,斯特拉斯堡,斯特拉斯堡,Strasbourg,Strasbourg,Strasbourg,Strasbourg,Strasbourg
+3540957136,0,9,3,4,,1,0,PBSC719,Aberdeen,阿伯丁,阿伯丁,Aberdeen,Aberdeen,Aberdeen,Aberdeen,Aberdeen
+4075730896,0,9,3,4,1,0,0,PBSC209,Drake,德雷克,德雷克,Drake,Drake,Drake,Drake,Drake
+3542005552,0,8,3,3,3,1,0,PGSC718,Warhammer_Blacktemplar,多恩十字,Cross of Dorn,Cross of Dorn,Cross of Dorn,Cross of Dorn,Cross of Dorn,Cross of Dorn
+3655218992,0,10,4,3,3,0,1,PGSD610,Z_42,Z-42,Z-42,Z-42,Z-42,Z-42,Z-42,Z-42
+4186879792,0,3,3,3,1,0,0,PGSC103,Kolberg,科尔贝格,科尔贝格,Kolberg,Kolberg,Kolberg,Kolberg,Kolberg
+4181669680,0,8,2,3,1,0,0,PGSB108,Bismarck,俾斯麦,俾斯麦,Bismarck,Bismarck,Bismarck,Bismarck,Bismarck
+4292851696,1,5,1,1,1,0,1,PASA002,Bogue_1942,博格,博格（旧）,Bogue (old),Bogue (old),Bogue (< 23.01.2019),Bogue (old),Bogue (old)
+3542004944,0,8,3,8,,1,0,PZSC718,Narai,那莱,那莱,Narai,Narai,Narai,Narai,Narai
+3540989680,0,9,2,7,,1,0,PISB719,Olympian_Giuseppe_Verdi,后百夫长,副百夫长,Pilus Posterior,Pilus Posterior,Pilus Posterior,Pilus Posterior,Pilus Posterior
+4184782160,0,5,3,12,1,0,0,PVSC105,La_Argentina,阿根廷,阿根廷,La Argentina,La Argentina,La Argentina,La Argentina,La Argentina
+4283348976,0,11,3,1,2,0,0,PASC011,Jacksonville,杰克逊维尔,杰克逊维尔,Jacksonville,Jacksonville,Jacksonville,Jacksonville,Jacksonville
+3764271088,0,6,4,1,2,1,0,PASD506,Monaghan,莫纳根,莫纳汉,Monaghan,Monaghan,Monaghan,Monaghan,Monaghan
+3445503824,0,10,4,6,2,0,1,PFSD810,Colorful_Kleber,克莱贝尔 炫彩,克莱贝尔 CLR,Kléber CLR,Kléber CLR,Kléber CLR,Kléber CLR,Kléber CLR
+4290721776,0,4,2,1,1,0,0,PASB004,Arkansas_1912,怀俄明,怀俄明,Wyoming,Wyoming,Wyoming,Wyoming,Wyoming
+4278073168,0,6,4,6,1,0,0,PFSD016,Duchaffault,杜沙福,杜沙福,Duchaffault,Duchaffault,Duchaffault,Duchaffault,Duchaffault
+3340646192,0,10,4,3,,0,1,PGSD910,East_Z_52,东方,沙尔奇,Sharqi,Sharqi,Sharqi,Sharqi,Sharqi
+4181112816,1,8,5,1,1,0,1,PASS108,Salmon,鲑鱼 (旧),鲑鱼 (old),Salmon (old),Salmon (old),Salmon (< 04.10.2022),Salmon (old),Salmon (old)
+4182652880,0,7,4,4,1,0,0,PBSD107,Jervis,杰维斯,杰维斯,Jervis,Jervis,Jervis,Jervis,Jervis
+3543577808,0,6,5,8,2,1,0,PZSS716,Xing_Zhong_Guo_14,先驱04,新中国14,Xin Zhong Guo 14,Xin Zhong Guo 14,Xin Zhong Guo 14,Xin Zhong Guo 14,Xin Zhong Guo 14
+3751720752,0,8,3,3,2,1,0,PGSC518,Mainz,美因茨,美因茨,Mainz,Mainz,Mainz,Mainz,Mainz
+4082054960,0,3,2,3,1,0,0,PGSB203,Von_der_Tann,冯·德·坦恩,冯·德·坦恩,Von der Tann,Von der Tann,Von der Tann,Von der Tann,Von der Tann
+4185797840,0,4,4,8,1,0,0,PZSD104,Shen_Yang,沈安,沈阳,瀋陽,Shenyang,Shenyang,Shenyang,Shenyang
+4180587728,0,9,3,8,1,0,0,PZSC109,Sejong,世宗,世宗,Sejong,Sejong,Sejong,Sejong,Sejong
+4078352368,0,6,5,1,1,0,0,PASS206,Cachalot,抹香鲸,抹香鲸,Cachalot,Cachalot,Cachalot,Cachalot,Cachalot
+4077794768,0,7,4,5,1,0,0,PRSD207,Minsk,明斯克,明斯克,Minsk,Minsk,Minsk,Minsk,Минск
+4076779504,0,8,3,1,1,0,0,PASC208,Cleveland,克利夫兰,克利夫兰,Cleveland,Cleveland,Cleveland,Cleveland,Cleveland
+3743364816,0,6,2,2,2,1,0,PJSB526,Ise,鳌,伊势,Ise,Ise,Ise,伊勢,Ise
+4185863632,0,4,2,5,1,0,0,PRSB104,Gangut,甘古特,甘古特,Gangut,Gangut,Gangut,Gangut,Гангут
+4180621040,0,9,2,7,1,0,0,PISB109,Lepanto,勒班陀,勒班陀,Lepanto,Lepanto,Lepanto,Lepanto,Lepanto
+4186879312,0,3,3,12,1,0,0,PVSC103,Vicente_Guerrero,比森特·格雷罗,维森特·格雷罗,V. Guerrero,V. Guerrero,Vicente Guerrero,V. Guerrero,V. Guerrero
+3669898960,0,6,4,2,3,1,0,PJSD596,Black_Shinonome,茜 （黑）,东云 B,Shinonome B,Shinonome B,Shinonome B,東雲 B,Shinonome B
+3530471120,0,9,3,2,4,1,0,PJSC729,GW_Chikuma_2_Hyb,獴 (金),金色筑摩 II,Chikuma II G,Chikuma II G,Chikuma II Golden,筑摩 II G,Chikuma II G
+3763255280,0,7,3,1,2,1,0,PASC507,Indianapolis_1945,印第安纳波利斯,印第安纳波利斯,Indianapolis,Indianapolis,Indianapolis,Indianapolis,Indianapolis
+4077828048,0,7,3,4,1,0,0,PBSC207,Surrey,萨里,萨里,Surrey,Surrey,Surrey,Surrey,Surrey
+4282333168,0,8,2,1,1,0,0,PASB012,North_Carolina_1945,北卡罗来纳,北卡罗来纳,N. Carolina,N. Carolina,North Carolina,N. Carolina,N. Carolina
+3667899856,0,8,1,5,2,1,0,PRSA598,Black_Chkalov,契卡洛夫 （黑）,契卡洛夫 B,Chkalov B,Chkalov B,Chkalov B,Chkalov B,Чкалов B
+4183766832,0,6,2,3,1,0,0,PGSB106,Bayern,巴伐利亚,巴伐利亚,Bayern,Bayern,Bayern,Bayern,Bayern
+4183766768,0,6,2,7,1,0,0,PISB106,Andrea_Doria,安德烈亚·多里亚,安德烈亚·多里亚,Andrea Doria,Andrea Doria,Andrea Doria,Andrea Doria,Andrea Doria
+3763287408,0,7,2,11,2,1,0,PUSB507,Yukon,育空,育空,Yukon,Yukon,Yukon,Yukon,Yukon
+3342775504,0,8,3,8,,1,0,PZSC908,Pinata_Irian,水表船,皮纳塔提安,Piñatian,Piñatian,Piñatian,Piñatian,Piñatian
+3739137488,0,10,3,5,3,0,1,PRSC530,Black_Smolensk,斯摩棱斯克 (黑),斯摩棱斯克 B,Smolensk B,Smolensk B,Smolensk B,Smolensk B,Смоленск B
+4074681808,0,10,3,5,1,0,0,PRSC210,Pr_84_Alexander_Nevsky,亚历山大·涅夫斯基,亚历山大·涅夫斯基,A. Nevsky,A. Nevsky,Alexander Nevsky,A. Nevsky,А. Невский
+4292785616,0,2,3,5,2,1,0,PRSC002,Diana_1905,狄安娜,狄安娜,Diana,Diana,Diana,Diana,Диана
+3750672112,0,9,3,7,4,1,0,PISC519,Michelangelo,米开朗基罗,米开朗基罗,Michelangelo,Michelangelo,Michelangelo,Michelangelo,Michelangelo
+3342808816,0,8,2,7,,1,0,PISB908,FBO_Roma,尼禄,永恒罗马,Roma Aeterna,Roma Aeterna,Roma Aeterna,Roma Aeterna,Roma Aeterna
+4183734256,0,6,3,1,1,0,0,PASC106,Pensacola_1944,彭萨科拉,彭萨科拉,Pensacola,Pensacola,Pensacola,Pensacola,Pensacola
+3540956880,0,9,3,2,3,1,0,PJSC719,Chikuma_2_Hyb,獴,筑摩 II,Chikuma II,Chikuma II,Chikuma II,筑摩 II,Chikuma II
+4074649392,0,10,4,3,1,0,0,PGSD210,Elbing,埃尔宾,埃尔宾,Elbing,Elbing,Elbing,Elbing,Elbing
+3761190608,0,9,2,2,4,1,0,PJSB509,Musashi,鲲,武藏,Musashi,Musashi,Musashi,武蔵,Musashi
+3730782000,0,8,2,3,2,1,0,PGSB538,Black_Brandenburg,勃兰登堡 (黑),勃兰登堡 B,Brandenburg B,Brandenburg B,Brandenburg B,Brandenburg B,Brandenburg B
+3541972816,0,8,4,6,,1,0,PFSD718,Hoche,奥什,奥什,Hoche,Hoche,Hoche,Hoche,Hoche
+4183701456,0,6,4,4,1,0,0,PBSD106,Icarus,伊卡洛斯,伊卡洛斯,Icarus,Icarus,Icarus,Icarus,Icarus
+4184750032,0,5,4,4,1,0,0,PBSD105,Acasta,阿卡司塔,阿卡斯塔,Acasta,Acasta,Acasta,Acasta,Acasta
+4179539920,0,10,3,4,1,0,0,PBSC110,Minotaur,米诺陶,米诺陶,Minotaur,Minotaur,Minotaur,Minotaur,Minotaur
+3361617616,0,10,4,2,3,0,1,PJSD890,AZUR_Shimakaze,AL 芒,AL 岛风,AL Shimakaze,AL Shimakaze,AL Shimakaze,AL 島風,AL Shimakaze
+3753817904,0,6,3,3,3,1,0,PGSC516,Leipzig,莱比锡,莱比锡,Leipzig,Leipzig,Leipzig,Leipzig,Leipzig
+3340744496,0,10,1,3,,0,1,PGSA910,Pinata_Richthofen,彩男爵,苏斯霍芬,Süsshofen,Süsshofen,Süsshofen,Süsshofen,Süsshofen
+4187894992,0,2,4,8,1,0,0,PZSD102,Long_Jiang,龙江,龙江,龍江,Longjiang,Longjiang,Longjiang,Longjiang
+4182684880,0,7,3,8,1,0,0,PZSC107,Chumphon,春蓬,春蓬,Chumphon,Chumphon,Chumphon,Chumphon,Chumphon
+4184815056,0,5,2,5,1,0,0,PRSB105,Pyotr_Velikiy,彼得大帝,彼得大帝,Pyotr Velikiy,Pyotr Velikiy,Pyotr Velikiy,Pyotr Velikiy,Пётр Великий
+3540923696,0,9,4,9,,1,0,PWSD719,Blyskawica_1952,闪电 '52,闪电 52,Blyskawica '52,Błyskawica '52,Błyskawica '52,Blyskawica '52,Błyskawica '52
+4187928304,0,2,3,7,1,0,0,PISC102,Nino_Bixio,尼诺·比西奥,尼诺·比西奥,Nino Bixio,Nino Bixio,Nino Bixio,Nino Bixio,Nino Bixio
+4182718192,0,7,2,7,1,0,0,PISB107,Francesco_Caracciolo,弗朗切斯科·卡拉乔洛,弗朗切斯科·卡拉乔洛,F. Caracciolo,F. Caracciolo,Francesco Caracciolo,F. Caracciolo,F. Caracciolo
+4074649296,0,10,4,2,1,0,0,PJSD210,Harugumo,葫,春云,Harugumo,Harugumo,Harugumo,春雲,Harugumo
+3331241680,0,8,3,2,1,0,1,PJSC919,Tone_Third,猑3,利根3,Tone 3,Tone 3,Tone 3,利根 3,Tone 3
+4290689008,0,3,3,1,1,0,0,PASC004,St_Louis_1906,圣路易斯,圣路易斯,St. Louis,St. Louis,St. Louis,St. Louis,St. Louis
+4185798608,0,4,4,4,1,0,0,PBSD104,Wakeful,清醒,清醒,Wakeful,Wakeful,Wakeful,Wakeful,Wakeful
+4076811984,0,8,2,2,1,0,0,PJSB208,Yumihari,鲶,弓张,Yumihari,Yumihari,Yumihari,弓張,Yumihari
+4079925200,0,5,3,4,1,0,0,PBSC205,Hawkins,霍金斯,霍金斯,Hawkins,Hawkins,Hawkins,Hawkins,Hawkins
+4074715088,0,10,2,4,1,0,0,PBSB210,St_Vincent,圣文森特,圣文森特,St. Vincent,St. Vincent,St. Vincent,St. Vincent,St. Vincent
+4185863984,0,4,2,3,1,0,0,PGSB104,Kaiser,凯撒,凯撒,Kaiser,Kaiser,Kaiser,Kaiser,Kaiser
+4276008656,0,8,3,2,2,1,0,PJSC018,Tone,貂,利根,Tone,Tone,Tone,利根,Tone
+4185798384,0,4,4,7,1,0,0,PISD104,Turbine,旋风,图尔比内,Turbine,Turbine,Turbine,Turbine,Turbine
+3540989136,0,9,2,8,,1,0,PZSB719,Yimeng,东沂,沂蒙,Yimeng,Yimeng,Yimeng,Yimeng,Yimeng
+4181702096,0,8,1,5,1,0,0,PRSA108,Pobeda,胜利,胜利,Pobeda,Pobeda,Pobeda,Pobeda,Победа
+3540989360,0,9,2,13,3,1,0,PSSB719,Victoria,维多利亚,维多利亚,Victoria,Victoria,Victoria,Victoria,Victoria
+4188976464,0,1,3,12,1,0,0,PVSC101,Hercules,大力神,赫丘利,Hércules,Hércules,Hércules,Hércules,Hércules
+3763221968,0,7,4,5,2,1,0,PRSD507,Leningrad_1944,列宁格勒,列宁格勒,Leningrad,Leningrad,Leningrad,Leningrad,Ленинград
+3752769264,0,7,3,7,3,1,0,PISC517,Francesco_Ferruccio,F. 费鲁奇奥,弗朗切斯科·费鲁乔,F. Ferruccio,F. Ferruccio,Francesco Ferruccio,F. Ferruccio,F. Ferruccio
+4075697456,0,9,4,9,1,0,0,PWSD209,Lambros_Katsonis,兰布罗斯·卡措尼斯,兰布罗斯·卡措尼斯,L. Katsonis,L. Katsonis,Lambros Katsonis,L. Katsonis,L. Katsonis
+3750672368,0,9,3,1,2,1,0,PASC519,Tulsa,塔尔萨,塔尔萨,Tulsa,Tulsa,Tulsa,Tulsa,Tulsa
+3768465392,0,2,4,1,2,1,0,PASD502,Smith,史密斯,史密斯,Smith,Smith,Smith,Smith,Smith
+3763287760,0,7,2,2,2,1,0,PJSB507,Ashitaka,鲔,爱鹰,Ashitaka,Ashitaka,Ashitaka,愛鷹,Ashitaka
+4180588496,0,9,3,4,1,0,0,PBSC109,Neptune,涅普顿,涅普顿,Neptune,Neptune,Neptune,Neptune,Neptune
+4182685424,0,7,3,7,1,0,0,PISC107,Zara,扎拉,扎拉,Zara,Zara,Zara,Zara,Zara
+4075730768,0,9,3,6,1,0,0,PFSC209,Brest,布雷斯特,布雷斯特,Brest,Brest,Brest,Brest,Brest
+4186847184,0,3,4,4,1,0,0,PBSD103,Valkyrie,瓦尔基里,女武神,Valkyrie,Valkyrie,Valkyrie,Valkyrie,Valkyrie
+4181637072,0,8,3,4,1,0,0,PBSC108,Edinburgh,爱丁堡,爱丁堡,Edinburgh,Edinburgh,Edinburgh,Edinburgh,Edinburgh
+3554588464,0,6,3,3,3,1,0,PGSC706,HSF_Graf_Spee,HSF施佩伯爵,HSF 海军上将施佩伯爵,HSF Graf Spee,HSF Graf Spee,HSF Admiral Graf Spee,HSF Graf Spee,HSF Graf Spee
+4274959728,0,9,3,11,1,0,0,PUSC019,Encounter,遭遇,遭遇,Encounter,Encounter,Encounter,Encounter,Encounter
+4187928400,0,2,3,6,1,0,0,PFSC102,Jurien,尤里安,尤里安-格拉维,Jurien,Jurien,Jurien de la Gravière,Jurien,Jurien
+4184782032,0,5,3,8,1,0,0,PZSC105,Chung_King,巴海,重庆,重慶,Chungking,Chungking,Chungking,Chungking
+3552490832,0,8,3,12,,1,0,PVSC708,Comandante_Aguirre,阿吉雷司令,阿吉雷,C. Aguirre,C. Aguirre,Comandante Aguirre,C. Aguirre,C. Aguirre
+3532568272,0,7,3,2,3,1,0,PJSC727,Blue_Dragon,昆仑,东方神龙,E. Dragon,E. Dragon,Eastern Dragon,E. Dragon,E. Dragon
+4277057520,1,9,3,1,1,0,1,PASC017,Baltimore_1944,巴尔的摩,巴尔的摩（旧）,Baltimore (old),Baltimore (old),Baltimore (< 31.05.2018),Baltimore (old),Baltimore (old)
+4184815344,0,5,2,7,1,0,0,PISB105,Conte_di_Cavour,加富尔伯爵,加富尔伯爵,Cavour,Cavour,Conte di Cavour,Cavour,Cavour
+3540923600,0,9,4,8,3,1,0,PZSD719,Nanning,邕安,南宁,Nanning,Nanning,Nanning,Nanning,Nanning
+3765384944,0,5,2,7,4,1,0,PISB505,Giulio_Cesare,朱利奥·恺撒,尤里乌斯-恺撒,Giulio Cesare,Giulio Cesare,Giulio Cesare,Giulio Cesare,Giulio Cesare
+3550394160,0,10,3,3,4,0,1,PGSC710,Hildebrand,希尔德布兰德,希尔德布兰德,Hildebrand,Hildebrand,Hildebrand,Hildebrand,Hildebrand
+3668850672,0,7,4,1,2,1,0,PASD597,Black_Sims,西姆斯 (黑),西姆斯 B,Sims B,Sims B,Sims B,Sims B,Sims B
+3730749424,0,8,3,1,2,1,0,PASC538,Rochester,罗切斯特,罗彻斯特,Rochester,Rochester,Rochester,Rochester,Rochester
+4181669840,0,8,2,4,1,0,0,PBSB108,Monarch,君主,君主,Monarch,Monarch,Monarch,Monarch,Monarch
+4182652752,0,7,4,6,1,0,0,PFSD107,Vauquelin,沃克兰,沃克兰,Vauquelin,Vauquelin,Vauquelin,Vauquelin,Vauquelin
+3762239216,0,8,2,7,2,1,0,PISB508,Roma,罗马,罗马,Roma,Roma,Roma,Roma,Roma
+4179015120,0,10,5,5,1,0,0,PRSS110,K_type,K-1,K-1,K-1,K-1,K-1,K-1,К-1
+4076812240,0,8,2,4,1,0,0,PBSB208,Hawke,霍克,霍克,Hawke,Hawke,Hawke,Hawke,Hawke
+3741267760,0,8,2,3,2,1,0,PGSB528,Anhalt,安哈尔特,安哈尔特,Anhalt,Anhalt,Anhalt,Anhalt,Anhalt
+4181604048,0,8,4,2,1,0,0,PJSD108,Akizuki,杏,秋月,Akizuki,Akizuki,Akizuki,秋月,Akizuki
+3341759696,0,9,2,8,,1,0,PZSB909,Xuan_Ming,玄冥,Xuan Ming,Xuan Ming,Xuan Ming,Xuan Ming,Xuan Ming,Xuan Ming
+4276008720,0,8,3,10,1,0,0,PHSC018,Jaarsveld,贾斯维尔德,贾斯维尔德,Jaarsveld,Jaarsveld,Jaarsveld,Jaarsveld,Jaarsveld
+4187895536,0,2,4,7,1,0,0,PISD102,Curtatone,库尔塔托内,库尔塔托内,Curtatone,Curtatone,Curtatone,Curtatone,Curtatone
+3765319120,0,5,4,5,2,1,0,PRSD505,Okhotnik_1917,猎人,猎人,Okhotnik,Okhotnik,Okhotnik,Okhotnik,Охотник
+3760109008,0,10,3,5,3,0,1,PRSC510,Stalingrad,斯大林格勒,斯大林格勒,Stalingrad,Stalingrad,Stalingrad,Stalingrad,Сталинград
+3553539824,0,7,3,7,,1,0,PISC707,Olympian_Francesco_Ferruccio,百夫长副手,副官,Optio,Optio,Optio,Optio,Optio
+4077794608,0,7,4,9,1,0,0,PWSD207,Grom,雷鸣,雷霆,Grom,Grom,Grom,Grom,Grom
+4287542992,0,6,3,2,1,0,0,PJSC007,Aoba_1943,犹,青叶,Aoba,Aoba,Aoba,青葉,Aoba
+4178458320,0,11,4,2,2,0,0,PJSD111,Yamagiri,苽,山雾,Yamagiri,Yamagiri,Yamagiri,山霧,Yamagiri
+3765352432,0,5,3,1,3,1,0,PASC505,Rattlehead,Rattlehead,受害骷髅,Rattlehead,Rattlehead,Rattlehead,Rattlehead,Rattlehead
+4178556880,0,11,1,4,2,0,0,PBSA111,Eagle,老鹰,老鹰,Eagle,Eagle,Eagle,Eagle,Eagle
+4284364624,0,10,4,6,1,0,0,PFSD010,Cassard,卡萨尔,卡萨尔,Cassard,Cassard,Cassard,Cassard,Cassard
+3669964624,0,6,2,6,2,1,0,PFSB596,Black_Dunkerque,敦刻尔克 (黑),敦刻尔克 B,Dunkerque B,Dunkerque B,Dunkerque B,Dunkerque B,Dunkerque B
+3545183952,0,5,2,2,3,1,0,PJSB715,HSF_Hiei,HSF比睿,HSF比叡,HSF Hiei,HSF Hiei,HSF Hiei,HSF 比叡,HSF Hiei
+3445536720,0,10,3,4,4,0,1,PBSC810,Defence,防御,防卫,Defence,Defence,Defence,Defence,Defence
+4178524112,0,11,2,4,2,0,0,PBSB111,Devastation,蹂躏,毁灭,Devastation,Devastation,Devastation,Devastation,Devastation
+3752802096,0,7,2,3,3,1,0,PGSB517,AZUR_Prinz_Heinrich,AL 海因里希亲王,AL 海因里希亲王,AL P. Heinrich,AL P. Heinrich,AL Prinz Heinrich,AL P. Heinrich,AL P. Heinrich
+4277056880,0,7,3,11,1,0,0,PUSC017,Uganda,乌干达,乌干达,Uganda,Uganda,Uganda,Uganda,Uganda
+3540989392,0,9,2,5,2,1,0,PRSB719,Zarya_Svobody,自由曙光,自由曙光,Zarya S,Zarya S,Zarya Svobody,Zarya S,Заря С
+4267685872,0,6,1,1,1,0,0,PASA026,Independence,独立,独立,Independence,Independence,Independence,Independence,Independence
+3340679152,0,10,3,1,,0,1,PASC910,Black_Puerto_Rico,波多黎各 (黑),波多黎各 B,Puerto Rico B,Puerto Rico B,Puerto Rico B,Puerto Rico B,Puerto Rico B
+3864933840,0,10,4,5,1,0,0,PRSD410,Delny,干练,德尔尼,Delny,Delny,Delny,Delny,Дельный
+4179506480,0,10,4,9,1,0,0,PWSD110,Halland,哈兰,哈兰,Halland,Halland,Halland,Halland,Halland
+3766433072,0,5,2,9,2,1,0,PWSB504,Viribus_Unitis,联合力量,联合力量,Viribus Unitis,Viribus Unitis,Viribus Unitis,Viribus Unitis,Viribus Unitis
+4280170192,0,2,4,2,3,1,0,PJSD014,Tachibana_1912_Asus,枳（L）,橘 Lima,Tachibana L,Tachibana L,Tachibana Lima,橘 L,Tachibana L
+4274927600,0,4,4,1,1,0,0,PASD019,Clemson_1920,克莱姆森,克莱姆森,Clemson,Clemson,Clemson,Clemson,Clemson
+3330193392,0,10,3,1,,0,1,PASC920,Gold_Hawaii,夏威夷 (金),金色夏威夷,Hawaii G,Hawaii G,Hawaii Golden,Hawaii G,Hawaii G
+4184749904,0,5,4,6,1,0,0,PFSD105,Jaguar,美洲豹,美洲豹,Jaguar,Jaguar,Jaguar,Jaguar,Jaguar
+3542005456,0,8,3,2,3,1,0,PJSC718,ARP_Maya,ARP犮,ARP 摩耶,ARP Maya,ARP Maya,ARP Maya,ARP 摩耶,ARP Maya
+4181112272,0,8,5,5,1,0,0,PRSS108,L20,L-20,L-20,L-20,L-20,L-20,L-20,Л-20
+4078909392,0,6,2,4,1,0,0,PBSB206,Renown,声望,声望,Renown,Renown,Renown,Renown,Renown
+3552523472,0,9,2,8,3,1,0,PZSB708,Xuan_Wu,毒龟,玄武,玄武,Xuan Wu,Xuan Wu,Xuan Wu,Xuan Wu
+3763221872,0,7,4,11,3,1,0,PUSD507,Haida,海达,海达人,Haida,Haida,Haida,Haida,Haida
+4185896944,0,4,1,1,1,0,0,PASA104,Langley,兰利,兰利,Langley,Langley,Langley,Langley,Langley
+3762206160,0,8,3,5,2,1,0,PRSC508,Kutuzov_1952,米哈伊尔·库图佐夫,米哈伊尔·库图佐夫,Kutuzov,Kutuzov,Mikhail Kutuzov,Kutuzov,Кутузов
+4293866960,0,4,2,5,4,1,0,PRSB001,Nikolay_I,沙皇尼古拉一世,沙皇尼古拉一世,Nikolai I,Nikolai I,Imperator Nikolai I,Nikolai I,Николай I
+3543020848,0,7,4,9,2,1,0,PWSD717,Stord_1943,斯图尔 '43,斯托德 43,Stord '43,Stord '43,Stord '43,Stord '43,Stord '43
+4179015472,1,10,5,3,1,0,1,PGSS110,U_2501,U-2501 (旧),U-2501 (old),U-2501 (old),U-2501 (old),U-2501 (< 04.10.2022),U-2501 (old),U-2501 (old)
+4285511376,1,6,1,2,1,0,1,PJSA009,Ryujo_1933,枭,龙骧（旧）,Ryūjō (old),Ryūjō (old),Ryūjō (< 23.01.2019),龍驤 (old),Ryūjō (old)
+3550360912,0,10,4,12,3,0,1,PVSD710,La_Pampa,拉潘帕,拉潘帕,La Pampa,La Pampa,La Pampa,La Pampa,La Pampa
+3763222256,0,7,4,7,2,1,0,PISD507,FR25,FR25,FR25,FR25,FR25,FR25,FR25,FR25
+4181636304,0,8,3,8,1,0,0,PZSC108,Harbin,会海,哈尔滨,Harbin,Harbin,Harbin,Harbin,Harbin
+3762239472,0,8,2,1,2,1,0,PASB508,Alabama,阿拉巴马,阿拉巴马,Alabama,Alabama,Alabama,Alabama,Alabama
+3543053520,0,7,3,8,,1,0,PZSC717,Lanzhou,皋海,兰州,Lanzhou,Lanzhou,Lanzhou,Lanzhou,Lanzhou
+4185831376,0,4,3,4,1,0,0,PBSC104,Danae,达娜厄,达娜厄,Danae,Danae,Danae,Danae,Danae
+4180621264,0,9,2,4,1,0,0,PBSB109,Lion,狮级,狮,Lion,Lion,Lion,Lion,Lion
+3541972688,0,8,4,2,3,1,0,PJSD718,AZUR_Yukikaze,AL 莲,AL 雪风,AL Yukikaze,AL Yukikaze,AL Yukikaze,AL 雪風,AL Yukikaze
+4188976336,0,1,3,8,1,0,0,PZSC101,Cheng_An,津安,成安,成安,Chengan,Chengan,Chengan,Chengan
+3549870064,0,10,5,1,3,0,1,PASS710,Archerfish,射水鱼,射水鱼,Archerfish,Archerfish,Archerfish,Archerfish,Archerfish
+4076778960,0,8,3,5,1,0,0,PRSC208,Tallin,塔林,塔林,Tallinn,Tallinn,Tallinn,Tallinn,Таллин
+4181603632,0,8,4,9,1,0,0,PWSD108,Oland,厄兰,厄兰,Öland,Öland,Öland,Öland,Öland
+4069438928,0,5,3,5,1,0,0,PRSC215,Kotovsky,科托夫斯基,科托夫斯基,Kotovsky,Kotovsky,Kotovsky,Kotovsky,Котовский
+4180587856,0,9,3,12,1,0,0,PVSC109,Santander,桑坦德,桑坦德,Santander,Santander,Santander,Santander,Santander
+3760109296,0,10,3,7,2,0,1,PISC510,Napoli,那不勒斯,那不勒斯,Napoli,Napoli,Napoli,Napoli,Napoli
+4075730640,0,9,3,2,1,0,0,PJSC209,Takahashi,狒,高梁,Takahashi,Takahashi,Takahashi,高梁,Takahashi
+3555603760,0,5,4,9,3,1,0,PWSD705,Kalmar,卡尔马,卡尔马,Kalmar,Kalmar,Kalmar,Kalmar,Kalmar
+3729733616,0,9,2,1,3,1,0,PASB539,Illinois,伊利诺伊,伊利诺伊,Illinois,Illinois,Illinois,Illinois,Illinois
+4186847056,0,3,4,6,1,0,0,PFSD103,Fusilier,燧发枪兵,燧发枪兵,Fusilier,Fusilier,Fusilier,Fusilier,Fusilier
+4181636944,0,8,3,6,1,0,0,PFSC108,Charles_Martel,查理·马特,查理-马特,Charles Martel,Charles Martel,Charles Martel,Charles Martel,Charles Martel
+4187928528,0,2,3,4,1,0,0,PBSC102,Weymouth,韦茅斯,韦茅斯,Weymouth,Weymouth,Weymouth,Weymouth,Weymouth
+4183209424,0,6,5,5,1,0,0,PRSS106,S_1,S-1,S-1,S-1,S-1,S-1,S-1,С-1
+4081006544,0,4,2,4,1,0,0,PBSB204,Queen_Mary,玛丽王后,玛丽女王,Queen Mary,Queen Mary,Queen Mary,Queen Mary,Queen Mary
+3319740208,0,10,2,3,,0,1,PGSB930,Pinata_Schliefen,泥头车,冯·祖克霍夫,Von Zuckerhoff,Von Zuckerhoff,Von Zuckerhoff,Von Zuckerhoff,Von Zuckerhoff
+3762206032,0,8,3,12,3,1,0,PVSC508,Almirante_Grau,格劳海军上将,格劳海军上将,Almte. Grau,Almte. Grau,Almirante Grau,Almte. Grau,Almte. Grau
+3551410160,0,9,4,1,4,1,0,PASD709,Black,布莱克,布莱克,Black,Black,Black,Black,Black
+3764270832,0,6,4,7,3,1,0,PISD506,Leone,狮子,狮子,Leone,Leone,Leone,Leone,Leone
+3343791408,0,7,4,9,,1,0,PWSD907,Pirate_Grom,绯红风暴,猩红风暴,Scarlet Storm,Scarlet Storm,Scarlet Storm,Scarlet Storm,Scarlet Storm
+4181112624,0,8,5,3,1,0,1,PGSS108,U190,U-190 (旧),U-190 (old),U-190 (old),U-190 (old),U-190 (< 04.10.2022),U-190 (old),U-190 (old)
+4290688720,0,4,3,2,2,1,0,PJSC004,Yubari_1944,狐,夕张,Yūbari,Yūbari,Yūbari,夕張,Yūbari
+4182652624,0,7,4,2,1,0,0,PJSD107,Akatsuki,蕾,晓,Akatsuki,Akatsuki,Akatsuki,暁,Akatsuki
+4275976016,0,8,4,6,1,0,0,PFSD018,L_Aventurier,冒险家,冒险家,L'Aventurier,L'Aventurier,L'Aventurier,L'Aventurier,L'Aventurier
+3764336624,0,6,2,1,2,1,0,PASB506,Arizona_1941,亚利桑那,亚利桑那,Arizona,Arizona,Arizona,Arizona,Arizona
+3550361424,0,10,4,6,,0,1,PFSD710,Chateaurenault,雷诺堡,雷诺堡,Châteaurenault,Châteaurenault,Châteaurenault,Châteaurenault,Châteaurenault
+3741267792,0,8,2,6,4,1,0,PFSB528,Champagne,香槟,香槟,Champagne,Champagne,Champagne,Champagne,Champagne
+4183799760,0,6,1,4,1,0,0,PBSA106,Furious,暴怒,暴怒,Furious,Furious,Furious,Furious,Furious
+4182718416,0,7,2,4,1,0,0,PBSB107,King_George_V,英王乔治五世,英王乔治五世,King George V,King George V,King George V,King George V,King George V
+4180555504,0,9,4,7,1,0,0,PISD109,Adriatico,亚得里亚海,亚得里亚,Adriatico,Adriatico,Adriatico,Adriatico,Adriatico
+3760142320,0,10,2,1,3,0,1,PASB510,Ohio,俄亥俄,俄亥俄,Ohio,Ohio,Ohio,Ohio,Ohio
+3543053680,0,7,3,11,3,1,0,PUSC717,Gambia,冈比亚,冈比亚,Gambia,Gambia,Gambia,Gambia,Gambia
+4279121744,0,5,4,6,1,0,0,PFSD015,L_Adroit,机敏,机敏,L'Adroit,L'Adroit,L'Adroit,L'Adroit,L'Adroit
+3542037808,0,8,2,9,,1,0,PWSB718,Turgut_Reis,图尔古特·雷斯,图尔古特·雷伊斯,Turgut Reis,Turgut Reis,Turgut Reis,Turgut Reis,Turgut Reis
+4181636848,0,8,3,7,1,0,0,PISC108,Amalfi,阿马尔菲,阿马尔菲,Amalfi,Amalfi,Amalfi,Amalfi,Amalfi
+4078876656,0,6,3,1,1,0,0,PASC206,Dallas,达拉斯,达拉斯,Dallas,Dallas,Dallas,Dallas,Dallas
+4292818736,0,8,2,3,2,1,0,PGSB002,Tirpiz_1942,提尔皮茨,提尔皮茨,Tirpitz,Tirpitz,Tirpitz,Tirpitz,Tirpitz
+3531519984,0,8,3,1,1,0,0,PASC728,Protector,保卫者,保卫者,Protector,Protector,Protector,Protector,Protector
+4284364496,1,9,4,2,1,0,1,PJSD010,Kagero_1943,萩(旧),阳炎 (old),Kagerō (old),Kagerō (old),Kagerō (< 01.12.2016),陽炎 (old),Kagerō (old)
+4279154384,0,3,3,2,1,0,0,PJSC015,Tatsuta_1919,豺,天龙,Tenryū,Tenryū,Tenryū,天龍,Tenryū
+4273911792,0,10,3,1,1,0,0,PASC020,Des_Moines_1948,得梅因,得梅因,Des Moines,Des Moines,Des Moines,Des Moines,Des Moines
+3530504176,0,9,2,1,3,1,0,PASB729,Georgia,乔治亚,佐治亚,Georgia,Georgia,Georgia,Georgia,Georgia
+4183734096,0,6,3,6,1,0,0,PFSC106,La_Galissonniere,拉·加利索尼埃,拉加利索尼埃,La Galissonnière,La Galissonnière,La Galissonnière,La Galissonnière,La Galissonnière
+4178523984,0,11,2,6,2,0,0,PFSB111,Patrie,祖国,祖国,Patrie,Patrie,Patrie,Patrie,Patrie
+4278105904,0,6,3,3,,0,0,PGSC016,Deutschland,德意志,德意志,Deutschland,Deutschland,Deutschland,Deutschland,Deutschland
+4182685520,0,7,3,6,1,0,0,PFSC107,Algerie,阿尔及利亚,阿尔及利亚,Algérie,Algérie,Algérie,Algérie,Algérie
+3550393552,0,10,3,8,2,0,1,PZSC710,Incheon,仁海,仁川,Incheon,Incheon,Incheon,Incheon,Incheon
+4184782256,0,5,3,13,1,0,0,PSSC105,Galicia,加利西亚,加利西亚,Galicia,Galicia,Galicia,Galicia,Galicia
+4076746032,0,8,4,9,1,0,0,PWSD208,Split,斯普利特,斯普利特,Split,Split,Split,Split,Split
+4284429648,0,10,2,12,1,0,0,PVSB010,Libertad,自由,自由,Libertad,Libertad,Libertad,Libertad,Libertad
+3750704336,0,9,2,8,3,1,0,PZSB519,Alsace_Wujing,悟净,悟净,Wujing,Wujing,Wujing,Wujing,Wujing
+3699291600,0,7,3,5,2,1,0,PRSC568,Black_Lazo,拉佐 (黑),拉佐 B,Lazo B,Lazo B,Lazo B,Lazo B,Лазо B
+3761190352,0,9,2,5,2,1,0,PRSB509,Navarin,纳瓦林,纳瓦林,Navarin,Navarin,Navarin,Navarin,Наварин
+4183209776,1,6,5,3,1,0,1,PGSS106,U_69,U-69 (旧),U-69 (old),U-69 (old),U-69 (old),U-69 (< 04.10.2022),U-69 (old),U-69 (old)
+4274992432,0,9,2,9,,0,0,PWSB019,Gustav_den_Store,古斯塔夫大帝,古斯塔夫大帝,Gustav den Store,Gustav den Store,Gustav den Store,Gustav den Store,Gustav den Store
+3555669712,0,5,2,2,3,1,0,PJSB705,Kongou,ARP Kongō,ARP 金刚,ARP Kongō,ARP Kongō,ARP Kongō,ARP 金剛,ARP Kongō
+4276008752,0,8,3,3,1,0,0,PGSC018,Knesebeck,克尼塞伯克,克尼塞伯克,Knesebeck,Knesebeck,Knesebeck,Knesebeck,Knesebeck
+3751786448,0,6,1,4,2,1,0,PBSA518,Ark_Royal,皇家方舟,皇家方舟,Ark Royal,Ark Royal,Ark Royal,Ark Royal,Ark Royal
+4076746544,0,8,4,3,1,0,0,PGSD208,Gustav_Julius_Maerker,G. J. 梅克尔,G.J.梅克尔,G. J. Maerker,G. J. Maerker,Gustav-Julius Maerker,G. J. Maerker,G. J. Maerker
+4079924944,0,5,3,2,1,0,0,PJSC205,Agano,豼,阿贺野,Agano,Agano,Agano,阿賀野,Agano
+3720263632,0,8,3,4,2,1,0,PBSC548,Nottingham,诺丁汉,诺丁汉,Nottingham,Nottingham,Nottingham,Nottingham,Nottingham
+4184815568,0,5,2,4,1,0,0,PBSB105,Iron_Duke,铁公爵,铁公爵,Iron Duke,Iron Duke,Iron Duke,Iron Duke,Iron Duke
+3764303664,0,6,3,3,3,1,0,PGSC506,Admiral_Graf_Spee,施佩伯爵,海军上将施佩伯爵,Graf Spee,Graf Spee,Admiral Graf Spee,Graf Spee,Graf Spee
+3551475536,0,9,2,6,,1,0,PFSB709,Roussillon,鲁西永,鲁西永,Roussillon,Roussillon,Roussillon,Roussillon,Roussillon
+3753817456,0,6,3,11,2,1,0,PUSC516,Mysore,迈索尔,迈索尔,Mysore,Mysore,Mysore,Mysore,Mysore
+4182685456,0,7,3,10,1,0,0,PHSC107,Eendracht,团结,团结,Eendracht,Eendracht,Eendracht,Eendracht,Eendracht
+4074649040,0,10,4,5,1,0,0,PRSD210,Grozovoy_pr_40N,雷暴,雷暴,Grozovoi,Grozovoi,Grozovoi,Grozovoi,Грозовой
+4276041712,0,9,2,1,1,0,0,PASB018,Iowa_1944,依阿华,依阿华,Iowa,Iowa,Iowa,Iowa,Iowa
+4185797936,0,4,4,9,1,0,0,PWSD104,Klas_Horn,克拉斯·霍恩,克拉斯·霍恩,Klas Horn,Klas Horn,Klas Horn,Klas Horn,Klas Horn
+3550426864,0,10,2,7,3,0,1,PISB710,Sicilia,西西里,西西里,Sicilia,Sicilia,Sicilia,Sicilia,Sicilia
+3764336464,0,6,2,6,2,1,0,PFSB506,Dunkerque_1940,敦刻尔克,敦刻尔克,Dunkerque,Dunkerque,Dunkerque,Dunkerque,Dunkerque
+4281251536,0,4,3,2,1,0,0,PJSC013,Kuma_1938,熊,球磨,Kuma,Kuma,Kuma,球磨,Kuma
+3436099408,0,9,3,6,3,1,0,PFSC819,BA_Le_Havre,BA 乌塔那匹兹姆,BA Utnapishtim's Ship,BA Utnapishtim's Ship,BA Utnapishtim's Ship,BA Utnapishtim's Ship,BA Utnapishtim's Ship,BA Utnapishtim's Ship
+3666819056,0,9,2,1,2,1,0,PASB599,Black_Kearsarge,基尔萨奇 （黑）,奇尔沙治 B,Kearsarge B,Kearsarge B,Kearsarge B,Kearsarge B,Kearsarge B
+4265588720,0,8,1,1,1,0,0,PASA028,Yorktown,约克城,约克城,Yorktown,Yorktown,Yorktown,Yorktown,Yorktown
+4185831248,0,4,3,6,1,0,0,PFSC104,Duguay_Trouin,迪盖·特鲁安,迪盖-特鲁安,Duguay-Trouin,Duguay-Trouin,Duguay-Trouin,Duguay-Trouin,Duguay-Trouin
+4180621136,0,9,2,6,1,0,0,PFSB109,Alsace,阿尔萨斯,阿尔萨斯,Alsace,Alsace,Alsace,Alsace,Alsace
+3760076752,0,10,4,4,3,0,1,PBSD510,Druid,德鲁伊,德鲁伊,Druid,Druid,Druid,Druid,Druid
+3553540048,0,7,3,4,,1,0,PBSC707,STPatric_Belfast_1959,博因,博因,Bóinn,Bóinn,Bóinn,Bóinn,Bóinn
+3530471216,0,9,3,3,4,1,0,PGSC729,Blucher,布吕歇尔,布吕歇尔,Blücher,Blücher,Blücher,Blücher,Blücher
+3445536112,0,10,3,11,3,0,1,PUSC810,Black_Brisbane,布里斯班 (黑),布里斯班 B,Brisbane B,Brisbane B,Brisbane B,Brisbane B,Brisbane B
+3764369232,0,6,1,6,2,1,0,PFSA506,Bearn,贝阿恩,贝阿恩,Béarn,Béarn,Béarn,Béarn,Béarn
+3551474896,0,9,2,8,4,1,0,PZSB709,Taihang,太恒,太行,Taihang,Taihang,Taihang,Taihang,Taihang
+4284397328,0,10,3,10,1,0,0,PHSC010,Utrecht,乌得勒支,乌特勒支,Utrecht,Utrecht,Utrecht,Utrecht,Utrecht
+3969824208,0,10,3,5,1,0,0,PRSC310,Petropavlovsk,彼得罗巴甫洛夫斯克,彼得罗巴甫洛夫斯克,Petropavlovsk,Petropavlovsk,Petropavlovsk,Petropavlovsk,Петропавловск
+3763255024,0,7,3,7,2,1,0,PISC507,Duca_degli_Abruzzi,阿布鲁齐,阿布鲁齐公爵,Abruzzi,Abruzzi,Duca degli Abruzzi,Abruzzi,Abruzzi
+3750638896,0,9,4,9,3,1,0,PWSD519,Jager,猎兵,耶格尔,Jäger,Jäger,Jäger,Jäger,Jäger
+4277089584,0,7,2,9,,0,0,PWSB017,Chios,希俄斯,希俄斯,Chios,Chios,Chios,Chios,Chios
+4258182864,0,2,3,2,1,0,0,PJSC035,Chikuma_1912,獾,筑摩,Chikuma,Chikuma,Chikuma,筑摩,Chikuma
+3550426896,0,10,2,10,3,0,1,PHSB710,Willem_de_Eerste,威廉一世,威廉一世,Willem de Eerste,Willem de Eerste,Willem de Eerste,Willem de Eerste,Willem de Eerste
+4186879408,0,3,3,13,1,0,0,PSSC103,Navarra,纳瓦拉,纳瓦拉,Navarra,Navarra,Navarra,Navarra,Navarra
+3752802000,0,7,2,2,2,1,0,PJSB517,Hyuga,螯,日向,Hyūga,Hyūga,Hyūga,日向,Hyūga
+3763320816,1,7,1,1,1,0,1,PASA507,Saipan_1946,塞班,塞班（旧）,Saipan (old),Saipan (old),Saipan (< 23.01.2019),Saipan (old),Saipan (old)
+3655251920,0,10,3,4,3,0,1,PBSC610,Gibraltar,直布罗陀,直布罗陀,Gibraltar,Gibraltar,Gibraltar,Gibraltar,Gibraltar
+4186912720,0,3,2,4,1,0,0,PBSB103,Bellerophon,柏勒罗丰,柏勒罗丰,Bellerophon,Bellerophon,Bellerophon,Bellerophon,Bellerophon
+4181702608,0,8,1,4,1,0,0,PBSA108,Implacable,怨仇,怨仇,Implacable,Implacable,Implacable,Implacable,Implacable
+4076746448,0,8,4,2,1,0,0,PJSD208,Kagero,萩,阳炎,Kagerō,Kagerō,Kagerō,陽炎,Kagerō
+3656333264,0,9,2,4,3,1,0,PBSB609,Scarlet_Thunder,绯红雷霆,猩红雷霆,S. Thunder,S. Thunder,Scarlet Thunder,S.Thunder,S. Thunder
+3762206128,0,8,3,13,2,1,0,PSSC508,Numancia,努曼西亚,努曼西亚,Numancia,Numancia,Numancia,Numancia,Numancia
+4184782608,0,5,3,10,1,0,0,PHSC105,Celebes,苏拉威西,西里伯斯,Celebes,Celebes,Celebes,Celebes,Celebes
+4076746192,0,8,4,5,1,0,0,PRSD208,Pr_30,火力,火力,Ognevoi,Ognevoi,Ognevoi,Ognevoi,Огневой
+3751786192,0,8,1,2,2,1,0,PJSA518,Kaga,鸾,加贺,Kaga,Kaga,Kaga,加賀,Kaga
+3730781648,0,8,2,5,1,0,1,PRSB538,V_I_Lenin,列宁,弗拉基米尔·伊里奇·列宁,V. I. Lenin,V. I. Lenin,V. I. Lenin,V. I. Lenin,В. И. Ленин
+4187895088,0,2,4,9,1,0,0,PWSD102,Tatra,塔特拉,塔特拉,Tátra,Tátra,Tátra,Tátra,Tátra
+3551442640,0,7,3,2,3,1,0,PJSC709,Haguro,ARP犰,ARP 羽黑,ARP Haguro,ARP Haguro,ARP Haguro,ARP 羽黒,ARP Haguro
+4288558800,1,7,4,2,1,0,1,PJSD006,Hatsuharu_1945,梅(旧),初春 (old),Hatsuharu (old),Hatsuharu (old),Hatsuharu (< 01.12.2016),初春 (old),Hatsuharu (old)
+3741235184,0,8,3,1,2,1,0,PASC528,Congress,国会,国会,Congress,Congress,Congress,Congress,Congress
+3730814960,0,8,1,1,2,1,0,PASA538,Hornet,大黄蜂,大黄蜂,Hornet,Hornet,Hornet,Hornet,Hornet
+3549869840,0,10,5,10,,0,1,PHSS710,Tonijn,金枪鱼,金枪鱼,Tonijn,Tonijn,Tonijn,Tonijn,Tonijn
+4182718288,0,7,2,6,1,0,0,PFSB107,Lyon,里昂,里昂,Lyon,Lyon,Lyon,Lyon,Lyon
+4178457808,0,11,4,8,2,0,0,PZSD111,Kunming,春安,昆明,Kunming,Kunming,Kunming,Kunming,Kunming
+3540956624,0,9,3,5,3,1,0,PRSC719,Kozma_Minin,库兹马·米宁,库兹马·米宁,Kozma Minin,Kozma Minin,Kozma Minin,Kozma Minin,Козьма Минин
+4183733680,0,6,3,13,1,0,0,PSSC106,Baleares,巴利阿里,巴利阿里,Baleares,Baleares,Baleares,Baleares,Baleares
+3667867632,0,8,2,1,3,1,0,PASB598,Black_Massachusetts,马萨诸塞 (黑),马萨诸塞 B,Massachusetts B,Massachusetts B,Massachusetts B,Massachusetts B,Massachusetts B
+3754866128,0,5,3,5,3,1,0,PRSC515,Mikoyan,米高扬,米高扬,Mikoyan,Mikoyan,Mikoyan,Mikoyan,Микоян
+4178458064,0,11,4,5,2,0,0,PRSD111,Zorky,敏锐,佐尔基,Zorkiy,Zorkiy,Zorkiy,Zorkiy,Зоркий
+3765384656,0,5,2,5,2,1,0,PRSB505,Oktyabrskaya_Revolutsiya,十月革命,十月革命,Okt. Revolutsiya,Okt. Revolutsiya,Oktyabrskaya Revolutsiya,Okt. Revolutsiya,Окт. революция
+3760142064,0,10,2,7,3,0,1,PISB510,Ruggiero_di_Lauria,鲁杰罗·迪·劳里亚,鲁杰罗·迪·劳里亚,R. Lauria,R. Lauria,Ruggiero di Lauria,R. Lauria,R. Lauria
+4279186736,0,5,2,9,,0,0,PWSB015,Tegetthoff,特格特霍夫,特格特霍夫,Tegetthoff,Tegetthoff,Tegetthoff,Tegetthoff,Tegetthoff
+4188976880,0,1,3,7,1,0,0,PISC101,Eritrea,厄立特里亚,厄立特里亚,Eritrea,Eritrea,Eritrea,Eritrea,Eritrea
+3743365072,0,6,2,4,3,1,0,PBSB526,Repulse,反击,反击,Repulse,Repulse,Repulse,Repulse,Repulse
+4178491376,0,11,3,1,2,0,0,PASC111,Annapolis,安纳波利斯,安纳波利斯,Annapolis,Annapolis,Annapolis,Annapolis,Annapolis
+3435083760,0,10,2,1,3,0,1,PASB820,BA_Montana,BA 蒙大拿,BA 蒙大拿,BA Montana,BA Montana,BA Montana,BA Montana,BA Montana
+3751720144,0,8,3,8,3,1,0,PZSC518,Martel_Wukong,悟空,悟空,Wukong,Wukong,Wukong,Wukong,Wukong
+4179539152,0,10,3,8,1,0,0,PZSC110,Jinan,临海,济南,濟南,Jinan,Jinan,Jinan,Jinan
+3768497968,0,2,3,3,2,1,0,PGSC502,Emden_1908,埃姆登,埃姆登,Emden,Emden,Emden,Emden,Emden
+3763287856,0,7,2,3,2,1,0,PGSB507,Scharnhorst,沙恩霍斯特,沙恩霍斯特,Scharnhorst,Scharnhorst,Scharnhorst,Scharnhorst,Scharnhorst
+4078876368,0,6,3,2,1,0,0,PJSC206,Gokase,麂,五濑,Gokase,Gokase,Gokase,五ヶ瀬,Gokase
+3543054064,0,7,3,7,,1,0,PISC717,Fiume,阜姆,阜姆,Fiume,Fiume,Fiume,Fiume,Fiume
+3759585264,0,10,5,1,3,0,1,PASS510,Gato,小鲨鱼,猫鲨,Gato,Gato,Gato,Gato,Gato
+4186879760,0,3,3,10,1,0,0,PHSC103,Java,爪哇,爪哇,Java,Java,Java,Java,Java
+3740153648,0,9,4,3,4,1,0,PGSD529,ZF_6,ZF-6,ZF-6,ZF-6,ZF-6,ZF-6,ZF-6,ZF-6
+4078843344,0,6,4,5,1,0,0,PRSD206,Pr_7,愤怒,愤怒,Gnevny,Gnevny,Gnevny,Gnevny,Гневный
+4074682352,0,10,3,1,1,0,0,PASC210,Worcester,伍斯特,伍斯特,Worcester,Worcester,Worcester,Worcester,Worcester
+4290655952,0,5,4,2,1,0,0,PJSD004,Minekadze_1920,樱,峰风,Minekaze,Minekaze,Minekaze,峯風,Minekaze
+3345921744,0,5,3,2,,1,0,PJSC905,East_Furutaka_1926,沙漠猎鹰,沙漠猎鹰,Desert Falcon,Desert Falcon,Desert Falcon,Desert Falcon,Desert Falcon
+3542005744,0,8,3,1,3,1,0,PASC718,AZUR_Montpelier,AL 蒙彼利埃,AL 蒙彼利埃,AL Montpelier,AL Montpelier,AL Montpelier,AL Montpelier,AL Montpelier
+4183766992,0,6,2,4,1,0,0,PBSB106,Queen_Elizabeth,伊丽莎白女王,伊丽莎白女王,Queen Elizabeth,Queen Elizabeth,Queen Elizabeth,Queen Elizabeth,Queen Elizabeth
+4184815440,0,5,2,6,1,0,0,PFSB105,Bretagne,布列塔尼,布列塔尼,Bretagne,Bretagne,Bretagne,Bretagne,Bretagne
+3765385200,0,5,2,1,3,1,0,PASB505,Oklahoma,俄克拉荷马,俄克拉荷马,Oklahoma,Oklahoma,Oklahoma,Oklahoma,Oklahoma
+3764271056,0,6,4,4,2,1,0,PBSD506,Gallant,勇敢,勇敢,Gallant,Gallant,Gallant,Gallant,Gallant
+3740218576,0,9,2,8,2,1,0,PZSB529,Sun_Yat_Sen,载之,载之,Sun Yat-Sen,Sun Yat-Sen,Sun Yat-Sen,Sun Yat-Sen,Sun Yat-Sen
+3767448784,0,3,3,8,3,1,0,PZSC503,Ning_Hai,宁海,宁海,寧海,Ning Hai,Ning Hai,Ning Hai,Ning Hai
+4180588272,0,9,3,7,1,0,0,PISC109,Brindisi,布林迪西,布林迪西,Brindisi,Brindisi,Brindisi,Brindisi,Brindisi
+3762205904,0,8,3,8,2,1,0,PZSC508,Irian,伊里安,伊里安,Irian,Irian,Irian,Irian,Irian
+3550394128,0,10,3,10,3,0,1,PHSC710,Prins_Van_Oranje,奥兰治亲王,奥兰治亲王,Prins van Oranje,Prins van Oranje,Prins van Oranje,Prins van Oranje,Prins van Oranje
+3740219088,0,9,2,2,2,1,0,PJSB529,Iwami,鲯,石见,Iwami,Iwami,Iwami,石見,Iwami
+4292785968,0,2,3,3,1,0,0,PGSC002,Drezden_1908,德累斯顿,德累斯顿,Dresden,Dresden,Dresden,Dresden,Dresden
+4180555216,1,7,4,5,1,0,1,PRSD109,Pr_48_Kiev,基辅 (OLD),基辅 (OLD),Kiev (OLD),Kiev (OLD),Kiev (< 06.03.2017),Kiev (OLD),Киев (OLD)
+3437147600,0,8,3,5,3,1,0,PRSC818,Cyber_Dmitry_Pozharsky,赛博朋克,赛博朋克,Kiberpankov,Kiberpankov,Kiberpankov,Kiberpankov,Киберпанков
+4180555056,0,9,4,9,1,0,0,PWSD109,Ostergotland,东约特兰,东约特兰,Östergötland,Östergötland,Östergötland,Östergötland,Östergötland
+4282267344,0,10,4,2,1,0,0,PJSD012,Shimakaze_1943,芒,岛风,Shimakaze,Shimakaze,Shimakaze,島風,Shimakaze
+4075697872,0,9,4,2,1,0,0,PJSD209,Yugumo,榎,夕云,Yūgumo,Yūgumo,Yūgumo,夕雲,Yūgumo
+3762239280,0,8,2,3,4,1,0,PGSB508,Odin,奥丁,奥丁,Odin,Odin,Odin,Odin,Odin
+4252907504,0,10,4,1,1,0,0,PASD040,Burrows,布洛士,布洛士,Burrows,Burrows,Burrows,Burrows,Burrows
+4180588528,0,9,3,1,1,0,0,PASC109,Buffalo,水牛城,水牛城,Buffalo,Buffalo,Buffalo,Buffalo,Buffalo
+3553572560,0,5,2,2,3,1,0,PJSB707,Haruna,ARP鲮,ARP 榛名,ARP Haruna,ARP Haruna,ARP Haruna,ARP 榛名,ARP Haruna
+4288559088,0,7,4,1,1,0,0,PASD006,Mahan_1936,马汉,马汉,Mahan,Mahan,Mahan,Mahan,Mahan
+3762272048,1,8,1,3,1,0,1,PGSA508,Graf_Zeppelin,齐柏林伯爵,齐柏林伯爵（旧）,Graf Zeppelin (old),Graf Zeppelin (old),Graf Zeppelin (< 23.01.2019),Graf Zeppelin (old),Graf Zeppelin (old)
+3721344976,0,7,2,4,3,1,0,PBSB547,Renown_1944,声望 '44,声望 44,Renown '44,Renown '44,Renown '44,Renown '44,Renown '44
+3762271440,0,8,1,8,3,1,0,PZSA508,Saipan_Sanzang,三藏,三藏,Sanzang,Sanzang,Sanzang,Sanzang,Sanzang
+3667801296,0,8,4,8,2,1,0,PZSD598,Black_LoYang,雒安 (黑),洛阳 B,洛陽 B,Loyang B,Loyang B,Loyang B,Loyang B
+4188976912,0,1,3,10,1,0,0,PHSC101,Van_Kinsbergen,范·金斯伯根,范·金斯伯根,Van Kinsbergen,Van Kinsbergen,Van Kinsbergen,Van Kinsbergen,Van Kinsbergen
+3768497488,0,2,3,12,3,1,0,PVSC502,Almirante_Abreu,阿布瑞尤海军上将,阿布瑞尤海军上将,Alm. Abreu,Alm. Abreu,Almirante Abreu,Alm. Abreu,Alm. Abreu
+3543086896,0,7,2,3,2,1,0,PGSB717,Scharnhorst_1943,沙恩霍斯特 '43,沙恩霍斯特43,Scharnhorst '43,Scharnhorst '43,Scharnhorst '43,Scharnhorst '43,Scharnhorst '43
+4075730384,0,9,3,5,1,0,0,PRSC209,Riga,里加,里加,Riga,Riga,Riga,Riga,Рига
+3764303152,0,6,3,9,3,1,0,PWSC506,Elli,埃利,埃利,Elli,Elli,Elli,Elli,Elli
+4289640144,0,5,3,2,1,0,0,PJSC005,Furutaka_1926,狼,古鹰,Furutaka,Furutaka,Furutaka,古鷹,Furutaka
+3341760496,0,9,2,1,,1,0,PASB909,Pirate_Delaware,鸟鸣,鸟啸,Bird Cry,Bird Cry,Bird Cry,Bird Cry,Bird Cry
+3554555600,0,6,4,2,3,1,0,PJSD706,Shinonome,茜,东云,Shinonome,Shinonome,Shinonome,東雲,Shinonome
+3750672080,0,9,3,2,3,1,0,PJSC519,AZUR_Azuma,AL 猉,AL 吾妻,AL Azuma,AL Azuma,AL Azuma,AL 吾妻,AL Azuma
+4282300400,1,7,3,1,1,0,1,PASC012,Pensacola_1944,彭萨科拉,彭萨科拉（旧）,Pensacola (old),Pensacola (old),Pensacola (< 31.05.2018),Pensacola (old),Pensacola (old)
+4277090288,0,10,2,1,1,0,0,PASB017,Montana_1945,蒙大拿,蒙大拿,Montana,Montana,Montana,Montana,Montana
+3667900400,0,8,1,1,2,1,0,PASA598,Black_Saipan,塞班 (黑),塞班 B,Saipan B,Saipan B,Saipan B,Saipan B,Saipan B
+4186912592,0,3,2,6,1,0,0,PFSB103,Turenne,杜伦尼,杜伦尼,Turenne,Turenne,Turenne,Turenne,Turenne
+3750704848,0,9,2,2,4,1,0,PJSB519,Hizen,鲃,肥前,Hizen,Hizen,Hizen,肥前,Hizen
+3719247568,0,9,2,2,3,1,0,PJSB549,Tsurugi,鮣,剑,Tsurugi,Tsurugi,Tsurugi,剣,Tsurugi
+4292818896,0,6,2,4,2,1,0,PBSB002,Warspite_1941,厌战,厌战,Warspite,Warspite,Warspite,Warspite,Warspite
+3332290256,0,8,3,2,1,0,1,PJSC918,Tone_Second,猑2,利根 2,Tone 2,Tone 2,Tone 2,利根 2,Tone 2
+4274960176,0,9,3,3,1,0,0,PGSC019,Manteuffel,曼陀菲尔,曼陀菲尔,Manteuffel,Manteuffel,Manteuffel,Manteuffel,Manteuffel
+3330225968,0,10,2,3,1,0,1,PGSB920,Schlieffen,施里芬,施里芬,Schlieffen,Schlieffen,Schlieffen,Schlieffen,Schlieffen
+3764303056,0,6,3,8,2,1,0,PZSC506,Huang_he,御海,黄河,Huanghe,Huanghe,Huanghe,Huanghe,Huanghe
+3552491280,0,8,3,10,3,1,0,PHSC708,Vrijheid,自由,弗赖海特,Vrijheid,Vrijheid,Vrijheid,Vrijheid,Vrijheid
+4280203248,1,8,3,1,1,0,1,PASC014,New_Orlean_1944,新奥尔良,新奥尔良（旧）,New Orleans (old),New Orleans (old),New Orleans (< 31.05.2018),New Orleans (old),New Orleans (old)
+4182652368,0,9,4,5,1,0,0,PRSD107,Pr_35_Udaloy,无畏,乌达洛伊,Udaloi,Udaloi,Udaloi,Udaloi,Удалой
+3761190192,0,9,2,9,2,1,0,PWSB509,Karl_XIV_Johan,卡尔十四世·约翰,卡尔十四世·约翰,Karl XIV Johan,Karl XIV Johan,Karl XIV Johan,Karl XIV Johan,Karl XIV Johan
+3374266064,0,8,2,2,3,1,0,PJSB878,Ignis_Purgatio,炼狱烈焰,Ignis Purgatio,Ignis Purgatio,Ignis Purgatio,Ignis Purgatio,Ignis Purgatio,Ignis Purgatio
+4282365648,1,8,1,2,1,0,1,PJSA012,Zuikaku_1944,鹬（旧）,翔鹤（旧）,Shōkaku (old),Shōkaku (old),Shōkaku (< 23.01.2019),翔鶴 (old),Shōkaku (old)
+4182685680,0,7,3,1,1,0,0,PASC107,New_Orlean_1944,新奥尔良,新奥尔良,New Orleans,New Orleans,New Orleans,New Orleans,New Orleans
+3761682384,0,8,5,4,2,1,0,PBSS508,Alliance,联盟,联盟,Alliance,Alliance,Alliance,Alliance,Alliance
+3762173776,0,8,4,6,2,1,0,PFSD508,Le_Terrible,可怖,可怖,Le Terrible,Le Terrible,Le Terrible,Le Terrible,Le Terrible
+3751753552,0,9,2,6,3,1,0,PFSB518,Jean_Bart,让·巴尔,让·巴尔,Jean Bart,Jean Bart,Jean Bart,Jean Bart,Jean Bart
+3667867440,0,8,2,3,2,1,0,PGSB598,Black_Tirpitz,提尔皮茨 (黑),提尔皮茨 B,Tirpitz B,Tirpitz B,Tirpitz B,Tirpitz B,Tirpitz B
+4180555568,0,9,4,3,1,0,0,PGSD109,Z_46,Z-46,Z-46,Z-46,Z-46,Z-46,Z-46,Z-46
+4272830448,0,9,4,1,1,0,0,PASD021,Fletcher_1943,弗莱彻,弗莱彻,Fletcher,Fletcher,Fletcher,Fletcher,Fletcher
+3767482160,0,3,2,3,4,1,0,PGSB503,Koenig_Albert,阿尔伯特国王,阿尔伯特国王,K. Albert,K. Albert,König Albert,K. Albert,K. Albert
+4182652656,0,7,4,7,1,0,0,PISD107,Luca_Tarigo,卢卡·塔里戈,卢卡·塔里戈,L. Tarigo,L. Tarigo,Luca Tarigo,L. Tarigo,L. Tarigo
+3767449584,0,3,3,1,2,1,0,PASC503,Charleston,查尔斯顿,查尔斯顿,Charleston,Charleston,Charleston,Charleston,Charleston
+4282299760,0,2,3,11,1,0,0,PUSC012,Port_Jackson,杰克逊港,杰克逊港,Port Jackson,Port Jackson,Port Jackson,Port Jackson,Port Jackson
+4247697392,0,5,3,1,3,1,0,PASC045,Marblehead_1924_Asus,马布尔黑德（L）,马布尔黑德 L,Marblehead L,Marblehead L,Marblehead Lima,Marblehead L,Marblehead L
+4075763696,0,9,2,1,1,0,0,PASB209,Delaware,特拉华,特拉华,Delaware,Delaware,Delaware,Delaware,Delaware
+4279219920,1,9,1,2,1,0,1,PJSA015,Taiho_1944,鹩,大凤（旧）,Taihō (old),Taihō (old),Taihō (< 23.01.2019),大鳳 (old),Taihō (old)
+3752769232,0,7,3,2,2,1,0,PJSC517,Maya,犮,摩耶,Maya,Maya,Maya,摩耶,Maya
+4289607664,0,6,4,1,1,0,0,PASD005,Farragut_1944,法拉格特,法拉格特,Farragut,Farragut,Farragut,Farragut,Farragut
+3344905936,0,6,2,2,1,0,1,PJSB906,Ise_TEST1,鳌2,伊势2,Ise 2,Ise 2,Ise 2,伊勢 2,Ise 2
+3742316528,0,7,2,1,2,1,0,PASB527,West_Virginia_1944,西弗吉尼亚 '44,西弗吉尼亚 44,W. Virginia '44,W. Virginia '44,West Virginia '44,W. Virginia '44,W. Virginia '44
+4273977328,0,10,1,1,1,0,0,PASA020,Essex,埃塞克斯,埃塞克斯,Essex,Essex,Essex,Essex,Essex
+3543086544,0,7,2,5,3,1,0,PRSB717,Arkhangelsk,阿尔汉格尔斯克,阿尔汉格尔斯克,Arkhangelsk,Arkhangelsk,Arkhangelsk,Arkhangelsk,Архангельск
+3741202128,0,8,4,2,3,1,0,PJSD528,Harekaze_2,HSF晴风II型,HSF 晴风 II,HSF Harekaze II,HSF Harekaze II,HSF Harekaze II,HSF 晴風 II,HSF Harekaze II
+3763255248,0,7,3,4,4,1,0,PBSC507,Belfast_1959,贝尔法斯特,贝尔法斯特,Belfast,Belfast,Belfast,Belfast,Belfast
+4277057328,0,7,3,3,1,0,0,PGSC017,Admiral_Scheer,舍尔海军上将,舍尔,Scheer,Scheer,Admiral Scheer,Scheer,Scheer
+3740186416,0,9,3,3,4,1,0,PGSC529,Admiral_Schroder,施罗德,施罗德,Schröder,Schröder,Admiral Schröder,Schröder,Schröder
+3446585136,0,9,3,3,2,1,0,PGSC809,Colorful_Roon,罗恩 炫彩,罗恩CLR,Roon CLR,Roon CLR,Roon CLR,Roon CLR,Roon CLR
+3761190096,0,9,2,8,3,1,0,PZSB509,Izumo_Bajie,八戒,八戒,Bajie,Bajie,Bajie,Bajie,Bajie
+3765352144,0,5,3,2,3,1,0,PJSC505,Yahagi,狸,矢矧,Yahagi,Yahagi,Yahagi,矢矧,Yahagi
+3540989648,0,9,2,2,1,0,0,PJSB719,Hotaka,鲷,武尊,Hotaka,Hotaka,Hotaka,武尊,Hotaka
+4184749520,1,5,4,5,1,0,1,PRSD105,Pr_7_Gnevny,愤怒 (OLD),愤怒 (OLD),Gnevny (OLD),Gnevny (OLD),Gnevny (< 06.03.2017),Gnevny (OLD),Гневный (OLD)
+4179539408,0,10,3,5,2,0,1,PRSC110,Pr_66_Moskva,莫斯科,莫斯科,Moskva,Moskva,Moskva,Moskva,Москва
+3436131792,0,9,2,5,3,1,0,PRSB819,BA_Zarya_Svobody,BA 气垫船,BA Hovercraft,BA Hovercraft,BA Hovercraft,BA Hovercraft,BA Hovercraft,BA Hovercraft
+4179572720,0,10,2,1,1,0,0,PASB110,Vermont,佛蒙特,佛蒙特,Vermont,Vermont,Vermont,Vermont,Vermont
+3531486928,0,8,4,2,,1,0,PJSD728,Shigure,枍,时雨,Shigure,Shigure,Shigure,時雨,Shigure
+3730749392,0,8,3,4,2,1,0,PBSC538,Hampshire,汉普郡,汉普郡,Hampshire,Hampshire,Hampshire,Hampshire,Hampshire
+3751753520,0,8,2,3,2,1,0,PGSB518,Brandenburg,勃兰登堡,勃兰登堡,Brandenburg,Brandenburg,Brandenburg,Brandenburg,Brandenburg
+4182652720,0,7,4,3,1,0,0,PGSD107,Leberecht_Maass,莱伯勒希特·马斯,莱伯勒希特·马斯,Maass,Maass,Leberecht Maass,Maass,Maass
+3764369200,0,6,1,3,3,1,0,PGSA506,Erich_Loewenhardt,埃里希·勒文哈尔特,埃里希·勒文哈尔特,E. Loewenhardt,E. Loewenhardt,Erich Loewenhardt,E. Loewenhardt,E. Loewenhardt
+3334420176,0,6,2,2,1,0,1,PJSB916,Ise_TEST2,鳌3,伊势 3,Ise 3,Ise 3,Ise 3,伊勢 3,Ise 3
+3744380368,0,5,3,5,2,1,0,PRSC525,Kirov,基洛夫,基洛夫,Kirov,Kirov,Kirov,Kirov,Киров
+4277024592,0,7,4,6,1,0,0,PFSD017,Le_Hardi,大胆,斗胆,Le Hardi,Le Hardi,Le Hardi,Le Hardi,Le Hardi
+3760076496,0,10,4,2,2,0,1,PJSD510,Hayate,葵,疾风,Hayate,Hayate,Hayate,疾風,Hayate
+4286527184,0,4,2,2,2,1,0,PJSB008,Ishizuchi_1921,鳗,石锤,Ishizuchi,Ishizuchi,Ishizuchi,石鎚,Ishizuchi
+4281284592,0,4,2,1,5,1,0,PASB013,Arkansas_1912,阿肯色,阿肯色 B,Arkansas B,Arkansas B,Arkansas Beta,Arkansas B,Arkansas B
+4284463088,1,7,1,1,1,0,1,PASA010,Ranger_1944,突击者,突击者（旧）,Ranger (old),Ranger (old),Ranger (< 23.01.2019),Ranger (old),Ranger (old)
+3765352400,0,5,3,4,2,1,0,PBSC505,Exeter,埃克塞特,埃克塞特,Exeter,Exeter,Exeter,Exeter,Exeter
+3760142288,0,10,2,4,3,0,1,PBSB510,Thunderer,雷神,雷神,Thunderer,Thunderer,Thunderer,Thunderer,Thunderer
+3709777360,0,8,3,5,2,1,0,PRSC558,Dmitry_Pozharsky,波扎尔斯基,德米特里·波扎尔斯基,D. Pozharsky,D. Pozharsky,Dmitry Pozharsky,D. Pozharsky,Д. Пожарский
+4178523856,0,11,2,2,2,0,0,PJSB111,Satsuma,鹏,萨摩,Satsuma,Satsuma,Satsuma,薩摩,Satsuma
+4280170480,0,5,4,1,1,0,0,PASD014,Leader_1919,尼古拉斯,尼古拉斯,Nicholas,Nicholas,Nicholas,Nicholas,Nicholas
+4178491120,0,11,3,7,2,0,0,PISC111,Piemonte,皮埃蒙特,皮埃蒙特,Piemonte,Piemonte,Piemonte,Piemonte,Piemonte
+4179604944,0,10,1,5,1,0,0,PRSA110,Admiral_Nakhimov,纳希莫夫,纳希莫夫,Nakhimov,Nakhimov,Admiral Nakhimov,Nakhimov,Нахимов
+3760076144,0,10,4,11,3,0,1,PUSD510,Vampire_2,吸血鬼II,吸血鬼 II,Vampire II,Vampire II,Vampire II,Vampire II,Vampire II
+4186846672,0,3,4,5,1,0,0,PRSD103,Derzky,无理,无理,Derzki,Derzki,Derzki,Derzki,Дерзкий
+4181604080,0,8,4,7,1,0,0,PISD108,Vittorio_Cuniberti,维托里奥·库尼贝尔蒂,维托里奥·库尼贝尔蒂,V. Cuniberti,V. Cuniberti,Vittorio Cuniberti,V. Cuniberti,V. Cuniberti
+3761124656,0,9,4,9,2,1,0,PWSD509,Velos,箭,贝洛斯,Velos,Velos,Velos,Velos,Velos
+4183734224,0,6,3,4,1,0,0,PBSC106,Leander,利安得,利安得,Leander,Leander,Leander,Leander,Leander
+4259231440,0,10,3,2,1,0,0,PJSC034,Zao_1944,象,藏王,Zaō,Zaō,Zaō,蔵王,Zaō
+4182685648,0,7,3,4,1,0,0,PBSC107,Fiji,斐济,斐济,Fiji,Fiji,Fiji,Fiji,Fiji
+4181669872,0,8,2,1,1,0,0,PASB108,Kansas,堪萨斯,堪萨斯,Kansas,Kansas,Kansas,Kansas,Kansas
+3766368080,0,5,4,6,2,1,0,PFSD504,Siroco,热风,热风,Siroco,Siroco,Siroco,Siroco,Siroco
+3761157968,0,9,3,6,2,1,0,PFSC509,Carnot,卡诺,卡诺,Carnot,Carnot,Carnot,Carnot,Carnot
+4184749872,0,5,4,3,1,0,0,PGSD105,T_22,T-22,T-22,T-22,T-22,T-22,T-22,T-22
+4179539760,0,10,3,3,1,0,0,PGSC110,Hindenburg,兴登堡,兴登堡,Hindenburg,Hindenburg,Hindenburg,Hindenburg,Hindenburg
+4293867504,0,3,2,1,1,0,0,PASB001,Michigan_1916,南卡罗来纳,南卡罗来纳,S. Carolina,S. Carolina,South Carolina,S. Carolina,S. Carolina
+3740153840,0,9,4,1,4,1,0,PASD529,Black_Black,布莱克 (黑),布莱克 B,Black B,Black B,Black B,Black B,Black B
+3530471152,0,9,3,7,,1,0,PISC729,Messina,墨西拿,墨西拿,Messina,Messina,Messina,Messina,Messina
+3746477520,0,3,3,5,3,1,0,PRSC523,AZUR_Avrora,AL 阿芙乐尔,AL 阿芙乐尔,AL Avrora,AL Avrora,AL Avrora,AL Avrora,AL Аврора
+3741267408,0,8,2,5,2,1,0,PRSB528,Borodino,博罗季诺,博罗季诺,Borodino,Borodino,Borodino,Borodino,Бородино
+3553539792,0,7,3,2,3,1,0,PJSC707,Ashigara,ARP狳,ARP 足柄,ARP Ashigara,ARP Ashigara,ARP Ashigara,ARP 足柄,ARP Ashigara
+3555636944,0,7,3,2,3,1,0,PJSC705,Myoko,ARP鬣,ARP 妙高,ARP Myōkō,ARP Myōkō,ARP Myōkō,ARP 妙高,ARP Myōkō
+3751720944,0,8,3,1,4,1,0,PASC518,Anchorage,安克雷奇,安克雷奇,Anchorage,Anchorage,Anchorage,Anchorage,Anchorage
+4283414224,1,7,1,2,1,0,1,PJSA011,Hiryu_1942,龙,飞龙（旧）,Hiryū (old),Hiryū (old),Hiryū (< 23.01.2019),飛龍 (old),Hiryū (old)
+3741300720,0,8,1,1,2,1,0,PASA528,Saipan,塞班,塞班,Saipan,Saipan,Saipan,Saipan,Saipan
+3550361584,0,10,4,1,4,0,1,PASD710,Laffey,拉菲,拉菲,Laffey,Laffey,Laffey,Laffey,Laffey
+3762239440,0,8,2,4,2,1,0,PBSB508,Vanguard,前卫,前卫,Vanguard,Vanguard,Vanguard,Vanguard,Vanguard
+3543054128,0,7,3,3,,1,0,PGSC717,Nurnberg_1944,纽伦堡 '44,纽伦堡 44,Nürnberg '44,Nürnberg '44,Nürnberg '44,Nürnberg '44,Nürnberg '44
+4074714928,0,10,2,3,1,0,0,PGSB210,Schlieffen,施里芬,施里芬,Schlieffen,Schlieffen,Schlieffen,Schlieffen,Schlieffen
+3762271696,0,8,1,5,2,1,0,PRSA508,Chkalov,契卡洛夫,契卡洛夫,Chkalov,Chkalov,Chkalov,Chkalov,Чкалов
+3760175056,0,10,1,4,2,0,1,PBSA510,Malta,马耳他,马耳他,Malta,Malta,Malta,Malta,Malta
+4277122768,1,10,1,2,1,0,1,PJSA017,Hakuryu_1942,鹫,白龙（旧）,Hakuryū (old),Hakuryū (old),Hakuryū (< 23.01.2019),白龍 (old),Hakuryū (old)
+3751753168,0,8,2,5,4,1,0,PRSB518,Lenin,列宁,列宁,Lenin,Lenin,Lenin,Lenin,Ленин
+4183733712,0,6,3,5,1,0,0,PRSC106,Pr_94_Budeny,布琼尼,布琼尼,Budyonny,Budyonny,Budyonny,Budyonny,Будённый
+4178523600,0,11,2,5,2,0,0,PRSB111,Admiral_Ushakov,乌沙科夫,乌沙科夫,Ushakov,Ushakov,Admiral Ushakov,Ushakov,Ушаков
+4065212112,0,9,4,2,1,0,0,PJSD219,Kitakaze,蕉,北风,Kitakaze,Kitakaze,Kitakaze,北風,Kitakaze
+4188976432,0,1,3,9,1,0,0,PWSC101,Gryf,狮鹫,狮鹫,Gryf,Gryf,Gryf,Gryf,Gryf
+4183799504,0,6,1,2,1,0,0,PJSA106,Ryujo,枭,龙骧,Ryūjō,Ryūjō,Ryūjō,龍驤,Ryūjō
+4178556912,0,11,1,1,2,0,0,PASA111,United_States,合众国,合众国,United States,United States,United States,United States,United States
+3763255120,0,7,3,6,2,1,0,PFSC507,Toulon,土伦,土伦,Toulon,Toulon,Toulon,Toulon,Toulon
+4266538992,0,3,4,1,1,0,0,PASD027,Wickes_1918,维克斯,维克斯,Wickes,Wickes,Wickes,Wickes,Wickes
+3540957168,0,9,3,1,3,1,0,PASC719,Cambridge,剑桥,剑桥,Cambridge,Cambridge,Cambridge,Cambridge,Cambridge
+4186847024,0,3,4,3,1,0,0,PGSD103,G_101,G-101,G-101,G-101,G-101,G-101,G-101,G-101
+4181636912,0,8,3,3,1,0,0,PGSC108,Hipper,希佩尔海军上将,希佩尔上将,Hipper,Hipper,Admiral Hipper,Hipper,Hipper
+3761157488,0,9,3,11,3,1,0,PUSC509,Hector,赫克托,赫克托耳,Hector,Hector,Hector,Hector,Hector
+3340645584,0,10,4,8,,0,1,PZSD910,Black_Lushun,旅安 (黑),旅顺 B,Lüshun B,Lüshun B,Lüshun B,Lüshun B,Lüshun B
+4077795120,0,7,4,3,1,0,0,PGSD207,Z_31,Z-31,Z-31,Z-31,Z-31,Z-31,Z-31,Z-31
+3550393808,0,10,3,5,3,0,1,PRSC710,Sevastopol,塞瓦斯托波尔,塞瓦斯托波尔,Sevastopol,Sevastopol,Sevastopol,Sevastopol,Севастополь
+4179539280,0,10,3,12,1,0,0,PVSC110,San_Martin,圣马丁,圣马丁,San Martín,San Martín,San Martín,San Martín,San Martín
+3764270928,0,6,4,6,2,1,0,PFSD506,Aigle,鹰,鹰,Aigle,Aigle,Aigle,Aigle,Aigle
+4292753104,0,2,4,2,1,0,0,PJSD002,Umikaze_1925,藤,海风,Umikaze,Umikaze,Umikaze,海風,Umikaze
+3764303280,0,6,3,13,2,1,0,PSSC506,Canarias,加那利,加那利,Canarias,Canarias,Canarias,Canarias,Canarias
+3552523984,0,5,2,2,3,1,0,PJSB708,Hiei_Arpeggio,ARP鱿,ARP 比叡,ARP Hiei,ARP Hiei,ARP Hiei,ARP 比叡,ARP Hiei
+3551475152,0,9,2,5,3,1,0,PRSB709,AZUR_Sov_Russia,AL 苏维埃罗西亚,AL 苏维埃罗西亚,AL Sov. Rossiya,AL Sov. Rossiya,AL Sov. Rossiya,AL Sov. Rossiya,AL Сов. Россия
+3529422672,0,10,3,6,3,0,1,PFSC730,Amiral_Lartigue,拉蒂格上将,拉蒂格上将,Amiral Lartigue,Amiral Lartigue,Amiral Lartigue,Amiral Lartigue,Amiral Lartigue
+3319740400,0,10,2,1,,0,1,PASB930,Black_Rhode_Island,罗德岛 (黑),罗德岛 B,Rhode Island B,Rhode Island B,Rhode Island B,Rhode Island B,Rhode Island B
+4181636528,0,8,3,13,1,0,0,PSSC108,Cataluna,加泰罗尼亚,加泰罗尼亚,Cataluña,Cataluña,Cataluña,Cataluña,Cataluña
+3762239184,0,8,2,2,2,1,0,PJSB508,Kii,鲣,纪伊,Kii,Kii,Kii,紀伊,Kii
+3751687984,0,8,4,3,2,1,0,PGSD518,Z_35,Z-35,Z-35,Z-35,Z-35,Z-35,Z-35,Z-35
+3730782032,0,8,2,6,2,1,0,PFSB538,Flandre,佛兰德,弗兰德尔,Flandre,Flandre,Flandre,Flandre,Flandre
+4180554960,0,9,4,8,1,0,0,PZSD109,Chung_Mu,忠武,忠武,Chung Mu,Chung Mu,Chung Mu,Chung Mu,Chung Mu
+3753817936,0,6,3,6,2,1,0,PFSC516,Dupleix,杜布雷,杜布雷,Dupleix,Dupleix,Dupleix,Dupleix,Dupleix
+3762206480,0,8,3,10,4,1,0,PHSC508,De_Zeven_Provincien,七省,七省,De 7 Provinciën,De 7 Provinciën,De Zeven Provinciën,De 7 Provinciën,De 7 Provinciën
+4075730928,0,9,3,1,1,0,0,PASC209,Seattle,西雅图,西雅图,Seattle,Seattle,Seattle,Seattle,Seattle
+4276041040,0,8,2,12,1,0,0,PVSB018,Ipiranga,伊皮兰加,伊皮兰加,Ipiranga,Ipiranga,Ipiranga,Ipiranga,Ipiranga
+4185830864,0,4,3,5,1,0,0,PRSC104,Svetlana,斯维特拉娜,斯维特拉那,Svietlana,Svietlana,Svietlana,Svietlana,Светлана
+4180620752,0,9,2,5,1,0,0,PRSB109,Sovetsky_Soyuz,苏联,苏联,Sov. Soyuz,Sov. Soyuz,Sovetsky Soyuz,Sov. Soyuz,Сов. Союз
+3437180656,0,8,2,7,3,1,0,PISB818,BA_Marcantonio_Colonna,BA 比纳,BA Binah,BA Binah,BA Binah,BA Binah,BA Binah,BA Binah
+3553572144,0,7,2,9,2,1,0,PWSB707,Lugdunum,卢格杜努姆,卢格杜努姆,Lugdunum,Lugdunum,Lugdunum,Lugdunum,Lugdunum
+4268635856,0,5,4,2,4,1,0,PJSD025,True_Kamikaze,枫,神风,Kamikaze,Kamikaze,Kamikaze,神風,Kamikaze
+4293834096,0,1,3,11,1,0,0,PUSC001,Sutlej,萨特累季河,萨特莱杰,Sutlej,Sutlej,Sutlej,Sutlej,Sutlej
+4181636560,0,8,3,5,1,0,0,PRSC108,Pr_68_Chapaev,恰巴耶夫,恰巴耶夫,Chapayev,Chapayev,Chapayev,Chapayev,Чапаев
+4185896656,0,4,1,2,1,0,0,PJSA104,Hosho,凤,凤翔,Hōshō,Hōshō,Hōshō,鳳翔,Hōshō
+3550459600,0,10,1,2,3,0,1,PJSA710,Shinano,鹗,信浓,Shinano,Shinano,Shinano,信濃,Shinano
+3760142160,0,10,2,6,3,0,1,PFSB510,Bourgogne,勃艮第,勃艮第,Bourgogne,Bourgogne,Bourgogne,Bourgogne,Bourgogne
+4179539792,0,10,3,6,1,0,0,PFSC110,Henri_IV,亨利四世,亨利四世,Henri IV,Henri IV,Henri IV,Henri IV,Henri IV
+3540924368,0,9,4,4,4,1,0,PBSD719,Barfleur,巴夫勒尔,巴夫勒尔,Barfleur,Barfleur,Barfleur,Barfleur,Barfleur
+4273911760,0,10,3,4,2,0,1,PBSC020,Monmouth,蒙茅斯,蒙茅斯,Monmouth,Monmouth,Monmouth,Monmouth,Monmouth
+3731830736,0,7,2,4,2,1,0,PBSB537,Collingwood,科林伍德,科林伍德,Collingwood,Collingwood,Collingwood,Collingwood,Collingwood
+4183734064,0,6,3,3,1,0,0,PGSC106,Nurnberg,纽伦堡,纽伦堡,Nürnberg,Nürnberg,Nürnberg,Nürnberg,Nürnberg
+4178523952,0,11,2,3,2,0,0,PGSB111,Hannover,汉诺威,汉诺威,Hannover,Hannover,Hannover,Hannover,Hannover
+3740185808,0,9,3,8,3,1,0,PZSC529,Mengchong,卧龙,蒙冲,Mengchong,Mengchong,Mengchong,Mengchong,Mengchong
+3540924400,0,9,4,1,3,1,0,PASD719,Johnston,约翰斯顿,约翰斯顿,Johnston,Johnston,Johnston,Johnston,Johnston
+4181636432,0,8,3,12,1,0,0,PVSC108,Ignacio_Allende,伊格纳西奥·阿连德,伊格纳西奥·阿连德,I. Allende,I. Allende,Ignacio Allende,I. Allende,I. Allende
+4079891760,0,5,4,9,1,0,0,PWSD205,Muavenet,支援,穆阿维内特,Muavenet,Muavenet,Muavenet,Muavenet,Muavenet
+3330159920,0,10,4,9,,0,1,PWSD920,PostApoc_Smaland,惊雷卷地,奥韦森,Oväsen,Oväsen,Oväsen,Oväsen,Oväsen
+4288624336,0,6,2,2,1,0,0,PJSB006,Fuso_1943,魟,扶桑,Fusō,Fusō,Fusō,扶桑,Fusō
+3764303312,0,6,3,5,2,1,0,PRSC506,Molotov_1943,莫洛托夫,莫洛托夫,Molotov,Molotov,Molotov,Molotov,Молотов
+3761125360,0,9,4,1,4,1,0,PASD509,Benham,贝纳姆,贝纳姆,Benham,Benham,Benham,Benham,Benham
+4292786160,0,2,3,1,1,0,0,PASC002,Chester_1908,切斯特,切斯特,Chester,Chester,Chester,Chester,Chester
+3750705136,0,9,2,1,2,1,0,PASB519,Kearsarge,基尔萨奇,奇尔沙治,Kearsarge,Kearsarge,Kearsarge,Kearsarge,Kearsarge
+4282365936,1,8,1,1,1,0,1,PASA012,Lexington_1944,列克星敦,列克星敦（旧）,Lexington (old),Lexington (old),Lexington (< 23.01.2019),Lexington (old),Lexington (old)
+4179507152,0,10,4,4,1,0,0,PBSD110,Daring,果敢,果敢,Daring,Daring,Daring,Daring,Daring
+3342808880,0,8,2,3,,1,0,PGSB908,PostApoc_Zieten,狂人,瓦恩辛,Wahnsinn,Wahnsinn,Wahnsinn,Wahnsinn,Wahnsinn
+3753785136,0,6,4,3,2,1,0,PGSD516,Karl_von_Schonberg,K. 勋伯格,卡尔·冯·勋伯格,K. Schönberg,K. Schönberg,Karl von Schönberg,K. Schönberg,K. Schönberg
+4078909232,0,6,2,3,1,0,0,PGSB206,Mackensen,马肯森,马肯森,Mackensen,Mackensen,Mackensen,Mackensen,Mackensen
+3330258928,0,10,1,1,,0,1,PASA920,Pinata_Essex,饺子皮,皮纳塔波利斯,Piñatapolis,Piñatapolis,Piñatapolis,Piñatapolis,Piñatapolis
+4187928016,0,2,3,5,1,0,0,PRSC102,Novik,诺维克,诺维克,Novik,Novik,Novik,Novik,Новик
+4182717904,0,7,2,5,1,0,0,PRSB107,Sinop,锡诺普,锡诺普,Sinop,Sinop,Sinop,Sinop,Синоп
+4186846512,0,3,4,9,1,0,0,PWSD103,Romulus,罗慕路斯,罗慕路斯,Romulus,Romulus,Romulus,Romulus,Romulus
+3361650480,0,10,3,3,3,0,1,PGSC890,Azur_Hindenburg,AL 兴登堡,AL 兴登堡,AL Hindenburg,AL Hindenburg,AL Hindenburg,AL Hindenburg,AL Hindenburg
+4289640432,0,5,3,1,1,0,0,PASC005,Omaha_1923,奥马哈,奥马哈,Omaha,Omaha,Omaha,Omaha,Omaha
+3666786288,0,9,3,1,3,1,0,PASC599,Black_Alaska,阿拉斯加 (黑),阿拉斯加 B,Alaska B,Alaska B,Alaska B,Alaska B,Alaska B
+4285445840,0,8,3,2,1,0,0,PJSC009,Mogami_1935,狮,最上,Mogami,Mogami,Mogami,最上,Mogami
+3761125136,0,9,4,10,2,1,0,PHSD509,Groningen,格罗宁根,格罗宁根,Groningen,Groningen,Groningen,Groningen,Groningen
+3762239312,0,8,2,6,2,1,0,PFSB508,Gascogne,加斯科涅,加斯科涅,Gascogne,Gascogne,Gascogne,Gascogne,Gascogne
+3543021520,0,7,4,4,2,1,0,PBSD717,Jupiter_1942,朱庇特 '42,朱庇特 42,Jupiter '42,Jupiter '42,Jupiter '42,Jupiter '42,Jupiter '42
+4074682320,0,10,3,4,1,0,0,PBSC210,Goliath,歌利亚,哥利亚,Goliath,Goliath,Goliath,Goliath,Goliath
+4185831216,0,4,3,3,1,0,0,PGSC104,Karlsruhe,卡尔斯鲁厄,卡尔斯鲁厄,Karlsruhe,Karlsruhe,Karlsruhe,Karlsruhe,Karlsruhe
+4180621104,0,9,2,3,1,0,0,PGSB109,Friedrich_der_Grosse,腓特烈大帝,腓特烈大帝,F. der Grosse,F. der Grosse,Friedrich der Grosse,F. der Grosse,F. der Grosse
+4269717488,0,4,3,1,1,0,0,PASC024,Phoenix_1917,凤凰城,凤凰城,Phoenix,Phoenix,Phoenix,Phoenix,Phoenix
+4184782288,1,5,3,5,1,0,1,PRSC105,Kirov,基洛夫 (旧),基洛夫 (OLD),Kirov (OLD),Kirov (OLD),Kirov (< 10.06.2020),Kirov (OLD),Киров (OLD)
+3540956368,0,9,3,8,2,1,0,PZSC719,Tianjin,津海,天津,Tianjin,Tianjin,Tianjin,Tianjin,Tianjin
+4183733584,0,6,3,12,1,0,0,PVSC106,Almirante_Cochrane,科克伦海军上将,科克伦海军上将,Almte. Cochrane,Almte. Cochrane,Almirante Cochrane,Almte. Cochrane,Almte. Cochrane
+3751786288,0,8,1,3,2,1,0,PGSA518,Graf_Zeppelin,齐柏林伯爵,齐柏林伯爵,Graf Zeppelin,Graf Zeppelin,Graf Zeppelin,Graf Zeppelin,Graf Zeppelin
+3551442384,1,9,3,5,1,0,0,PRSC709,Vyazma,维亚济马,维亚济马,Vyazma,Vyazma,Vyazma,Vyazma,Вязьма
+4255037136,0,8,3,2,2,1,0,PJSC038,Atago_1944,犬,爱宕,Atago,Atago,Atago,愛宕,Atago
+3763254992,0,7,3,2,3,1,0,PJSC507,Tokachi,狲,十胜,Tokachi,Tokachi,Tokachi,十勝,Tokachi
+3752802288,0,7,2,1,2,1,0,PASB517,Florida,佛罗里达,佛罗里达,Florida,Florida,Florida,Florida,Florida
+4281251184,0,3,3,11,1,0,0,PUSC013,Caradoc,卡拉多克,卡拉多克,Caradoc,Caradoc,Caradoc,Caradoc,Caradoc
+4183734032,0,6,3,10,1,0,0,PHSC106,Kijkduin,凯敦,凯敦,Kijkduin,Kijkduin,Kijkduin,Kijkduin,Kijkduin
+4181604304,0,8,4,4,1,0,0,PBSD108,Lightning,雷电,雷电,Lightning,Lightning,Lightning,Lightning,Lightning
+4292851408,1,4,1,2,1,0,1,PJSA002,Hosho_1939,凤,凤翔（旧）,Hōshō (old),Hōshō (old),Hōshō (< 23.01.2019),鳳翔 (old),Hōshō (old)
+3750672176,0,9,3,3,2,1,0,PGSC519,Aegir,埃吉尔,埃吉尔,Ägir,Ägir,Ägir,Ägir,Ägir
+4081006384,0,4,2,3,1,0,0,PGSB204,Moltke,毛奇,毛奇,Moltke,Moltke,Moltke,Moltke,Moltke
+4184749264,0,5,4,8,1,0,0,PZSD105,Jian_Wei,建威,建威,建威,Jianwei,Jianwei,Jianwei,Jianwei
+4178491344,0,11,3,4,2,0,0,PBSC111,Edgar,埃德加,埃德加,Edgar,Edgar,Edgar,Edgar,Edgar
+4184782576,0,5,3,7,1,0,0,PISC105,Raimondo_Montecuccoli,蒙德库克利,莱蒙多•蒙德库克利,Montecuccoli,Montecuccoli,Raimondo Montecuccoli,Montecuccoli,Montecuccoli
+4179572464,0,10,2,7,1,0,0,PISB110,Cristoforo_Colombo,克里斯托弗·哥伦布,克里斯托弗·哥伦布,C. Colombo,C. Colombo,Cristoforo Colombo,C. Colombo,C. Colombo
+3762206512,0,8,3,3,2,1,0,PGSC508,Prinz_Eugen,欧根亲王,欧根亲王,Prinz Eugen,Prinz Eugen,Prinz Eugen,Prinz Eugen,Prinz Eugen
+3655284528,0,10,2,3,3,0,1,PGSB610,Mecklenburg,梅克伦堡,梅克伦堡,Mecklenburg,Mecklenburg,Mecklenburg,Mecklenburg,Mecklenburg
+4267620048,0,4,3,2,5,1,0,PJSC026,Iwaki_1944,貆,岩城Alpha,Iwaki A,Iwaki A,Iwaki Alpha,磐城 A,Iwaki A
+3765384528,0,5,2,12,2,1,0,PVSB505,Rio_de_Janeiro,里约热内卢,里约热内卢,Rio de Janeiro,Rio de Janeiro,Rio de Janeiro,Rio de Janeiro,Rio de Janeiro
+3550426480,0,10,2,11,3,0,1,PUSB710,Irresistible,无阻,无阻,Irresistible,Irresistible,Irresistible,Irresistible,Irresistible
+4178524144,0,11,2,1,2,0,0,PASB111,Maine,缅因,缅因,Maine,Maine,Maine,Maine,Maine
+3361650384,0,10,3,2,2,0,1,PJSC890,CLR_Zao,象 炫彩,藏王 CLR,Zaō CLR,Zaō CLR,Zaō CLR,蔵王 CLR,Zaō CLR
+4076779472,0,8,3,4,1,0,0,PBSC208,Albemarle,阿尔伯马尔,阿尔伯马尔,Albemarle,Albemarle,Albemarle,Albemarle,Albemarle
+3761190640,0,9,2,7,2,1,0,PISB509,Marco_Polo,马可·波罗,马可波罗,Marco Polo,Marco Polo,Marco Polo,Marco Polo,Marco Polo
+4182718256,0,7,2,3,1,0,0,PGSB107,Gneisenau,格奈森瑙,格奈森瑙,Gneisenau,Gneisenau,Gneisenau,Gneisenau,Gneisenau
+4180587952,0,9,3,13,1,0,0,PSSC109,Andalucia,安达卢西亚,安达卢西亚,Andalucía,Andalucía,Andalucía,Andalucía,Andalucía
+4179506928,0,10,4,7,1,0,0,PISD110,Attilio_Regolo,阿蒂利奥·莱戈洛,阿蒂略·莱戈洛,A. Regolo,A. Regolo,Attilio Regolo,A. Regolo,A. Regolo
+3760109552,0,9,3,1,3,1,0,PASC510,Alaska,阿拉斯加,阿拉斯加,Alaska,Alaska,Alaska,Alaska,Alaska
+4179015664,1,10,5,1,1,0,1,PASS110,Balao,白鱼 (旧),巴劳鱵 (old),Balao (old),Balao (old),Balao (< 04.10.2022),Balao (old),Balao (old)
+4181603792,1,8,4,5,1,0,1,PRSD108,Pr_20i_Tashkent,塔什干 (OLD),塔什干 (OLD),Tashkent (OLD),Tashkent (OLD),Tashkent (< 06.03.2017),Tashkent (OLD),Ташкент (OLD)
+4185830736,0,4,3,12,1,0,0,PVSC104,Cordoba,科尔多瓦,科尔多瓦,Córdoba,Córdoba,Córdoba,Córdoba,Córdoba
+4291737040,0,5,3,5,2,1,0,PRSC003,Murmansk_1944,摩尔曼斯克,摩尔曼斯克,Murmansk,Murmansk,Murmansk,Murmansk,Мурманск
+3542005040,0,8,3,9,,1,0,PWSC718,Regele_Carol_I,卡罗尔一世国王,卡罗尔一世,Regele Carol I,Regele Carol I,Regele Carol I,Regele Carol I,Regele Carol I
+4248745968,0,5,3,1,2,1,0,PASC044,Marblehead_1924,马布尔黑德,马布尔黑德,Marblehead,Marblehead,Marblehead,Marblehead,Marblehead
+3655251664,0,10,3,2,5,0,1,PJSC610,Kitakami,獚,北上,Kitakami,Kitakami,Kitakami,北上,Kitakami
+3552524080,0,8,2,3,,1,0,PGSB708,Bismarck_1941,俾斯麦 '41,俾斯麦 41,Bismarck '41,Bismarck '41,Bismarck '41,Bismarck '41,Bismarck '41
+4183209712,0,6,5,7,,0,1,PISS106,Foca,海豹,福卡,Foca,Foca,Foca,Foca,Foca
+4181112560,0,8,5,7,,0,1,PISS108,Pietro_Micca,皮耶特罗·米卡,皮耶特罗·米卡,Pietro Micca,Pietro Micca,Pietro Micca,Pietro Micca,Pietro Micca
+4179015408,0,10,5,7,,0,1,PISS110,Calvi,卡尔维,卡尔维,Calvi,Calvi,Calvi,Calvi,Calvi
+3552524240,0,8,2,4,,1,0,PBSB708,Prince_of_Wales,威尔士亲王,威尔士亲王,Prince of Wales,Prince of Wales,Prince of Wales,Prince of Wales,Prince of Wales
+3530471408,0,9,3,1,,1,0,PASC729,Fort_Worth,沃斯堡,沃斯堡,Fort Worth,Fort Worth,Fort Worth,Fort Worth,Fort Worth
+3550426448,0,10,2,12,,0,1,PVSB710,Sete_de_Setembro,九月七日,九月七日,Sete de Setembro,Sete de Setembro,Sete de Setembro,Sete de Setembro,Sete de Setembro
+3331208656,0,9,4,5,,1,0,PRSD919,Azur_Tashkent,AL 塔什干,AL 塔什干,AL Tashkent,AL Tashkent,AL Tashkent,AL Tashkent,AL Ташкент
+3330258640,0,10,1,2,,0,1,PJSA920,Azur_Shinano,AL 鹗,AL 信浓,AL Shinano,AL Shinano,AL Shinano,AL 信濃,AL Shinano
+3332323312,0,8,2,1,,1,0,PASB918,Azur_Massachusetts,AL 马萨诸塞,AL 马萨诸塞,AL Massachusetts,AL Massachusetts,AL Massachusetts,AL Massachusetts,AL Massachusetts
+3332289744,0,8,3,8,,1,0,PZSC918,Azur_Harbin,AL 会海,AL 哈尔滨,AL Harbin,AL Harbin,AL Harbin,AL Harbin,AL Harbin
+3342808912,0,8,2,6,,1,0,PFSB908,Azur_Richelieu,AL 黎塞留,AL 黎塞留,AL Richelieu,AL Richelieu,AL Richelieu,AL Richelieu,AL Richelieu
+3530470608,0,9,3,8,,1,0,PZSC729,Baotou,朔海,包头,Baotou,Baotou,Baotou,Baotou,Baotou
+3341760240,0,9,2,7,,1,0,PISB909,Azur_Marco_Polo,AL 马可·波罗,AL 马可波罗,AL Marco Polo,AL Marco Polo,AL Marco Polo,AL Marco Polo,AL Marco Polo
+3321837360,0,8,2,3,,1,0,PGSB928,Hunt_Bismarck_1941,铁血宰相,铁血宰相,Eiserner Kanzler,Eiserner Kanzler,Eiserner Kanzler,Eiserner Kanzler,Eiserner Kanzler
+3341727728,0,9,3,1,,1,0,PASC909,250TH_Fort_Worth,沃斯堡 (金),金色沃斯堡,Fort Worth G,Fort Worth G,Fort Worth Golden,Fort Worth G,Fort Worth G
+3309254640,0,10,2,1,,0,1,PASB940,250TH_Wisconsin,威斯康星 (金),金色威斯康星,Wisconsin G,Wisconsin G,Wisconsin Golden,Wisconsin G,Wisconsin G

@@ -46,59 +46,23 @@ with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
     SHIP_INIT_TABLE_LIST: list = data['SHIP_INIT_TABLE_LIST']
 
-# 类型映射（来自 D_ship_type）
-TYPE_MAP = {
-    'AirCarrier': 1,
-    'Battleship': 2,
-    'Cruiser': 3,
-    'Destroyer': 4,
-    'Submarine': 5
-}
-
-# 国家映射（来自 D_ship_nation）
-NATION_MAP = {
-    'usa': 1,
-    'japan': 2,
-    'germany': 3,
-    'uk': 4,
-    'ussr': 5,
-    'france': 6,
-    'italy': 7,
-    'pan_asia': 8,
-    'europe': 9,
-    'netherlands': 10,
-    'commonwealth': 11,
-    'pan_america': 12,
-    'spain': 13
-}
-
-# 稀有度映射（来自 D_ship_rarity）
-RARITY_MAP = {
-    '': None,
-    'Common': 1,
-    'Uncommon': 2,
-    'Rare': 3,
-    'Epic': 4,
-    'Legendary': 5
-}
-
 # 需要初始化的 PvP 极值记录指标 ID
 METRIC_IDS = [3, 4, 5, 7, 8, 9]
 
 
 def parse_ship_row(row: dict) -> dict:
     """将 CSV 行解析为用于插入的船只参数字典"""
-    ship_id = int(row['ship_id'])
     return {
-        'ship_id': ship_id,
+        'ship_id': int(row['ship_id']),
         'is_old': bool(int(row.get('is_old', 0))),
         'tier': int(row['tier']),
-        'type_id': TYPE_MAP.get(row['type'], 1),
-        'nation_id': NATION_MAP.get(row['nation'], 1),
-        'rarity_id': RARITY_MAP.get(row.get('rarity', '')),
+        'type_id': int(row['type_id']),
+        'nation_id': int(row['nation_id']),
+        'rarity_id': int(row['rarity_id']) if row.get('rarity_id') else None,
         'premium': bool(int(row.get('premium', 0))),
         'special': bool(int(row.get('special', 0))),
-        'index_code': row.get('index', '')
+        'index': row.get('index', ''),
+        'default_name': row.get('default', '')
     }
 
 
@@ -128,7 +92,6 @@ def main(filepath: Path):
     # T_ship_base 数据
     base_data = []
     for s in ships:
-        prefix, name = s['index_code'].split('_', 1)  # 拆分为 index_code 的前缀和名称
         base_data.append((
             s['ship_id'],
             True,               # is_enabled
@@ -139,8 +102,8 @@ def main(filepath: Path):
             s['rarity_id'],
             s['premium'],
             s['special'],
-            prefix,
-            name                # ship_name
+            s['index'],         # index_code
+            s['default_name']   # ship_name
         ))
 
     # 关联统计表数据
