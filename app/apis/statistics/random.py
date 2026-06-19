@@ -6,7 +6,7 @@ from app.utils import DevUtils, RatingUtils
 from app.response import JSONResponse
 from app.loggers import ExceptionLogger
 from app.network import ExternalAPI
-from app.middlewares import RedisClient
+from app.middlewares import RedisClient, BlacklistManager
 from app.models import PlayerModel, ShipModel, UserStatsSyncer
 
 from .basic import BasicAPI, BasicResponse
@@ -85,6 +85,9 @@ class RandomAPI:
             credits_spent += 1
         else:
             user_basic = user['basic']
+
+        if user_basic['clan'] and BlacklistManager.is_clan_blocked(user_basic['clan']['clan_id']):
+            return JSONResponse.API_ClanInBlacklist
         
         error, responses = JSONResponse.extract_data(
             response=await ExternalAPI.get_user_pvp_overall(account_id, access_token)
@@ -304,6 +307,9 @@ class RandomAPI:
                 return user_basic
         else:
             user_basic = user['basic']
+
+        if user_basic['clan'] and BlacklistManager.is_clan_blocked(user_basic['clan']['clan_id']):
+            return JSONResponse.API_ClanInBlacklist
         
         error, response = JSONResponse.extract_data(
             response=await ExternalAPI.get_user_pvp_field(account_id, field, access_token)

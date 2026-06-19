@@ -4,10 +4,9 @@ from dataclasses import dataclass, field
 from app.core import EnvConfig
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse, ResponseDict
-from app.middlewares import RedisClient
+from app.middlewares import RedisClient, BlacklistManager
 from app.models import ShipModel, PlayerModel, RankingModel
 from app.schemas import ShipOriginalData
-from app.utils import RatingUtils
 
 
 OriginalData = ShipOriginalData(
@@ -102,6 +101,9 @@ class UserRankingAPI:
             return record
             
         user_basic = user['basic']
+
+        if user_basic['clan'] and BlacklistManager.is_clan_blocked(user_basic['clan']['clan_id']):
+            return JSONResponse.API_ClanInBlacklist
 
         # 获取并验证符合条件的船只ID列表
         error, ship_ids = JSONResponse.extract_data(

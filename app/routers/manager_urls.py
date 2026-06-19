@@ -42,7 +42,7 @@ def system_stats():
         "disk": psutil.disk_usage('/').percent if is_linux else None
     }
 
-@router.post("/user/{user_id}/", summary="平台拉黑用户并清除排行榜数据")
+@router.post("/block/user/{user_id}/", summary="平台拉黑用户并清除排行榜数据")
 async def getPvEOverall(
     user_id: int = Path(..., description="用户ID")
 ):
@@ -54,6 +54,19 @@ async def getPvEOverall(
         raise HTTPException(status_code=422, detail="Invalid UID")
 
     return await UserManagerAPI.block_user(user_id)
+
+@router.post("/block/clan/{clan_id}/", summary="平台拉黑工会")
+async def getPvEOverall(
+    clan_id: int = Path(..., description="工会ID")
+):
+    # 检查应用状态
+    if not AppState.is_available():
+        return JSONResponse.API_NodeNotAvailable
+    
+    if GameUtils.check_uid(clan_id) == False:
+        raise HTTPException(status_code=422, detail="Invalid UID")
+
+    return await UserManagerAPI.block_clan(clan_id)
 
 @router.get("/database/meta/", summary="数据库统计指标")
 async def getDatabaseMeta():

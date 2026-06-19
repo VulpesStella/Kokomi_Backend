@@ -137,8 +137,7 @@ class ShipModel:
                 SELECT
                     ship_id, 
                     is_enabled
-                FROM
-                    T_ship_base;
+                FROM T_ship_base;
             """
             await cur.execute(sql)
             rows = await cur.fetchall()

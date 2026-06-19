@@ -2,6 +2,28 @@ import csv
 
 from app.core import EnvConfig
 
+SHIP_TYPE_MAP = {
+    1: 'AirCarrier',
+    2: 'Battleship',
+    3: 'Cruiser',
+    4: 'Destroyer',
+    5: 'Submarine'
+}
+SHIP_NATION_MAP = {
+    1: 'usa',
+    2: 'japan',
+    3: 'germany',
+    4: 'uk',
+    5: 'ussr',
+    6: 'france',
+    7: 'italy',
+    8: 'pan_asia',
+    9: 'europe',
+    10: 'netherlands',
+    11: 'commonwealth',
+    12: 'pan_america',
+    13: 'spain'
+}
 
 class DevUtils:
     def read_ship_stats() -> dict:
@@ -38,7 +60,7 @@ class DevUtils:
                 ship_id = str(row['ship_id'])
                 is_old = int(row['is_old'])
                 tier = int(row['tier'])
-                ship_type = row['type']
-                nation = row['nation']
-                result[ship_id] = [is_old, tier, ship_type, nation]
+                type_id = row['type_id']
+                nation_id = row['nation_id']
+                result[ship_id] = [is_old, tier, SHIP_TYPE_MAP.get(type_id), SHIP_NATION_MAP.get(nation_id)]
         return result

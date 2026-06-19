@@ -27,9 +27,6 @@ class BlacklistManager:
     def _save_json_file(cls) -> None:
         """保存数据到 JSON 文件"""
         file_path = EnvConfig.DATA_DIR / 'json/blacklist.json'
-        
-        # 确保目录存在
-        # file_path.parent.mkdir(parents=True, exist_ok=True)
 
         result = {
             "user": cls._users,

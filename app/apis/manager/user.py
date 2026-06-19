@@ -56,3 +56,8 @@ class UserManagerAPI:
             
         return JSONResponse.API_1000_Success
             
+    @ExceptionLogger.handle_program_exception_async
+    async def block_clan(clan_id: int) -> ResponseDict:
+        BlacklistManager.add_clan(clan_id)
+            
+        return JSONResponse.API_1000_Success
