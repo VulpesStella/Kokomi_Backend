@@ -350,6 +350,15 @@ class UserStatsSyncer:
                     WHERE account_id = %s;
                 """
                 await cursor.execute(sql, [account_id])
+            else:
+                sql = """
+                    UPDATE T_user_cache 
+                    SET 
+                        updated_at = NOW() 
+                    WHERE account_id = %s 
+                      AND is_due = FALSE;
+                """
+                await cursor.execute(sql, [account_id])
         else:
             sql = """
                 UPDATE T_user_cache 
