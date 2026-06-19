@@ -64,11 +64,21 @@ async def getDatabaseMeta():
 
 @router.get("/ship/stats/", summary="船只服务器数据")
 async def getShipStats():
-    # DEPRECATED: 该接口后续将弃用
     if EnvConfig.DEV_MODE:
         return JSONResponse.API_NodeNotAvailable
-    
+
     return await MaintenanceAPI.get_ship_stats()
+
+@router.post("/ship/refresh/", summary="刷新船只基础数据表")
+async def refreshShipBase(ships: dict):
+    """从 JSON 数据刷新 T_ship_base 及相关表
+    
+    格式为 { ship_id: [is_old, tier, type_id, nation_id, rarity_id, premium, special, index_code, ship_name], ... }
+    """
+    if EnvConfig.DEV_MODE:
+        return JSONResponse.API_NodeNotAvailable
+
+    return await MaintenanceAPI.refresh_ship_base(ships)
 
 @router.get("/ranking/download/", summary="下载排行榜数据文件")
 async def download_ranking_msgpack(

@@ -1,3 +1,4 @@
+from app.core import EnvConfig
 from app.database import MySQLManager
 from app.loggers import ExceptionLogger
 from app.response import JSONResponse
@@ -121,3 +122,76 @@ class ShipModel:
                 if row[1] > 0:
                     result[row[0]] = [row[1], row[2], row[3], row[4]]
             return JSONResponse.success(result)
+        
+    @ExceptionLogger.handle_database_exception_async
+    async def refresh_ship_base(ships: dict):
+        async with MySQLManager.auto_transaction_cursor() as cur:
+            result = {
+                'insert': 0,
+                'update': 0,
+                'disable': 0
+            }
+
+            constant = EnvConfig.get_constants()
+            sql = """
+                SELECT
+                    ship_id, 
+                    is_enabled
+                FROM
+                    T_ship_base;
+            """
+            await cur.execute(sql)
+            rows = await cur.fetchall()
+            existing_ship_ids = []
+            enabled_ship_ids = []
+            for row in rows:
+                existing_ship_ids.append(row[0])
+                if row[1]:
+                    enabled_ship_ids.append(row[0])
+
+            for ship_id, ship_row in ships.items():
+                ship_id = int(ship_id)
+                if ship_id not in existing_ship_ids:
+                    sql = """
+                        INSERT INTO T_ship_base (
+                            ship_id, is_enabled, is_old, tier, type_id,
+                            nation_id, rarity_id, premium, special, index_code, ship_name
+                        ) VALUES (%s, TRUE, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+                    """
+                    await cur.execute(sql, [ship_id] + ship_row)
+
+                    for table_name in constant.SHIP_INIT_TABLE_LIST:
+                        sql = f"INSERT INTO {table_name} (ship_id) VALUES (%s);"
+                        cur.execute(sql, [ship_id])
+                    
+                    pvp_data = []
+                    for metric_id in [3, 4, 5, 7, 8, 9]:
+                        pvp_data.append((ship_id, metric_id))
+                    sql = """
+                        INSERT INTO T_ship_pvp_record (ship_id, metric_id) VALUES (%s, %s);
+                    """
+                    await cur.executemany(sql, pvp_data)
+                    result['insert'] += 1
+                else:
+                    sql = """
+                        UPDATE T_ship_base
+                        SET 
+                            is_enabled = TRUE, 
+                            is_old = %s, 
+                            rarity_id = %s, 
+                            premium = %s, 
+                            special = %s 
+                        WHERE ship_id = %s;
+                    """
+                    await cur.execute(sql, [ship_id, ship_row[0], ship_row[4], ship_row[5], ship_row[6]])
+                    result['update'] += 1
+
+            for ship_id in enabled_ship_ids:
+                if str(ship_id) not in ships:
+                    sql = """
+                        UPDATE T_ship_base SET is_enabled = FALSE WHERE ship_id = %s;
+                    """
+                    await cur.execute(sql, [ship_id])
+                    result['disable'] += 1
+
+        return JSONResponse.success(result)
