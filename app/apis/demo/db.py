@@ -3,7 +3,8 @@ from app.response import JSONResponse, ResponseDict
 from app.models import (
     DemoPlayerModel, 
     DemoClanModel, 
-    PlatformModel
+    PlatformModel,
+    ShipModel
 )
 
 
@@ -23,6 +24,11 @@ class MySQLAPI:
     @ExceptionLogger.handle_program_exception_async
     async def get_clan_overview(clan_id: int) -> ResponseDict:
         result = await DemoClanModel.read_base(clan_id)
+        return result
+    
+    @ExceptionLogger.handle_program_exception_async
+    async def get_version_overview() -> ResponseDict:
+        result = await ShipModel.get_version_battles()
         return result
     
     @ExceptionLogger.handle_program_exception_async

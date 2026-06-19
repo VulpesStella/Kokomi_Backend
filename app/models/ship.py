@@ -6,6 +6,20 @@ from app.response import JSONResponse
 
 class ShipModel:
     @ExceptionLogger.handle_database_exception_async
+    async def get_version_battles():
+        async with MySQLManager.read_only_cursor() as cur:
+            result = {}
+            sql = """
+                SELECT game_version, total_battles 
+                FROM V_version_battles_total;
+            """
+            await cur.execute(sql)
+            rows = await cur.fetchall()
+            for row in rows:
+                result[row[0]] = row[1]
+            return JSONResponse.success(result)
+
+    @ExceptionLogger.handle_database_exception_async
     async def get_ranking_ship_ids():
         async with MySQLManager.read_only_cursor() as cur:
             result = {}

@@ -129,6 +129,15 @@ async def patchClanDB(
     return result
 
 
+@router.get("/recent/overview/", summary="获取统计到的船只近期数据概览")
+async def getRecentDB():
+    if EnvConfig.DEV_MODE:
+        return JSONResponse.API_NodeNotAvailable
+    
+    result = await MySQLAPI.get_version_overview()
+    return result
+
+
 @router.get("/user/{user_id}/basic/", summary="获取用户游戏接口中的基本信息，仅读取数据")
 async def getUserAPI(
     user_id: int = Path(..., description="用户ID")
