@@ -175,7 +175,6 @@ class PlayerModel:
                 'region': EnvConfig.REGION,
                 'user_id': data[0],
                 'username': data[1],
-                'karma': 0,
                 'created_at': data[2],
                 'clan': clan_data,
                 'insignias': StringUtils.parse_insignias(data[3])
@@ -186,7 +185,6 @@ class PlayerModel:
                 SELECT 
                     is_enabled, 
                     is_public, 
-                    karma, 
                     UNIX_TIMESTAMP(updated_at) 
                 FROM T_user_stats 
                 WHERE account_id = %s;
@@ -196,13 +194,14 @@ class PlayerModel:
             if not data:
                 raise DataIntegrityError(account_id)
             
-            if data[3] is None:
+            if data[2] is None:
                 result['stats'] = False
-            elif not data[0] or not data[1]:
+            elif not data[0]:
+                result['stats'] = None
+            elif not data[1]:
                 result['stats'] = False
             else:
                 result['stats'] = True
-                result['basic']['karma'] = data[2]
             return JSONResponse.success(result)
         
     @ExceptionLogger.handle_database_exception_async

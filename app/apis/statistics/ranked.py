@@ -65,18 +65,24 @@ class RankedAPI:
                 if error:
                     return record
             
+        # 用户不存在
+        if user and user['stats'] is None:
+            return JSONResponse.API_UserNotExist
+        
         # 通过 API 接口读取用户的基本信息：
         # 1. 没有读取到用户的缓存数据
-        # 2. 用户的缓存数据表示该用户可能隐藏战绩或无数据
-        if user is None or not user['stats']:
+        # 2. 用户的缓存数据表示该用户可能隐藏战绩
+        if user is None or user['stats'] != True:
             error, user_basic = JSONResponse.extract_data(
                 response=await BasicAPI.get_user_basic(account_id, access_token)
             )
             if error:
                 return user_basic
         else:
+            # 从数据库中读取到的用户缓存数据
             user_basic = user['basic']
 
+        # 效验用户所在工会是否被拉黑
         if user_basic['clan'] and BlacklistManager.is_clan_blocked(user_basic['clan']['clan_id']):
             return JSONResponse.API_ClanInBlacklist
         
